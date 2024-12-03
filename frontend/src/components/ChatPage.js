@@ -1,81 +1,110 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { io } from 'socket.io-client';
+import io from 'socket.io-client';
+import './ChatPage.css'; // Import a CSS file for better styling
 
-const socket = io('http://localhost:5000');
+const socket = io('http://localhost:5000'); // Adjust the port if needed
 
 function ChatPage() {
   const location = useLocation();
-  const { role, pairId } = location.state;
-
+  const { pairId, role } = location.state || {};
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
+  const [botMessages, setBotMessages] = useState([]); // For the bot chat (tester only)
 
   useEffect(() => {
-    socket.emit('join', { username: role, pair_id: pairId });
+    if (!pairId || !role) {
+      console.error('Missing pairId or role!');
+      return;
+    }
 
+    // Join the pair's room
+    socket.emit('join', { pair_id: pairId, username: role });
+
+    // Listen for new messages
     socket.on('message', (data) => {
-      setMessages((prevMessages) => [...prevMessages, data]);
+      if (data.sender === 'bot' && role === 'tester') {
+        setBotMessages((prev) => [...prev, data.message]);
+      } else {
+        setMessages((prev) => [...prev, `${data.sender}: ${data.message}`]);
+      }
     });
 
     return () => {
-      socket.disconnect();
+      socket.off('message');
     };
   }, [pairId, role]);
 
-  const sendMessage = async () => {
+  const sendMessage = () => {
     if (!message.trim()) return;
-    socket.emit('message', { sender: role, message, pair_id: pairId });
-    setMessages((prevMessages) => [...prevMessages, { sender: role, message }]);
+
+    socket.emit('message', {
+      pair_id: pairId,
+      sender: role,
+      message,
+    });
+
+    if (role === 'tester') {
+      setMessages((prev) => [...prev, `You: ${message}`]);
+    } else {
+      setMessages((prev) => [...prev, `You (Experimenter): ${message}`]);
+    }
     setMessage('');
   };
 
   return (
-    <div style={{ margin: '20px auto', maxWidth: '600px' }}>
-      <h1 style={{ textAlign: 'center' }}>{role === 'tester' ? 'Tester Chat' : 'Experimenter Chat'}</h1>
-      <div
-        style={{
-          border: '1px solid #ccc',
-          borderRadius: '8px',
-          height: '400px',
-          overflowY: 'scroll',
-          padding: '10px',
-          backgroundColor: '#f9f9f9',
-        }}
-      >
-        {messages.map((msg, index) => (
-          <p key={index} style={{ margin: '5px 0', fontWeight: msg.sender === role ? 'bold' : 'normal' }}>
-            <span style={{ color: msg.sender === role ? '#007BFF' : '#555' }}>{msg.sender}:</span> {msg.message}
-          </p>
-        ))}
-      </div>
-      <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center' }}>
+    <div className="chat-container">
+      {role === 'tester' && (
+        <>
+          {/* Chat window for messages with the experimenter */}
+          <div className="chat-window">
+            <div className="chat-header">Chat with Experimenter</div>
+            <div className="chat-messages">
+              {messages.map((msg, index) => (
+                <p className="message" key={index}>
+                  {msg}
+                </p>
+              ))}
+            </div>
+          </div>
+
+          {/* Chat window for messages with the bot */}
+          <div className="chat-window">
+            <div className="chat-header">Chat with Bot</div>
+            <div className="chat-messages">
+              {botMessages.map((msg, index) => (
+                <p className="message" key={index}>
+                  {msg}
+                </p>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {role === 'experimenter' && (
+        <div className="chat-window chat-experimenter">
+          <div className="chat-header">Chat with Tester</div>
+          <div className="chat-messages">
+            {messages.map((msg, index) => (
+              <p className="message" key={index}>
+                {msg}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Common input field */}
+      <div className="chat-input">
         <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message"
-          style={{
-            flex: 1,
-            padding: '10px',
-            fontSize: '16px',
-            borderRadius: '5px',
-            border: '1px solid #ccc',
-            marginRight: '10px',
-          }}
+          placeholder="Type your message here..."
+          className="input-box"
         />
-        <button
-          onClick={sendMessage}
-          style={{
-            padding: '10px 20px',
-            fontSize: '16px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-          }}
-        >
+        <button onClick={sendMessage} className="send-button">
           Send
         </button>
       </div>

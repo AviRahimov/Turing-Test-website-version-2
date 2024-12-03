@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { io } from 'socket.io-client';
+import io from 'socket.io-client';
 
 const socket = io('http://localhost:5000'); // Adjust the port if needed
 
 function LoadingPage() {
   const [name, setName] = useState('');
   const [status, setStatus] = useState('');
-  const [pairId, setPairId] = useState(null);
-  const [role, setRole] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
@@ -24,16 +22,17 @@ function LoadingPage() {
         console.log('waiting');
         setStatus(response.data.message);
         socket.on('paired', (data) => {
-          // logging message
-          console.log('paired', data);
-          setPairId(data.pair_id);
-          setRole(data.role);
-          navigate(`/chat/${data.pair_id}`, { state: { role: data.role } });
+          // Log pairing data for debugging
+          console.log('Paired:', data);
+
+          // Navigate to ChatPage with pairId and role
+          navigate(`/chat/${data.pair_id}`, { state: { pairId: data.pair_id, role: data.role } });
         });
       } else if (response.data.status === 'paired') {
-        setPairId(response.data.pair_id);
-        setRole(response.data.role);
-        navigate(`/chat/${response.data.pair_id}`, { state: { role: response.data.role } });
+        console.log('Paired immediately:', response.data);
+
+        // Navigate to ChatPage with pairId and role
+        navigate(`/chat/${response.data.pair_id}`, { state: { pairId: response.data.pair_id, role: response.data.role } });
       } else {
         setStatus('Error: Unable to pair. Try again.');
       }

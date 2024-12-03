@@ -1,0 +1,95 @@
+/* General container for the chat page */
+.chat-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  padding: 20px;
+  gap: 20px;
+}
+
+/* For the individual chat windows */
+.chat-window {
+  flex: 1;
+  min-width: 300px;
+  max-width: 500px;
+  height: 400px;
+  border: 2px solid #2196f3;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  background-color: #f9f9f9;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* For the header of each chat window */
+.chat-header {
+  background-color: #2196f3;
+  color: white;
+  padding: 10px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+/* Message container inside the chat window */
+.chat-messages {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+/* Styling individual messages */
+.message {
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #e1f5fe;
+  max-width: 70%;
+  word-wrap: break-word;
+}
+
+/* Tester and Experimenter-specific styles */
+.chat-experimenter {
+  width: 100%;
+  max-width: 800px;
+}
+
+/* Input field and send button */
+.chat-input {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.input-box {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.send-button {
+  padding: 10px 20px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.send-button:hover {
+  background-color: #1976d2;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .chat-container {
+    flex-direction: column;
+    align-items: center;
+  }
+}

@@ -65,13 +65,30 @@ def home():
 
 @socketio.on('join')
 def on_join(data):
-    print("data received: ", data)
-    print("pairs: ", pairs)
-    username = data['username']
-    # pair_id = pairs.get(0)
-    pair_id = data['pair_id'] # gives an error
-    join_room(pair_id)
-    emit('joined_room', {'username': username, 'pair_id': pair_id}, to=pair_id)
+    # Debugging: Print received data
+    print("Received data in on_join:", data)
+
+    # Ensure the pair_id exists
+    if 'pair_id' not in data:
+        print("Error: 'pair_id' not found in data!")
+        return
+
+    pair_id = data['pair_id']
+    username = data.get('username', 'unknown')
+    sid = request.sid  # Get the client's session ID
+
+    if not sid:
+        print("Error: No session ID (sid) found!")
+        return
+
+    # Join the room
+    try:
+        join_room(pair_id)
+        print(f"{username} (SID: {sid}) has joined room {pair_id}")
+        emit('joined_room', {'username': username, 'pair_id': pair_id}, to=pair_id)
+    except Exception as e:
+        print(f"Error joining room {pair_id}: {e}")
+
 
 
 @socketio.on('message')
