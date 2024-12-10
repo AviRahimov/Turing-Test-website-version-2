@@ -1,4 +1,8 @@
 /* General container for the chat page */
+body {
+  background-image: url("background_image.jpg");
+}
+
 .chat-container {
   display: flex;
   flex-direction: column;
@@ -18,8 +22,8 @@
 /* For the individual chat windows */
 .chat-window {
   flex: 1;
-  min-width: 300px;
-  height: 400px;
+  min-width: 400px;
+  height: 500px;
   border: 2px solid #2196f3;
   border-radius: 10px;
   display: flex;
@@ -73,11 +77,24 @@
 }
 
 
-.chat-container.shuffling .chat-boxes {
-  opacity: 0;
-  animation: fadeAndSlideIn 3s forwards;
+.chat-container.shuffling .chat-window {
+  animation: flip 7s ease-in-out forwards;
 }
 
+@keyframes flip {
+  0% {
+    transform: perspective(600px) rotateY(0deg) translateX(0);
+    opacity: 1;
+  }
+  50% {
+    transform: perspective(600px) rotateY(180deg) translateY(-50px);
+    opacity: 0; /* Make it invisible halfway through */
+  }
+  100% {
+    transform: perspective(600px) rotateY(0deg) translateX(50px);
+    opacity: 1; /* Return to visible */
+  }
+}
 
 .fade {
   opacity: 0;
@@ -89,21 +106,21 @@
   transition: opacity 1s ease-in-out;
 }
 
-.shuffling {
-  animation: fadeOutIn 3s linear;
-}
+/*.shuffling {*/
+/*  animation: fadeOutIn 3s linear;*/
+/*}*/
 
-@keyframes fadeOutIn {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
+/*@keyframes fadeOutIn {*/
+/*  0% {*/
+/*    opacity: 1;*/
+/*  }*/
+/*  50% {*/
+/*    opacity: 0;*/
+/*  }*/
+/*  100% {*/
+/*    opacity: 1;*/
+/*  }*/
+/*}*/
 
 
 

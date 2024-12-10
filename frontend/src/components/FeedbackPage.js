@@ -1,90 +1,172 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const FeedbackPage = () => {
-  const [experience, setExperience] = useState('');
-  const [comments, setComments] = useState('');
-  const [improvements, setImprovements] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const location = useLocation();
+  const { realIdentityA, realIdentityB, locations, name } = location.state || {};
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    experience: '',
+    comments: '',
+    improvements: '',
+    guessCandidateA: '',
+    guessCandidateB: '',
+    ratingCandidateA: '',
+    ratingCandidateB: '',
+  });
 
-    const feedbackData = {
-      experience,
-      comments,
-      improvements,
-    };
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-    console.log('Feedback Submitted:', feedbackData);
-
-    // Example API call for feedback submission
-    // fetch('/api/submit_feedback', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(feedbackData),
-    // }).then(() => {
-    //   setSubmitted(true);
-    // });
-
-    setSubmitted(true);
+    setFormData((prevData) => {
+      if (name === 'guessCandidateA') {
+        return {
+          ...prevData,
+          [name]: value,
+          guessCandidateB: value === 'Bot' ? 'human' : 'Bot', // Automatically set Candidate B
+        };
+      }
+      return { ...prevData, [name]: value };
+    });
   };
 
-  if (submitted) {
-    return (
-      <div style={styles.container}>
-        <h1 style={styles.thankYouText}>Thank you for your feedback!</h1>
-      </div>
-    );
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch('/api/save_feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          realIdentityA,
+          realIdentityB,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.status === 'success') {
+        navigate('/thank_you', { state: { role: 'tester', name: name} });
+      } else {
+        alert('Failed to submit feedback. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+    }
+  };
 
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>Feedback Form</h1>
       <form style={styles.form} onSubmit={handleSubmit}>
-        <label style={styles.label} htmlFor="experience">
-          1. How would you rate your experience?
+        <label style={styles.label}>
+          How would you describe your overall experience?
+          <textarea
+            name="experience"
+            value={formData.experience}
+            onChange={handleChange}
+            style={styles.textarea}
+            required
+          />
         </label>
-        <select
-          id="experience"
-          style={styles.input}
-          value={experience}
-          onChange={(e) => setExperience(e.target.value)}
-          required
-        >
-          <option value="" disabled>Select your answer</option>
-          <option value="excellent">Excellent</option>
-          <option value="good">Good</option>
-          <option value="average">Average</option>
-          <option value="poor">Poor</option>
-        </select>
-
-        <label style={styles.label} htmlFor="comments">
-          2. What did you think about the interaction?
+        <label style={styles.label}>
+          Do you have any comments about the conversation?
+          <textarea
+            name="comments"
+            value={formData.comments}
+            onChange={handleChange}
+            style={styles.textarea}
+            required
+          />
         </label>
-        <textarea
-          id="comments"
-          style={styles.textarea}
-          rows="4"
-          placeholder="Write your feedback here..."
-          value={comments}
-          onChange={(e) => setComments(e.target.value)}
-          required
-        />
-
-        <label style={styles.label} htmlFor="improvements">
-          3. How can we improve?
+        <label style={styles.label}>
+          What could be improved in this experiment?
+          <textarea
+            name="improvements"
+            value={formData.improvements}
+            onChange={handleChange}
+            style={styles.textarea}
+          />
         </label>
-        <textarea
-          id="improvements"
-          style={styles.textarea}
-          rows="4"
-          placeholder="Share your suggestions..."
-          value={improvements}
-          onChange={(e) => setImprovements(e.target.value)}
-          required
-        />
-
-        <button style={styles.button} type="submit">
+        <div style={styles.splitContainer}>
+          <div style={styles.column}>
+            <h2 style={styles.subHeader}>Candidate A</h2>
+            <p>Location at the chat room: {locations?.A?.location || 'Unknown'}</p>
+            <label style={styles.label}>
+              Who do you think Candidate A was?
+              <select
+                name="guessCandidateA"
+                value={formData.guessCandidateA}
+                onChange={handleChange}
+                style={styles.select}
+                required
+              >
+                <option value="" disabled>
+                  Select an option
+                </option>
+                <option value="human">Human</option>
+                <option value="Bot">Bot</option>
+              </select>
+            </label>
+            <label style={styles.label}>
+              How would you rate Candidate A? (1-5)
+              <select
+                name="ratingCandidateA"
+                value={formData.ratingCandidateA}
+                onChange={handleChange}
+                style={styles.select}
+                required
+              >
+                <option value="" disabled>
+                  Select a rating
+                </option>
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <option key={rating} value={rating}>
+                    {rating}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div style={styles.column}>
+            <h2 style={styles.subHeader}>Candidate B</h2>
+            <p>Location at the chat room: {locations?.B?.location || 'Unknown'}</p>
+            <label style={styles.label}>
+              Who do you think Candidate B was?
+              <select
+                name="guessCandidateB"
+                value={formData.guessCandidateB}
+                onChange={handleChange}
+                style={styles.select}
+                disabled
+              >
+                <option value="human">Human</option>
+                <option value="Bot">Bot</option>
+              </select>
+            </label>
+            <label style={styles.label}>
+              How would you rate Candidate B? (1-5)
+              <select
+                name="ratingCandidateB"
+                value={formData.ratingCandidateB}
+                onChange={handleChange}
+                style={styles.select}
+                required
+              >
+                <option value="" disabled>
+                  Select a rating
+                </option>
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <option key={rating} value={rating}>
+                    {rating}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+        <button type="submit" style={styles.button}>
           Submit Feedback
         </button>
       </form>
@@ -94,58 +176,82 @@ const FeedbackPage = () => {
 
 const styles = {
   container: {
-    fontFamily: 'Arial, sans-serif',
-    backgroundColor: '#f8f9fa',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
+    margin: '0 auto',
+    maxWidth: '800px',
     padding: '20px',
+    fontFamily: "'Arial', sans-serif",
+    backgroundColor: '#f9f9f9',
+    borderRadius: '10px',
+    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
   },
   header: {
-    fontSize: '2em',
+    textAlign: 'center',
     color: '#333',
-    marginBottom: '1em',
+    fontSize: '28px',
+    marginBottom: '20px',
   },
   form: {
-    width: '100%',
-    maxWidth: '500px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '1em',
+    gap: '15px',
   },
   label: {
-    fontSize: '1em',
+    fontWeight: 'bold',
+    fontSize: '16px',
     color: '#555',
-  },
-  input: {
-    padding: '0.8em',
-    fontSize: '1em',
-    borderRadius: '4px',
-    border: '1px solid #ccc',
+    marginBottom: '5px',
   },
   textarea: {
-    padding: '0.8em',
-    fontSize: '1em',
-    borderRadius: '4px',
+    width: '100%',
+    padding: '10px',
+    fontSize: '14px',
+    borderRadius: '5px',
+    border: '1px solid #ccc',
+    resize: 'vertical',
+  },
+  select: {
+    width: '100%',
+    padding: '10px',
+    fontSize: '14px',
+    borderRadius: '5px',
     border: '1px solid #ccc',
   },
+  splitContainer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '20px',
+  },
+  column: {
+    flex: '1',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    backgroundColor: '#fff',
+    borderRadius: '8px',
+    padding: '15px',
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+  },
+  subHeader: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: '10px',
+  },
   button: {
-    padding: '0.8em',
-    fontSize: '1em',
+    marginTop: '20px',
     backgroundColor: '#007bff',
     color: '#fff',
+    fontSize: '16px',
+    padding: '10px',
     border: 'none',
-    borderRadius: '4px',
+    borderRadius: '5px',
     cursor: 'pointer',
-    transition: 'background-color 0.3s',
-  },
-  thankYouText: {
-    fontSize: '2em',
-    color: '#333',
     textAlign: 'center',
   },
+  buttonHover: {
+    backgroundColor: '#0056b3',
+  },
 };
+
 
 export default FeedbackPage;

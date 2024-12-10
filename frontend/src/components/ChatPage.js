@@ -9,24 +9,59 @@ const socket = io('http://localhost:5000'); // Adjust the port if needed
 function ChatPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { pairId, role } = location.state || {};
-  const [messages, setMessages] = useState([]);
-  const [botMessages, setBotMessages] = useState([]);
+  const { pairId, role, name } = location.state || {};
+  const [messages, setMessages] = useState([]); // Chat with experimenter
+  const [botMessages, setBotMessages] = useState([]); // Chat with bot
   const [messageToExperimenter, setMessageToExperimenter] = useState('');
   const [messageToBot, setMessageToBot] = useState('');
-  const [timer, setTimer] = useState(180); // Pre-shuffle: 3 minutes
-  const [realTestTimer, setRealTestTimer] = useState(null); // Turing Test: 5 minutes
+  const [timer, setTimer] = useState(15); // Debugging: 15 seconds
+  const [realTestTimer, setRealTestTimer] = useState(null); // Debugging: 5 minutes
   const [showIdentity, setShowIdentity] = useState(true);
   const [candidateMapping, setCandidateMapping] = useState({ A: '', B: '' });
   const [shuffling, setShuffling] = useState(false);
   const [candidates, setCandidates] = useState({ A: 'Experimenter', B: 'Bot' });
   const [fadeIn, setFadeIn] = useState(false); // For smooth transition
+  const [candidateLocations, setCandidateLocations] = useState({});
+
+  // Helper to save chat logs
+  const saveChatLogs = async (title) => {
+    const chatData = {
+      pairId,
+      title,
+      testerChatWithExperimenter: messages,
+      testerChatWithBot: botMessages,
+    };
+    console.log('Chat data being sent:', chatData); // Debug log
+
+    try {
+    const response = await axios.post('/api/save_chat', chatData);
+    console.log('Response from server:', response.data); // Debug log
+  } catch (error) {
+    console.error('Error saving chat logs:', error);
+  }
+};
 
   useEffect(() => {
     // Randomly assign candidates
     const roles = ['Experimenter', 'Bot'];
     const shuffled = roles.sort(() => Math.random() - 0.5);
 
+    let locations = {};
+    // Add locations for candidates
+    if (shuffled[0] === roles[0]) {
+        locations = {
+        A: { name: shuffled[0], location: 'Right room' },
+        B: { name: shuffled[1], location: 'Left room' }
+      };
+    }
+    else {
+        locations = {
+        A: { name: shuffled[0], location: 'Left room' },
+        B: { name: shuffled[1], location: 'Right room' }
+      };
+    }
+
+    setCandidateLocations(locations);
     // Assign roles and trigger fade effect
     setCandidates({ A: shuffled[0], B: shuffled[1] });
 
@@ -72,7 +107,7 @@ useEffect(() => {
   // Handle shuffle logic when pre-shuffle timer reaches 0
   // Countdown for pre-shuffle timer
 useEffect(() => {
-  if (role === 'tester') {
+  // if (role === 'tester') {
     const countdownInterval = setInterval(() => {
       setTimer((prev) => {
         if (prev > 0) {
@@ -85,11 +120,12 @@ useEffect(() => {
     }, 1000); // Run every second
 
     return () => clearInterval(countdownInterval); // Cleanup on unmount
-  }
+  // }
 }, [role]);
 
 // Handle shuffle logic when pre-shuffle timer reaches 0
 useEffect(() => {
+  console.log('Checking timer:', timer); // Debug log
   if (role === 'tester' && timer === 0) {
     setShuffling(true);
 
@@ -98,16 +134,41 @@ useEffect(() => {
       const roles = ['bot', 'experimenter'];
       const shuffledRoles = [...roles].sort(() => Math.random() - 0.5);
 
+      let locations = {};
+      // Add locations for candidates
+      if (shuffledRoles[0] === roles[0]) {
+          locations = {
+          A: { name: shuffledRoles[0], location: 'Right room' },
+          B: { name: shuffledRoles[1], location: 'Left room' }
+        };
+      }
+      else {
+          locations = {
+          A: { name: shuffledRoles[0], location: 'Left room' },
+          B: { name: shuffledRoles[1], location: 'Right room' }
+        };
+      }
+
+      setCandidateLocations(locations);
       // Assign roles explicitly to Candidate A and Candidate B
       setCandidateMapping({ A: shuffledRoles[0], B: shuffledRoles[1] });
       setShowIdentity(false);
       setShuffling(false);
 
-      setRealTestTimer(300); // Start the real test timer (5 minutes)
+      saveChatLogs('Before Turing Test'); // Save chat logs before the Turing Test
+      setMessages([]); // Clear chat with experimenter
+      setBotMessages([]); // Clear chat with bot
+
+      setRealTestTimer(30); // Debugging: Real Turing Test starts (30 seconds)
+      console.log('Real test timer started for both roles'); // Debug log
     }, 3000); // 3-second shuffle animation
-  } else if (timer === 60) {
-    alert('In one minute, you will start the real Turing Test. Be ready.');
   }
+  else if (role === 'experimenter' && timer === 0) {
+    setRealTestTimer(27);
+  }
+  // else if (timer === 60) {
+  //   alert('In one minute, you will start the real Turing Test. Be ready.');
+  // }
 }, [timer, role]);
 
 // Countdown for the real Turing Test
@@ -128,19 +189,44 @@ useEffect(() => {
   return () => clearInterval(realTestInterval); // Cleanup on unmount
 }, [realTestTimer]);
 
-// Navigate to the feedback page when the test ends
-useEffect(() => {
-  if (realTestTimer === 60) {
-    alert('1 minute remaining for the Turing Test.');
-  } else if (realTestTimer === 0) {
-    if (role === 'tester') {
-      navigate('/feedback');
-    } else if (role === 'experimenter') {
-      navigate('/thank_you');
-    }
-  }
-}, [realTestTimer, role, navigate]);
+// // Navigate to the feedback page when the test ends
+// useEffect(() => {
+//   if (realTestTimer === 60) {
+//     alert('1 minute remaining for the Turing Test.');
+//   } else if (realTestTimer === 0) {
+//     saveChatLogs();
+//     if (role === 'tester') {
+//       navigate('/feedback');
+//     } else if (role === 'experimenter') {
+//       navigate('/thank_you');
+//     }
+//   }
+// }, [realTestTimer, role, navigate]);
 
+// Navigate to appropriate pages when the Turing Test ends, DEBUG MODE
+  useEffect(() => {
+    console.log('Checking realTestTimer:', realTestTimer); // Debug log
+    if (realTestTimer === 0) {
+      saveChatLogs('During Turing Test'); // Save chat logs when the chat ends
+
+      console.log('Role:', role); // Check the role value
+      if (role === 'tester') {
+        console.log('Tester navigates to feedback page');
+        navigate('/feedback', {
+          state: {
+            realIdentityA: candidateMapping.A,
+            realIdentityB: candidateMapping.B,
+            locations: candidateLocations,
+            name: name
+          }
+        });
+      }
+      else if (role === 'experimenter') {
+        console.log('Experimenter navigates to thank you page');
+        navigate('/thank_you', {"state": {"pairId": pairId, "role": role, "name": name}});
+      }
+    }
+  }, [realTestTimer, role, navigate, candidateMapping, candidateLocations]);
 
   // Send a message to the experimenter
 const sendMessageToExperimenter = () => {
@@ -229,7 +315,7 @@ const sendMessageToBot = async () => {
                   type="text"
                   value={messageToExperimenter}
                   onChange={(e) => setMessageToExperimenter(e.target.value)}
-                  placeholder="Message Experimenter..."
+                  placeholder="Type your message here..."
                   className="input-box"
                 />
                 <button onClick={sendMessageToExperimenter} className="send-button">
@@ -264,7 +350,7 @@ const sendMessageToBot = async () => {
                   type="text"
                   value={messageToBot}
                   onChange={(e) => setMessageToBot(e.target.value)}
-                  placeholder="Message Bot..."
+                  placeholder="Type your message here..."
                   className="input-box"
                 />
                 <button onClick={sendMessageToBot} className="send-button">

@@ -1,14 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:5000'); // Adjust the port if needed
+const socket = io('http://localhost:5000');
 
 function LoadingPage() {
   const [name, setName] = useState('');
+  const [role, setRole] = useState('tester'); // Default role
   const [status, setStatus] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Listen for pairing events
+    socket.on('paired', (data) => {
+      console.log('Paired:', data);
+      navigate(`/chat/${data.pair_id}`, { state: { pairId: data.pair_id, role: data.role, name: name } });
+    });
+
+    // Cleanup the listener on component unmount
+    return () => {
+      socket.off('paired');
+    };
+  }, [navigate]);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -16,23 +30,17 @@ function LoadingPage() {
       return;
     }
 
+    // Register the user's name and socket ID
+    socket.emit('register_user', { username: name });
+
     try {
-      const response = await axios.post('/api/submit_name', { username: name });
+      const response = await axios.post('/api/submit_name', { username: name, role });
+      console.log('Response:', response.data);
+
       if (response.data.status === 'waiting') {
-        console.log('waiting');
         setStatus(response.data.message);
-        socket.on('paired', (data) => {
-          // Log pairing data for debugging
-          console.log('Paired:', data);
-
-          // Navigate to ChatPage with pairId and role
-          navigate(`/chat/${data.pair_id}`, { state: { pairId: data.pair_id, role: data.role } });
-        });
       } else if (response.data.status === 'paired') {
-        console.log('Paired immediately:', response.data);
-
-        // Navigate to ChatPage with pairId and role
-        navigate(`/chat/${response.data.pair_id}`, { state: { pairId: response.data.pair_id, role: response.data.role } });
+        navigate(`/chat/${response.data.pair_id}`, { state: { pairId: response.data.pair_id, role, name } });
       } else {
         setStatus('Error: Unable to pair. Try again.');
       }
@@ -53,6 +61,18 @@ function LoadingPage() {
         style={{ padding: '10px', fontSize: '16px', marginBottom: '10px' }}
       />
       <br />
+      <label>
+        Select your role:
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          style={{ padding: '10px', fontSize: '16px', marginLeft: '10px' }}
+        >
+          <option value="tester">Tester</option>
+          <option value="experimenter">Experimenter</option>
+        </select>
+      </label>
+      <br />
       <button
         onClick={handleSubmit}
         style={{
@@ -63,6 +83,7 @@ function LoadingPage() {
           border: 'none',
           borderRadius: '5px',
           cursor: 'pointer',
+          marginTop: '10px',
         }}
       >
         Join

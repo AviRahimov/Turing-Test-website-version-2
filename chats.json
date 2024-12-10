@@ -1,0 +1,1249 @@
+[
+    {
+        "pairId": "room_5194",
+        "testerChatWithExperimenter": [],
+        "testerChatWithBot": []
+    },
+    {
+        "pairId": "room_8923",
+        "testerChatWithExperimenter": [
+            {
+                "sender": "tester",
+                "content": "hi candidate A"
+            },
+            {
+                "sender": "experimenter",
+                "content": "hi tster"
+            }
+        ],
+        "testerChatWithBot": [
+            {
+                "sender": "tester",
+                "content": "hi candidate b"
+            },
+            {
+                "sender": "bot",
+                "content": "Hello. Is there something I can help you with?"
+            }
+        ]
+    },
+    {
+        "pairId": "room_1227",
+        "testerChatWithExperimenter": [],
+        "testerChatWithBot": []
+    },
+    {
+        "pairId": "room_4516",
+        "testerChatWithExperimenter": [],
+        "testerChatWithBot": [
+            {
+                "sender": "tester",
+                "content": "whats your name?"
+            }
+        ]
+    },
+    {
+        "pairId": "room_8172",
+        "testerChatWithExperimenter": [],
+        "testerChatWithBot": []
+    },
+    {
+        "pairId": "room_5586",
+        "testerChatWithExperimenter": [],
+        "testerChatWithBot": []
+    },
+    {
+        "pairId": "room_5586",
+        "testerChatWithExperimenter": [],
+        "testerChatWithBot": []
+    },
+    {
+        "pairId": "room_7168",
+        "testerChatWithExperimenter": [],
+        "testerChatWithBot": []
+    },
+    {
+        "pairId": "room_7168",
+        "testerChatWithExperimenter": [],
+        "testerChatWithBot": []
+    },
+    {
+        "pairId": "room_1066",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "experimenter",
+                        "content": "hi tester"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "hi experimente"
+                    }
+                ],
+                "testerChatWithBot": [
+                    {
+                        "sender": "tester",
+                        "content": "hi bit"
+                    }
+                ]
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "this is after the shuffling"
+                    }
+                ],
+                "testerChatWithBot": [
+                    {
+                        "sender": "tester",
+                        "content": "hi bot after shuffle"
+                    }
+                ]
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "experimenter",
+                        "content": "hi tester"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "hi experimente"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "this is after the shuffling"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_5347",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "sd"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "sd"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_6880",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "experimenter",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "hiiiiiii"
+                    }
+                ],
+                "testerChatWithBot": [
+                    {
+                        "sender": "tester",
+                        "content": "h"
+                    }
+                ]
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "experimenter",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "hiiiiiii"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_1934",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_7198",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_4155",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_9503",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "experimenter",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "hello"
+                    }
+                ],
+                "testerChatWithBot": [
+                    {
+                        "sender": "tester",
+                        "content": "how r u"
+                    }
+                ]
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "experimenter",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "hello"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_2607",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "hi you too"
+                    }
+                ],
+                "testerChatWithBot": [
+                    {
+                        "sender": "tester",
+                        "content": "lalallala"
+                    }
+                ]
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": [
+                    {
+                        "sender": "tester",
+                        "content": "lo oto davar"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "\u05dc\u05d0 \u05de\u05e1\u05ea\u05d5\u05d1\u05d1"
+                    }
+                ]
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "hi you too"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_9257",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_5247",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "ad"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "dsa"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "asdsa"
+                    }
+                ],
+                "testerChatWithBot": [
+                    {
+                        "sender": "tester",
+                        "content": "dsa"
+                    }
+                ]
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "ad"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "dsa"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "asdsa"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_9561",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_7195",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_7739",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_3702",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_7811",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_7064",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_6164",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_1978",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_6070",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "kjkj"
+                    }
+                ],
+                "testerChatWithBot": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    }
+                ]
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "kjkj"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_1085",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "d"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "d"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_3338",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "df"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "sd"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "sd"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_9831",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_3030",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "experimenter",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "hiiiiiiiiiiiiiiiiiiiiii"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "experimenter",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "hiiiiiiiiiiiiiiiiiiiiii"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_8705",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "fg"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "fg"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_5648",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_4359",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_1381",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_1530",
+        "logs": [
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_6110",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_8568",
+        "logs": [
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_4580",
+        "logs": [
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_3078",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_9108",
+        "logs": [
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_4494",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_5772",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_6434",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_2246",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_5888",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_7110",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "experimenter",
+                        "content": "HI"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "asdas"
+                    }
+                ],
+                "testerChatWithBot": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    }
+                ]
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "experimenter",
+                        "content": "HI"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "asdas"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "asd"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "asd"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_6922",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_3888",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_6173",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_3940",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_9411",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_3009",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_9483",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_3055",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    }
+]

@@ -1,103 +1,281 @@
-from flask import Flask, request, jsonify
-from flask_socketio import SocketIO, join_room, leave_room, emit
-from flask_cors import CORS
-import random
+import os
 import string
 import time
+from collections import deque
+from flask import Flask, request, jsonify
+from flask_socketio import SocketIO, join_room, emit
+from flask_cors import CORS
+import random
 import logging
+import csv
+import json
+from threading import Lock
+
+# Flask app setup
 app = Flask(__name__)
-CORS(app)  # Allow React to communicate with Flask
+CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 logging.basicConfig(level=logging.INFO)
 
-waiting_user = None
+# File paths
+CODES_FILE = "codes.csv"
+CHAT_LOGS_FILE = "chats.json"
+FEEDBACK_FILE = "feedback.csv"
+
+# Initialize queues and state
+tester_queue = deque()
+experimenter_queue = deque()
 pairs = {}
+# Dictionary to map usernames to socket IDs
+user_sockets = {}
+# Dictionary to store generated codes
+generated_codes = {}
+# Lock to ensure thread safety
+code_lock = Lock()
+
+# Ensure necessary files exist
+if not os.path.exists(CODES_FILE):
+    with open(CODES_FILE, "w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["code", "role", "timestamp"])  # Header row
+
+if not os.path.exists(CHAT_LOGS_FILE):
+    with open(CHAT_LOGS_FILE, "w") as file:
+        json.dump([], file)
 
 
-@app.route('/api/submit_name', methods=['POST'])
-def submit_name():
-    global waiting_user, pairs
-    data = request.json
-    username = data.get('username')
+# --- Helper Functions ---
+def generate_unique_code():
+    """
+    Generate a unique 6-digit code.
+    """
+    code = ''.join(random.choices(string.digits, k=6))
 
-    if not username:
-        return jsonify({"status": "error", "message": "Invalid username"}), 400
+    # Ensure the code is unique in the CSV file
+    with open(CODES_FILE, "r") as file:
+        existing_codes = {row[0] for row in csv.reader(file)}
 
-    if waiting_user is None:
-        # First user waits for pairing
-        waiting_user = username
-        return jsonify({"status": "waiting", "message": "Waiting for another user"})
-    else:
-        # Pair users and create a new room
-        pair_id = f"room_{random.randint(1000, 9999)}"
-        pairs[pair_id] = {"tester": waiting_user, "experimenter": username}
+    while code in existing_codes:
+        code = ''.join(random.choices(string.digits, k=6))
 
-        # Notify the waiting user (tester) to start the chat
-        socketio.emit('paired', {"pair_id": pair_id, "role": "tester"}) # it was to=waiting_user but it was not working so I omit it
-
-        # Clear waiting_user after pairing
-        waiting_user = None
-
-        # Respond to the experimenter
-        return jsonify({"status": "paired", "pair_id": pair_id, "role": "experimenter"})
+    return code
 
 
-@app.route('/')
+def load_chat_logs():
+    """
+    Load chat logs from the JSON file.
+    """
+    with open(CHAT_LOGS_FILE, "r") as file:
+        content = file.read()
+        return json.loads(content) if content.strip() else []
+
+
+def save_chat_logs(logs):
+    """
+    Save chat logs to the JSON file.
+    """
+    with open(CHAT_LOGS_FILE, "w") as file:
+        json.dump(logs, file, indent=4)
+
+
+# --- Routes ---
+@app.route("/")
 def home():
     return "Backend is running!"
 
 
-# @app.route("/api/pair_status/<string:username>", methods=["GET"])
-# def pair_status(username):
-#     """Check if a user has been paired."""
-#     for pair_id, details in pairings.items():
-#         if details["tester"] == username or details["experimenter"] == username:
-#             return jsonify({"status": "paired", "pair_id": pair_id, "role": "tester" if details["tester"] == username else "experimenter"})
-#     return jsonify({"status": "waiting"}), 200
-#
-#
-# @app.route("/api/generate_code", methods=["GET"])
-# def generate_code():
-#     """Generate a unique 6-digit code for Mechanical Turk verification."""
-#     code = ''.join(random.choices(string.digits, k=6))
-#     return jsonify({"code": code})
+@app.route("/api/generate_code", methods=["POST"])
+def generate_code():
+    """
+    Generate a unique code for a tester or experimenter.
+    """
+    data = request.json
+    role = data.get("role")
+    name = data.get("name")
+
+    if role not in ["tester", "experimenter"]:
+        return jsonify({"status": "error", "message": "Invalid role"}), 400
+
+    # Check if code already exists for this username
+    with code_lock:  # Ensure thread safety
+        if name in generated_codes:
+            code = generated_codes[name]
+        else:
+            code = generate_unique_code()
+            generated_codes[name] = code
+
+            # Save the code to the CSV file
+            with open(CODES_FILE, "a", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow([code, role, time.strftime("%Y-%m-%d %H:%M:%S")])
+
+        return jsonify({"status": "success", "code": code})
 
 
-@socketio.on('join')
+@socketio.on("connect")
+def on_connect():
+    """
+    Capture the user's socket connection when they connect.
+    """
+    logging.info(f"User connected: {request.sid}")
+
+
+@socketio.on("register_user")
+def register_user(data):
+    """
+    Register the username with the socket ID upon connection.
+    """
+    username = data.get("username")
+    if username:
+        user_sockets[username] = request.sid
+        logging.info(f"Registered user {username} with socket ID {request.sid}")
+
+
+@app.route("/api/submit_name", methods=["POST"])
+def submit_name():
+    """
+    Handle user submission and pair testers with experimenters.
+    """
+    data = request.json
+    username = data.get("username")
+    role = data.get("role")
+
+    if not username or role not in ["tester", "experimenter"]:
+        return jsonify({"status": "error", "message": "Invalid username or role"}), 400
+
+    # Add the user to the appropriate queue
+    if role == "tester":
+        tester_queue.append(username)
+    elif role == "experimenter":
+        experimenter_queue.append(username)
+
+    # Attempt to pair a tester with an experimenter
+    if tester_queue and experimenter_queue:
+        tester = tester_queue.popleft()
+        experimenter = experimenter_queue.popleft()
+
+        pair_id = f"room_{random.randint(1000, 9999)}"
+        pairs[pair_id] = {"tester": tester, "experimenter": experimenter}
+
+        # Retrieve socket IDs for both users
+        tester_sid = user_sockets.get(tester)
+        experimenter_sid = user_sockets.get(experimenter)
+
+        if tester_sid:
+            socketio.emit("paired", {"pair_id": pair_id, "role": "tester"}, to=tester_sid)
+        if experimenter_sid:
+            socketio.emit("paired", {"pair_id": pair_id, "role": "experimenter"}, to=experimenter_sid)
+
+        logging.info(f"Paired {tester} with {experimenter} in room {pair_id}")
+        return jsonify({"status": "paired", "pair_id": pair_id}), 200
+
+    return jsonify({"status": "waiting", "message": "Waiting for another user"}), 200
+
+
+@app.route("/api/save_chat", methods=["POST"])
+def save_chat():
+    """
+    Save chat logs to the JSON file.
+    """
+    chat_data = request.json
+    pair_id = chat_data.get("pairId")
+    title = chat_data.get("title")
+
+    try:
+        logs = load_chat_logs()
+
+        # Check if pairId exists and update logs
+        existing_entry = next((entry for entry in logs if entry["pairId"] == pair_id), None)
+        new_log = {
+            "title": title,
+            "testerChatWithExperimenter": chat_data.get("testerChatWithExperimenter"),
+            "testerChatWithBot": chat_data.get("testerChatWithBot")
+        }
+
+        if existing_entry:
+            existing_entry.setdefault("logs", []).append(new_log)
+        else:
+            logs.append({"pairId": pair_id, "logs": [new_log]})
+
+        save_chat_logs(logs)
+        return jsonify({"status": "success"})
+    except Exception as e:
+        logging.error(f"Error saving chat logs: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/save_feedback", methods=["POST"])
+def save_feedback():
+    """
+    Save feedback to a CSV file and evaluate tester guesses.
+    """
+    logging.info("Received feedback data: %s", request.json)
+    data = request.json
+
+    # Normalize real identities
+    if data.get("realIdentityA").lower() == "bot":
+        data["realIdentityA"] = "Bot"
+        data["realIdentityB"] = "human"
+    else:
+        data["realIdentityA"] = "human"
+        data["realIdentityB"] = "Bot"
+
+    feedback = {
+        "tester_code": generated_codes.get("tester"),
+        "experience": data.get("experience"),
+        "comments": data.get("comments"),
+        "improvements": data.get("improvements"),
+        "guess_candidate_a": data.get("guessCandidateA"),
+        "guess_candidate_b": data.get("guessCandidateB"),
+        "real_identity_a": data.get("realIdentityA"),
+        "real_identity_b": data.get("realIdentityB"),
+        "correct_guess_a": data.get("guessCandidateA") == data.get("realIdentityA"),
+        "correct_guess_b": data.get("guessCandidateB") == data.get("realIdentityB"),
+    }
+
+    # Save to CSV
+    file_exists = os.path.isfile(FEEDBACK_FILE)
+    with open(FEEDBACK_FILE, mode="a", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=feedback.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(feedback)
+
+    return jsonify({"status": "success", "message": "Feedback saved"})
+
+
+# --- Socket.IO Handlers ---
+@socketio.on("join")
 def on_join(data):
-    # Debugging: Print received data
-    print("Received data in on_join:", data)
+    """
+    Handle user joining a room.
+    """
+    logging.info(f"Joining room with data: {data}")
+    pair_id = data.get("pair_id")
+    username = data.get("username", "unknown")
 
-    # Ensure the pair_id exists
-    if 'pair_id' not in data:
-        print("Error: 'pair_id' not found in data!")
+    if not pair_id:
+        logging.error("Invalid join request: Missing pair_id.")
         return
 
-    pair_id = data['pair_id']
-    username = data.get('username', 'unknown')
-    sid = request.sid  # Get the client's session ID
-
-    if not sid:
-        print("Error: No session ID (sid) found!")
-        return
-
-    # Join the room
     try:
         join_room(pair_id)
-        print(f"{username} (SID: {sid}) has joined room {pair_id}")
-        emit('joined_room', {'username': username, 'pair_id': pair_id}, to=pair_id)
+        emit("joined_room", {"username": username, "pair_id": pair_id}, to=pair_id)
+        logging.info(f"User {username} joined room {pair_id}")
     except Exception as e:
-        print(f"Error joining room {pair_id}: {e}")
+        logging.error(f"Error joining room {pair_id}: {e}")
 
 
-
-@socketio.on('message')
+@socketio.on("message")
 def handle_message(data):
-    pair_id = data['pair_id']
-    sender = data['sender']
-    message = data['message']
-    emit('message', {'sender': sender, 'message': message}, to=pair_id)
+    """
+    Handle messages sent between users.
+    """
+    pair_id = data["pair_id"]
+    sender = data["sender"]
+    message = data["message"]
+    emit("message", {"sender": sender, "message": message}, to=pair_id)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     socketio.run(app, debug=True, allow_unsafe_werkzeug=True)

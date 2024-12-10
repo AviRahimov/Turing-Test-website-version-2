@@ -1,46 +1,66 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import {useLocation} from "react-router-dom";
 
 const ThankYouPage = () => {
-  const generateCode = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
+  const location = useLocation();
+  const [uniqueCode, setUniqueCode] = useState(null);
+  const {pairId, role, name} = location.state || {};
 
-  const uniqueCode = generateCode();
+  useEffect(() => {
+    const fetchCode = async () => {
+      try {
+        const response = await fetch('/api/generate_code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: role, name: name }),
+        });
+
+        const result = await response.json();
+        if (result.status === 'success') {
+          setUniqueCode(result.code);
+        } else {
+          console.error('Error generating code:', result.message);
+        }
+      } catch (error) {
+        console.error('Error fetching code:', error);
+      }
+    };
+
+    fetchCode();
+  }, []);
 
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>Thank You for Participating!</h1>
       <p style={styles.text}>Your unique code is:</p>
-      <p style={styles.code}>{uniqueCode}</p>
+      <p style={styles.code}>{uniqueCode || 'Loading...'}</p>
     </div>
   );
 };
 
 const styles = {
   container: {
-    fontFamily: 'Arial, sans-serif',
-    backgroundColor: '#f0f0f0',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '100vh',
-    padding: '20px',
+    alignItems: 'center',
+    height: '100vh',
+    backgroundColor: '#f0f0f0',
   },
   header: {
-    fontSize: '2em',
+    fontSize: '2.5rem',
     color: '#333',
-    marginBottom: '0.5em',
+    marginBottom: '20px',
   },
   text: {
-    fontSize: '1em',
+    fontSize: '1.2rem',
     color: '#555',
-    marginBottom: '0.5em',
+    marginBottom: '10px',
   },
   code: {
-    fontSize: '1.5em',
+    fontSize: '1.8rem',
+    color: '#007BFF',
     fontWeight: 'bold',
-    color: '#007bff',
   },
 };
 
