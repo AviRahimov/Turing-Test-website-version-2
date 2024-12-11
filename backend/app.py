@@ -5,6 +5,7 @@ from collections import deque
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, join_room, emit
 from flask_cors import CORS
+from flask import send_from_directory
 import random
 import logging
 import csv
@@ -42,6 +43,15 @@ if not os.path.exists(CODES_FILE):
 if not os.path.exists(CHAT_LOGS_FILE):
     with open(CHAT_LOGS_FILE, "w") as file:
         json.dump([], file)
+
+
+# --- Serve React App ---
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_react(path):
+    if path != "" and os.path.exists(f"static/{path}"):
+        return send_from_directory("static", path)
+    return send_from_directory("static", "index.html")
 
 
 # --- Helper Functions ---
