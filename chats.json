@@ -1454,5 +1454,279 @@
                 "testerChatWithBot": []
             }
         ]
+    },
+    {
+        "pairId": "room_5938",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_5561",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "bye"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "xvcxv"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "cxzczx"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "xc"
+                    }
+                ],
+                "testerChatWithBot": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "hisdfsdf"
+                    }
+                ]
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "hi"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "bye"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "xvcxv"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "cxzczx"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "xc"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_2936",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "xcxc"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "cx"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "zxc"
+                    }
+                ],
+                "testerChatWithBot": [
+                    {
+                        "sender": "tester",
+                        "content": "cx"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "cx"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "cx"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "cx"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "xc"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "xc"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "xc"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "xc"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "xc"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "xc"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "xc"
+                    }
+                ]
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "xcxc"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "cx"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "zxc"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_3759",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "xc"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "cxcxcxcxc"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
+    },
+    {
+        "pairId": "room_7160",
+        "logs": [
+            {
+                "title": "Before Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "xc"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "cx"
+                    }
+                ],
+                "testerChatWithBot": []
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "fd"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "kjh"
+                    }
+                ],
+                "testerChatWithBot": [
+                    {
+                        "sender": "tester",
+                        "content": "df"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "df"
+                    },
+                    {
+                        "sender": "bot",
+                        "content": "It seems like you're referring to a \"DataFrame\" (df) from a popular data manipulation and analysis library, likely Pandas in Python. A DataFrame is a 2-dimensional labeled data structure with columns of potentially different types.\n\nHere's a simple example of how you can create a DataFrame in Python:\n\n```python\nimport pandas as pd\n\n# Create a dictionary\ndata = {\n    'Name': ['John', 'Anna', 'Peter', 'Linda'],\n    'Age': [28, 24, 35, 32],\n    'Country': ['USA', 'UK', 'Australia', 'Germany']\n}\n\n# Create a DataFrame\ndf = pd.DataFrame(data)\n\n# Print the DataFrame\nprint(df)\n```\n\nThis will output:\n\n```\n     Name  Age     Country\n0    John   28        USA\n1    Anna   24         UK\n2   Peter   35  Australia\n3   Linda   32    Germany\n```\n\nDataFrames are useful for storing and manipulating structured data, such as tabular data or data with rows and columns. They provide various methods for filtering, sorting, grouping, and transforming data.\n\nSome common methods for DataFrames include:\n\n- `df.head()`: Displays the first few rows of the DataFrame.\n- `df.tail()`: Displays the last few rows of the DataFrame.\n- `df.info()`: Displays information about the DataFrame, such as data types and missing values.\n- `df.describe()`: Displays summary statistics for the DataFrame, such as mean and standard deviation.\n- `df.loc[]` and `df.iloc[]`: Allows you to access specific rows and columns using label-based and integer-based indexing, respectively.\n- `df.groupby()`: Allows you to group rows by one or more columns and perform aggregation operations.\n- `df.pivot_table()`: Allows you to create a new DataFrame with pivot tables.\n\nThese are just a few examples of the many methods and features available in Pandas DataFrames."
+                    }
+                ]
+            },
+            {
+                "title": "During Turing Test",
+                "testerChatWithExperimenter": [
+                    {
+                        "sender": "tester",
+                        "content": "xc"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "cx"
+                    },
+                    {
+                        "sender": "tester",
+                        "content": "fd"
+                    },
+                    {
+                        "sender": "experimenter",
+                        "content": "kjh"
+                    }
+                ],
+                "testerChatWithBot": []
+            }
+        ]
     }
 ]
