@@ -13,10 +13,8 @@
       <change afterPath="$PROJECT_DIR$/frontend/src/components/NotFoundPage.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/ThankYouPage.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/utils.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chats.json" beforeDir="false" afterPath="$PROJECT_DIR$/chats.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/codes.csv" beforeDir="false" afterPath="$PROJECT_DIR$/codes.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/feedback.csv" beforeDir="false" afterPath="$PROJECT_DIR$/feedback.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.js" afterDir="false" />
@@ -52,7 +50,7 @@
     </option>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/frontend" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {
@@ -209,7 +207,7 @@
       <workItem from="1733588597311" duration="7067000" />
       <workItem from="1733639182340" duration="42950000" />
       <workItem from="1733829274144" duration="16169000" />
-      <workItem from="1733904865995" duration="12823000" />
+      <workItem from="1733904865995" duration="14054000" />
     </task>
     <servers />
   </component>
