@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 const FeedbackPage = () => {
   const location = useLocation();
-  const { realIdentityA, realIdentityB, locations, name } = location.state || {};
+  const { realIdentityA, realIdentityB, locations, name, userId } = location.state || {};
 
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -35,6 +35,7 @@ const FeedbackPage = () => {
     e.preventDefault();
 
     try {
+      console.log("name", location.state.name);
       const response = await fetch('/api/save_feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -42,6 +43,8 @@ const FeedbackPage = () => {
           ...formData,
           realIdentityA,
           realIdentityB,
+          name,
+          userId,
         }),
       });
 

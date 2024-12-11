@@ -9,7 +9,7 @@ const socket = io('http://localhost:5000'); // Adjust the port if needed
 function ChatPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { pairId, role, name } = location.state || {};
+  const { pairId, role, name, userId } = location.state || {};
   const [messages, setMessages] = useState([]); // Chat with experimenter
   const [botMessages, setBotMessages] = useState([]); // Chat with bot
   const [messageToExperimenter, setMessageToExperimenter] = useState('');
@@ -22,7 +22,10 @@ function ChatPage() {
   const [candidates, setCandidates] = useState({ A: 'Experimenter', B: 'Bot' });
   const [fadeIn, setFadeIn] = useState(false); // For smooth transition
   const [candidateLocations, setCandidateLocations] = useState({});
-
+  console.log("Name in chat page", name);
+  console.log("Role in chat page", role);
+  console.log("PairId in chat page", pairId);
+  console.log("User_id in chat page", userId);
   // Helper to save chat logs
   const saveChatLogs = async (title) => {
     const chatData = {
@@ -164,7 +167,7 @@ useEffect(() => {
     }, 3000); // 3-second shuffle animation
   }
   else if (role === 'experimenter' && timer === 0) {
-    setRealTestTimer(27);
+    setRealTestTimer(31);
   }
   // else if (timer === 60) {
   //   alert('In one minute, you will start the real Turing Test. Be ready.');
@@ -211,13 +214,16 @@ useEffect(() => {
 
       console.log('Role:', role); // Check the role value
       if (role === 'tester') {
-        console.log('Tester navigates to feedback page');
+        console.log('Tester navigates to feedback page')
+        console.log("Tester name", name);
+        console.log("Location state", location.state);
         navigate('/feedback', {
           state: {
             realIdentityA: candidateMapping.A,
             realIdentityB: candidateMapping.B,
             locations: candidateLocations,
-            name: name
+            name: name,
+            userId: userId
           }
         });
       }
@@ -339,6 +345,7 @@ const sendMessageToBot = async () => {
                     className={`message ${
                       msg.sender === role ? 'message-left' : 'message-right'
                     }`}
+
                     key={index}
                   >
                     {msg.content}

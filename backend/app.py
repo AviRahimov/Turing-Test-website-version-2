@@ -45,18 +45,18 @@ if not os.path.exists(CHAT_LOGS_FILE):
 
 
 # --- Helper Functions ---
-def generate_unique_code():
+def generate_unique_code(digits=6):
     """
-    Generate a unique 6-digit code.
+    Generate a unique code with a specified number of digits.
     """
-    code = ''.join(random.choices(string.digits, k=6))
+    code = ''.join(random.choices(string.digits, k=digits))
 
     # Ensure the code is unique in the CSV file
     with open(CODES_FILE, "r") as file:
         existing_codes = {row[0] for row in csv.reader(file)}
 
     while code in existing_codes:
-        code = ''.join(random.choices(string.digits, k=6))
+        code = ''.join(random.choices(string.digits, k=digits))
 
     return code
 
@@ -100,16 +100,33 @@ def generate_code():
     with code_lock:  # Ensure thread safety
         if name in generated_codes:
             code = generated_codes[name]
+        # Determine code length based on feedback correctness
+        elif role == "tester" and is_tester_correct(name, user_sockets.get(name)):
+            code = generate_unique_code(digits=7)  # 7-digit code
         else:
-            code = generate_unique_code()
-            generated_codes[name] = code
+            code = generate_unique_code(digits=6)  # 6-digit code
 
-            # Save the code to the CSV file
-            with open(CODES_FILE, "a", newline="") as file:
-                writer = csv.writer(file)
-                writer.writerow([code, role, time.strftime("%Y-%m-%d %H:%M:%S")])
+        generated_codes[name] = code
+
+        # Save the code to the CSV file
+        with open(CODES_FILE, "a", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow([code, role, time.strftime("%Y-%m-%d %H:%M:%S")])
 
         return jsonify({"status": "success", "code": code})
+
+
+def is_tester_correct(tester_name, tester_code):
+    """
+    Check if the tester guessed both identities correctly based on feedback.
+    """
+    with open(FEEDBACK_FILE, mode="r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            if row.get("tester_name") == tester_name and row.get("user_id") == tester_code:
+                # Tester is correct if both guesses are accurate
+                return row.get("correct_guess_a") == "True" and row.get("correct_guess_b") == "True"
+    return False
 
 
 @socketio.on("connect")
@@ -157,17 +174,55 @@ def submit_name():
         pair_id = f"room_{random.randint(1000, 9999)}"
         pairs[pair_id] = {"tester": tester, "experimenter": experimenter}
 
-        # Retrieve socket IDs for both users
-        tester_sid = user_sockets.get(tester)
-        experimenter_sid = user_sockets.get(experimenter)
+        # Retrieve socket IDs for both users (user_id)
+        tester_id = user_sockets.get(tester)
+        experimenter_id = user_sockets.get(experimenter)
 
-        if tester_sid:
-            socketio.emit("paired", {"pair_id": pair_id, "role": "tester"}, to=tester_sid)
-        if experimenter_sid:
-            socketio.emit("paired", {"pair_id": pair_id, "role": "experimenter"}, to=experimenter_sid)
+        # Prepare response for both users
+        if tester_id:
+            socketio.emit(
+                "paired",
+                {
+                    "pair_id": pair_id,
+                    "role": "tester",
+                    "user_id": tester_id,
+                    "username": tester,
+                },
+                to=tester_id,
+            )
+        if experimenter_id:
+            socketio.emit(
+                "paired",
+                {
+                    "pair_id": pair_id,
+                    "role": "experimenter",
+                    "user_id": experimenter_id,
+                    "username": experimenter,
+                },
+                to=experimenter_id,
+            )
 
-        logging.info(f"Paired {tester} with {experimenter} in room {pair_id}")
-        return jsonify({"status": "paired", "pair_id": pair_id}), 200
+        logging.info(
+            f"Paired {tester} (ID: {tester_id}) with {experimenter} (ID: {experimenter_id}) in room {pair_id}"
+        )
+        return jsonify(
+            {
+                "status": "paired",
+                "pair_id": pair_id,
+                "users": [
+                    {
+                        "username": tester,
+                        "role": "tester",
+                        "user_id": tester_id,
+                    },
+                    {
+                        "username": experimenter,
+                        "role": "experimenter",
+                        "user_id": experimenter_id,
+                    },
+                ],
+            }
+        ), 200
 
     return jsonify({"status": "waiting", "message": "Waiting for another user"}), 200
 
@@ -221,7 +276,8 @@ def save_feedback():
         data["realIdentityB"] = "Bot"
 
     feedback = {
-        "tester_code": generated_codes.get("tester"),
+        "user_id": data.get("userId"),
+        "tester_name": data.get("name"),
         "experience": data.get("experience"),
         "comments": data.get("comments"),
         "improvements": data.get("improvements"),
@@ -253,6 +309,7 @@ def on_join(data):
     logging.info(f"Joining room with data: {data}")
     pair_id = data.get("pair_id")
     username = data.get("username", "unknown")
+    user_id = data.get("user_id")
 
     if not pair_id:
         logging.error("Invalid join request: Missing pair_id.")
@@ -260,8 +317,12 @@ def on_join(data):
 
     try:
         join_room(pair_id)
-        emit("joined_room", {"username": username, "pair_id": pair_id}, to=pair_id)
-        logging.info(f"User {username} joined room {pair_id}")
+        emit(
+            "joined_room",
+            {"username": username, "pair_id": pair_id, "user_id": user_id},
+            to=pair_id,
+        )
+        logging.info(f"User {username} (ID: {user_id}) joined room {pair_id}")
     except Exception as e:
         logging.error(f"Error joining room {pair_id}: {e}")
 

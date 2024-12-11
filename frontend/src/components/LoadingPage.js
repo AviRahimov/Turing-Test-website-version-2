@@ -15,7 +15,15 @@ function LoadingPage() {
     // Listen for pairing events
     socket.on('paired', (data) => {
       console.log('Paired:', data);
-      navigate(`/chat/${data.pair_id}`, { state: { pairId: data.pair_id, role: data.role, name: name } });
+      // Navigate to chat page with the pair ID, role, user ID, and name
+      navigate(`/chat/${data.pair_id}`, {
+        state: {
+          pairId: data.pair_id,
+          role: data.role,
+          name: data.username,
+          userId: data.user_id
+        }
+      });
     });
 
     // Cleanup the listener on component unmount
@@ -36,11 +44,21 @@ function LoadingPage() {
     try {
       const response = await axios.post('/api/submit_name', { username: name, role });
       console.log('Response:', response.data);
-
+      console.log('Name:', name);
       if (response.data.status === 'waiting') {
         setStatus(response.data.message);
       } else if (response.data.status === 'paired') {
-        navigate(`/chat/${response.data.pair_id}`, { state: { pairId: response.data.pair_id, role, name } });
+        const pairedUser = response.data.users.find(user => user.role === role);
+        const pairId = response.data.pair_id;
+        const userId = pairedUser.user_id;
+        navigate(`/chat/${pairId}`, {
+          state: {
+            pairId,
+            role,
+            name,
+            userId
+          }
+        });
       } else {
         setStatus('Error: Unable to pair. Try again.');
       }
