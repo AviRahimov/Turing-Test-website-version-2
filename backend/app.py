@@ -153,6 +153,13 @@ def register_user(data):
     Register the username with the socket ID upon connection.
     """
     username = data.get("username")
+    # print("User_sockets: ", user_sockets)
+    # if the user_sockets already contains the request.sid, send an error message
+    for key, value in user_sockets.items():
+        print("value: ", value)
+        print("request.sid: ", request.sid)
+        if value == request.sid:
+            return jsonify({"status": "error", "message": "You already connected"}), 400
     if username:
         user_sockets[username] = request.sid
         logging.info(f"Registered user {username} with socket ID {request.sid}")

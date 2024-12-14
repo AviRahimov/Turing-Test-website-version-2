@@ -9,6 +9,7 @@ function LoadingPage() {
   const [name, setName] = useState('');
   const [role, setRole] = useState('tester'); // Default role
   const [status, setStatus] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false); // Prevent multiple submissions
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,8 +22,8 @@ function LoadingPage() {
           pairId: data.pair_id,
           role: data.role,
           name: data.username,
-          userId: data.user_id
-        }
+          userId: data.user_id,
+        },
       });
     });
 
@@ -38,17 +39,21 @@ function LoadingPage() {
       return;
     }
 
+    // Prevent multiple submissions
+    setIsSubmitting(true);
+    setStatus('Connecting...');
+
     // Register the user's name and socket ID
     socket.emit('register_user', { username: name });
 
     try {
       const response = await axios.post('/api/submit_name', { username: name, role });
       console.log('Response:', response.data);
-      console.log('Name:', name);
+
       if (response.data.status === 'waiting') {
         setStatus(response.data.message);
       } else if (response.data.status === 'paired') {
-        const pairedUser = response.data.users.find(user => user.role === role);
+        const pairedUser = response.data.users.find((user) => user.role === role);
         const pairId = response.data.pair_id;
         const userId = pairedUser.user_id;
         navigate(`/chat/${pairId}`, {
@@ -56,15 +61,17 @@ function LoadingPage() {
             pairId,
             role,
             name,
-            userId
-          }
+            userId,
+          },
         });
       } else {
         setStatus('Error: Unable to pair. Try again.');
+        setIsSubmitting(false); // Re-enable submission if pairing fails
       }
     } catch (error) {
       console.error('Error:', error);
-      setStatus('Error connecting to server. Please try again.');
+      setStatus('Error: Unable to pair. Try again.');
+      setIsSubmitting(false); // Re-enable submission if an error occurs
     }
   };
 
@@ -77,6 +84,7 @@ function LoadingPage() {
         onChange={(e) => setName(e.target.value)}
         placeholder="Enter your name"
         style={{ padding: '10px', fontSize: '16px', marginBottom: '10px' }}
+        disabled={isSubmitting} // Disable input when submitting
       />
       <br />
       <label>
@@ -85,6 +93,7 @@ function LoadingPage() {
           value={role}
           onChange={(e) => setRole(e.target.value)}
           style={{ padding: '10px', fontSize: '16px', marginLeft: '10px' }}
+          disabled={isSubmitting} // Disable dropdown when submitting
         >
           <option value="tester">Tester</option>
           <option value="experimenter">Experimenter</option>
@@ -100,9 +109,10 @@ function LoadingPage() {
           color: 'white',
           border: 'none',
           borderRadius: '5px',
-          cursor: 'pointer',
+          cursor: isSubmitting ? 'not-allowed' : 'pointer', // Change cursor when submitting
           marginTop: '10px',
         }}
+        disabled={isSubmitting} // Disable button when submitting
       >
         Join
       </button>
