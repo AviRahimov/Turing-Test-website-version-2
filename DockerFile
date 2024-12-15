@@ -4,21 +4,20 @@ FROM python:3.9.13-slim
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy the requirements.txt into the container at /app
+# Copy the requirements.txt into the container
 COPY requirements.txt .
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt && gunicorn --version
 
-# Copy the current directory contents into the container at /app
+# Add local binary path to PATH in case gunicorn is installed there
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Copy the current directory contents into the container
 COPY . .
 
-# Make port 5000 available to the world outside the container
+# Expose port 5000
 EXPOSE 5000
 
-# Define environment variables
-ENV FLASK_APP=backend.app
-
-# Run the application using Gunicorn when the container starts
+# Run the application using Gunicorn
 CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:5000", "backend.app:app"]
-
