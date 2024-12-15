@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fbcb205b-a937-474d-88ad-dfaffcbe4bbe" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/DockerFile" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/ChatPage.css" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/ChatPage.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/FeedbackPage.js" afterDir="false" />
@@ -13,7 +14,6 @@
       <change afterPath="$PROJECT_DIR$/frontend/src/components/NotFoundPage.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/ThankYouPage.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/utils.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Procfile" beforeDir="false" afterPath="$PROJECT_DIR$/Procfile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.js" afterDir="false" />
@@ -216,7 +216,7 @@
       <workItem from="1734004024454" duration="1319000" />
       <workItem from="1734094453933" duration="2789000" />
       <workItem from="1734209056114" duration="86000" />
-      <workItem from="1734256786401" duration="3324000" />
+      <workItem from="1734256786401" duration="3643000" />
     </task>
     <servers />
   </component>
