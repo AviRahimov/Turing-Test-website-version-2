@@ -14,7 +14,7 @@ from threading import Lock
 
 # Flask app setup
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": ["https://turing-test-website-version-2.vercel.app"]}})
 socketio = SocketIO(app, cors_allowed_origins="*")
 logging.basicConfig(level=logging.INFO)
 
