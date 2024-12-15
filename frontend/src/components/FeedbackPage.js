@@ -35,8 +35,9 @@ const FeedbackPage = () => {
     e.preventDefault();
 
     try {
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:5000';
       console.log("name", location.state.name);
-      const response = await fetch('/api/save_feedback', {
+      const response = await fetch(`${BACKEND_URL}/api/save_feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

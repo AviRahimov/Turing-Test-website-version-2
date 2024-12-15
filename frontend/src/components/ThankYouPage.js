@@ -9,7 +9,8 @@ const ThankYouPage = () => {
   useEffect(() => {
     const fetchCode = async () => {
       try {
-        const response = await fetch('/api/generate_code', {
+        const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:5000';
+        const response = await fetch(`${BACKEND_URL}/api/generate_code`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ role: role, name: name }),

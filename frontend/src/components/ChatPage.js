@@ -4,7 +4,7 @@ import io from 'socket.io-client';
 import './ChatPage.css';
 import axios from 'axios';
 
-const socket = io('http://localhost:5000'); // Adjust the port if needed
+const socket = io(process.env.REACT_APP_BACKEND_SOCKET_URL || 'http://127.0.0.1:5000');
 
 function ChatPage() {
   const location = useLocation();
@@ -24,6 +24,7 @@ function ChatPage() {
   const [candidateLocations, setCandidateLocations] = useState({});
   const [roomOrder, setRoomOrder] = useState(['experimenter', 'bot']); // Default room order
 
+
   // Helper to save chat logs
   const saveChatLogs = async (title) => {
     const chatData = {
@@ -35,7 +36,8 @@ function ChatPage() {
     console.log('Chat data being sent:', chatData); // Debug log
 
     try {
-      const response = await axios.post('/api/save_chat', chatData);
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:5000';
+      const response = await axios.post(`${BACKEND_URL}/api/save_chat`, chatData);
       console.log('Response from server:', response.data); // Debug log
     } catch (error) {
       console.error('Error saving chat logs:', error);
