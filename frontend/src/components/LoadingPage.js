@@ -3,24 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import io from 'socket.io-client';
 
+// Establish socket connection
 const socket = io(process.env.REACT_APP_BACKEND_SOCKET_URL || 'http://127.0.0.1:5000');
 
 function LoadingPage() {
   const [name, setName] = useState('');
-  const [role, setRole] = useState('tester'); // Default role
   const [status, setStatus] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false); // Prevent multiple submissions
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Listen for pairing events
+    // Listen for pairing events from the backend
     socket.on('paired', (data) => {
       console.log('Paired:', data);
       // Navigate to chat page with the pair ID, role, user ID, and name
       navigate(`/chat/${data.pair_id}`, {
         state: {
           pairId: data.pair_id,
-          role: data.role,
+          role: data.role, // Backend assigns the role
           name: data.username,
           userId: data.user_id,
         },
@@ -43,37 +43,39 @@ function LoadingPage() {
     setIsSubmitting(true);
     setStatus('Connecting...');
 
-    // Register the user's name and socket ID
+    // Emit the user's name to the backend via WebSocket
     socket.emit('register_user', { username: name });
 
     try {
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:5000';
-      const response = await axios.post(`${BACKEND_URL}/api/submit_name`, { username: name, role });
+      const response = await axios.post(`${BACKEND_URL}/api/submit_name`, { username: name });
 
       console.log('Response:', response.data);
 
       if (response.data.status === 'waiting') {
-        setStatus(response.data.message);
+        // First user must wait for the second
+        setStatus('Waiting for another user to connect...');
       } else if (response.data.status === 'paired') {
-        const pairedUser = response.data.users.find((user) => user.role === role);
+        // Both users paired successfully
         const pairId = response.data.pair_id;
-        const userId = pairedUser.user_id;
+        const user = response.data.users.find((user) => user.username === name);
         navigate(`/chat/${pairId}`, {
           state: {
             pairId,
-            role,
+            role: user.role, // Role assigned by backend
             name,
-            userId,
+            userId: user.user_id,
           },
         });
       } else {
+        // General pairing error
         setStatus('Error: Unable to pair. Try again.');
         setIsSubmitting(false); // Re-enable submission if pairing fails
       }
     } catch (error) {
       console.error('Error:', error);
-      setStatus('Error: Unable to pair. Try again.');
-      setIsSubmitting(false); // Re-enable submission if an error occurs
+      setStatus('Error: Unable to connect. Please try again.');
+      setIsSubmitting(false); // Re-enable submission on error
     }
   };
 
@@ -88,19 +90,6 @@ function LoadingPage() {
         style={{ padding: '10px', fontSize: '16px', marginBottom: '10px' }}
         disabled={isSubmitting} // Disable input when submitting
       />
-      <br />
-      <label>
-        Select your role:
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          style={{ padding: '10px', fontSize: '16px', marginLeft: '10px' }}
-          disabled={isSubmitting} // Disable dropdown when submitting
-        >
-          <option value="tester">Tester</option>
-          <option value="experimenter">Experimenter</option>
-        </select>
-      </label>
       <br />
       <button
         onClick={handleSubmit}

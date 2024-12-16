@@ -106,24 +106,6 @@ body {
   transition: opacity 1s ease-in-out;
 }
 
-/*.shuffling {*/
-/*  animation: fadeOutIn 3s linear;*/
-/*}*/
-
-/*@keyframes fadeOutIn {*/
-/*  0% {*/
-/*    opacity: 1;*/
-/*  }*/
-/*  50% {*/
-/*    opacity: 0;*/
-/*  }*/
-/*  100% {*/
-/*    opacity: 1;*/
-/*  }*/
-/*}*/
-
-
-
 /* Input field and send button */
 .chat-input {
   display: flex;
@@ -182,3 +164,103 @@ body {
   }
 }
 
+.chat-window .cover {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9); /* Slight transparency */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10; /* Ensure it covers everything */
+}
+
+.chat-window .cover p {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.chat-window .cover select {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+/* General Styling */
+.chat-container {
+  position: relative;
+}
+
+/* Pop-up Overlay for Tester */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popup {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  max-width: 400px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.popup h3 {
+  margin: 0 0 10px;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.popup p {
+  margin: 0 0 20px;
+  font-size: 1rem;
+  color: #555;
+}
+
+.popup-dismiss-button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  color: white;
+  background-color: #007bff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.popup-dismiss-button:hover {
+  background-color: #0056b3;
+}
+
+/* Experimenter Styling */
+.experimenter-header {
+  background-color: #f8f9fa;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.experimenter-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.experimenter-header .subtitle {
+  margin: 5px 0 0;
+  font-size: 0.9rem;
+  color: #666;
+}

@@ -14,7 +14,7 @@ from threading import Lock
 
 # Flask app setup
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["https://turing-test-website-version-2.vercel.app"]}})
+CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 logging.basicConfig(level=logging.INFO)
 
@@ -153,37 +153,46 @@ def register_user(data):
     Register the username with the socket ID upon connection.
     """
     username = data.get("username")
-    # print("User_sockets: ", user_sockets)
-    # if the user_sockets already contains the request.sid, send an error message
-    for key, value in user_sockets.items():
-        print("value: ", value)
-        print("request.sid: ", request.sid)
-        if value == request.sid:
-            return jsonify({"status": "error", "message": "You already connected"}), 400
+    if username and username in user_sockets:
+        logging.warning(f"User {username} is already connected.")
+        return  # Do not re-register
+
     if username:
         user_sockets[username] = request.sid
         logging.info(f"Registered user {username} with socket ID {request.sid}")
 
 
+
 @app.route("/api/submit_name", methods=["POST"])
 def submit_name():
     """
-    Handle user submission and pair testers with experimenters.
+    Handle user submission and automatically assign roles to pair testers and experimenters.
     """
     data = request.json
     username = data.get("username")
-    role = data.get("role")
 
-    if not username or role not in ["tester", "experimenter"]:
-        return jsonify({"status": "error", "message": "Invalid username or role"}), 400
+    if not username:
+        return jsonify({"status": "error", "message": "Invalid username"}), 400
 
-    # Add the user to the appropriate queue
-    if role == "tester":
+    # Check if the user is already in the queues
+    if username in tester_queue or username in experimenter_queue:
+        return jsonify({"status": "error", "message": "You are already waiting to be paired"}), 400
+
+    # Automatic role assignment
+    role = None
+    if not tester_queue:
+        # First user becomes the Tester
         tester_queue.append(username)
-    elif role == "experimenter":
+        role = "tester"
+    elif not experimenter_queue:
+        # Second user becomes the Experimenter
         experimenter_queue.append(username)
+        role = "experimenter"
+    else:
+        # If both queues are already full, return a waiting response
+        return jsonify({"status": "waiting", "message": "Waiting for another user to connect"}), 200
 
-    # Attempt to pair a tester with an experimenter
+    # Attempt to pair users if both queues are filled
     if tester_queue and experimenter_queue:
         tester = tester_queue.popleft()
         experimenter = experimenter_queue.popleft()
@@ -191,11 +200,11 @@ def submit_name():
         pair_id = f"room_{random.randint(1000, 9999)}"
         pairs[pair_id] = {"tester": tester, "experimenter": experimenter}
 
-        # Retrieve socket IDs for both users (user_id)
+        # Retrieve socket IDs for both users
         tester_id = user_sockets.get(tester)
         experimenter_id = user_sockets.get(experimenter)
 
-        # Prepare response for both users
+        # Notify both users via WebSocket
         if tester_id:
             socketio.emit(
                 "paired",
@@ -241,7 +250,8 @@ def submit_name():
             }
         ), 200
 
-    return jsonify({"status": "waiting", "message": "Waiting for another user"}), 200
+    # If pairing wasn't possible, inform the user to wait
+    return jsonify({"status": "waiting", "message": "Waiting for another user to connect"}), 200
 
 
 @app.route("/api/save_chat", methods=["POST"])
@@ -316,6 +326,28 @@ def save_feedback():
 
     return jsonify({"status": "success", "message": "Feedback saved"})
 
+@app.route("/api/submit_guess", methods=["POST"])
+def submit_guess():
+    data = request.json
+    pair_id = data.get("pairId")
+    guess_a = data.get("guessCandidateA")
+    guess_b = data.get("guessCandidateB")
+
+    real_a = pairs[pair_id]["candidate_a"]
+    real_b = pairs[pair_id]["candidate_b"]
+
+    if guess_a == real_a and guess_b == real_b:
+        bonus_code = generate_unique_code(7)  # 7-digit code
+    else:
+        bonus_code = generate_unique_code(6)  # 6-digit code
+
+    # Notify the experimenter
+    experimenter_id = user_sockets.get(pairs[pair_id]["experimenter"])
+    if experimenter_id:
+        socketio.emit("bonus_code", {"bonus": bonus_code}, to=experimenter_id)
+
+    return jsonify({"status": "success"})
+
 
 # --- Socket.IO Handlers ---
 @socketio.on("join")
@@ -353,6 +385,23 @@ def handle_message(data):
     sender = data["sender"]
     message = data["message"]
     emit("message", {"sender": sender, "message": message}, to=pair_id)
+
+
+@socketio.on("disconnect")
+def on_disconnect():
+    """
+    Handle user disconnection.
+    """
+    sid = request.sid
+    username = next((u for u, s in user_sockets.items() if s == sid), None)
+
+    if username:
+        logging.info(f"User {username} disconnected")
+        user_sockets.pop(username, None)
+        if username in tester_queue:
+            tester_queue.remove(username)
+        if username in experimenter_queue:
+            experimenter_queue.remove(username)
 
 
 if __name__ == "__main__":
