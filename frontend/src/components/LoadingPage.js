@@ -4,7 +4,7 @@ import axios from 'axios';
 import io from 'socket.io-client';
 
 // Establish socket connection
-const socket = io(process.env.REACT_APP_BACKEND_SOCKET_URL || 'http://127.0.0.1:5000');
+const socket = io('http://localhost:5000');
 
 function LoadingPage() {
   const [name, setName] = useState('');
@@ -47,8 +47,7 @@ function LoadingPage() {
     socket.emit('register_user', { username: name });
 
     try {
-      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:5000';
-      const response = await axios.post(`${BACKEND_URL}/api/submit_name`, { username: name });
+      const response = await axios.post('http://localhost:5000/api/submit_name', { username: name });
 
       console.log('Response:', response.data);
 

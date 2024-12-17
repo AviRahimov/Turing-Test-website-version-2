@@ -3,38 +3,20 @@ import {useLocation} from "react-router-dom";
 
 const ThankYouPage = () => {
   const location = useLocation();
-  const [uniqueCode, setUniqueCode] = useState(null);
-  const {pairId, role, name} = location.state || {};
-
-  useEffect(() => {
-    const fetchCode = async () => {
-      try {
-        const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:5000';
-        const response = await fetch(`${BACKEND_URL}/api/generate_code`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role: role, name: name }),
-        });
-
-        const result = await response.json();
-        if (result.status === 'success') {
-          setUniqueCode(result.code);
-        } else {
-          console.error('Error generating code:', result.message);
-        }
-      } catch (error) {
-        console.error('Error fetching code:', error);
-      }
-    };
-
-    fetchCode();
-  }, []);
+  const {bonusCode, name, user_id} = location.state || {};
+  const isSevenDigitCode = bonusCode && bonusCode.length === 7;
+  console.log("bonus_code", bonusCode);
 
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>Thank You for Participating!</h1>
       <p style={styles.text}>Your unique code is:</p>
-      <p style={styles.code}>{uniqueCode || 'Loading...'}</p>
+      <p style={styles.code}>{bonusCode || 'Loading...'}</p>
+      {isSevenDigitCode && (
+        <p style={styles.bonusMessage}>
+          Hooray, the tester guessed true, thus you and him will get a bonus code!
+        </p>
+      )}
     </div>
   );
 };
@@ -62,6 +44,11 @@ const styles = {
     fontSize: '1.8rem',
     color: '#007BFF',
     fontWeight: 'bold',
+  },
+  bonusMessage: {
+    fontSize: '1.2rem',
+    color: '#28a745',
+    marginTop: '10px',
   },
 };
 

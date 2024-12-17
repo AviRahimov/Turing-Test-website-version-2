@@ -3,47 +3,29 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 const FeedbackPage = () => {
   const location = useLocation();
-  const { realIdentityA, realIdentityB, locations, name, userId } = location.state || {};
+  const { name, userId } = location.state || {};
 
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     experience: '',
     comments: '',
     improvements: '',
-    guessCandidateA: '',
-    guessCandidateB: '',
-    ratingCandidateA: '',
-    ratingCandidateB: '',
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setFormData((prevData) => {
-      if (name === 'guessCandidateA') {
-        return {
-          ...prevData,
-          [name]: value,
-          guessCandidateB: value === 'Bot' ? 'human' : 'Bot', // Automatically set Candidate B
-        };
-      }
-      return { ...prevData, [name]: value };
-    });
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:5000';
-      console.log("name", location.state.name);
-      const response = await fetch(`${BACKEND_URL}/api/save_feedback`, {
+      const response = await fetch('http://localhost:5000/api/save_feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          realIdentityA,
-          realIdentityB,
           name,
           userId,
         }),
@@ -51,7 +33,7 @@ const FeedbackPage = () => {
 
       const result = await response.json();
       if (result.status === 'success') {
-        navigate('/thank_you', { state: { role: 'tester', name: name} });
+        navigate('/thank_you', { state: { role: 'tester', name: name } });
       } else {
         alert('Failed to submit feedback. Please try again.');
       }
@@ -93,83 +75,6 @@ const FeedbackPage = () => {
             style={styles.textarea}
           />
         </label>
-        <div style={styles.splitContainer}>
-          <div style={styles.column}>
-            <h2 style={styles.subHeader}>Candidate A</h2>
-            <p>Location at the chat room: {locations?.A?.location || 'Unknown'}</p>
-            <label style={styles.label}>
-              Who do you think Candidate A was?
-              <select
-                name="guessCandidateA"
-                value={formData.guessCandidateA}
-                onChange={handleChange}
-                style={styles.select}
-                required
-              >
-                <option value="" disabled>
-                  Select an option
-                </option>
-                <option value="human">Human</option>
-                <option value="Bot">Bot</option>
-              </select>
-            </label>
-            <label style={styles.label}>
-              How would you rate Candidate A? (1-5)
-              <select
-                name="ratingCandidateA"
-                value={formData.ratingCandidateA}
-                onChange={handleChange}
-                style={styles.select}
-                required
-              >
-                <option value="" disabled>
-                  Select a rating
-                </option>
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <option key={rating} value={rating}>
-                    {rating}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div style={styles.column}>
-            <h2 style={styles.subHeader}>Candidate B</h2>
-            <p>Location at the chat room: {locations?.B?.location || 'Unknown'}</p>
-            <label style={styles.label}>
-              Who do you think Candidate B was?
-              <select
-                name="guessCandidateB"
-                value={formData.guessCandidateB}
-                onChange={handleChange}
-                style={styles.select}
-                disabled
-              >
-                <option value="human">Human</option>
-                <option value="Bot">Bot</option>
-              </select>
-            </label>
-            <label style={styles.label}>
-              How would you rate Candidate B? (1-5)
-              <select
-                name="ratingCandidateB"
-                value={formData.ratingCandidateB}
-                onChange={handleChange}
-                style={styles.select}
-                required
-              >
-                <option value="" disabled>
-                  Select a rating
-                </option>
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <option key={rating} value={rating}>
-                    {rating}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </div>
         <button type="submit" style={styles.button}>
           Submit Feedback
         </button>
@@ -213,34 +118,6 @@ const styles = {
     border: '1px solid #ccc',
     resize: 'vertical',
   },
-  select: {
-    width: '100%',
-    padding: '10px',
-    fontSize: '14px',
-    borderRadius: '5px',
-    border: '1px solid #ccc',
-  },
-  splitContainer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    gap: '20px',
-  },
-  column: {
-    flex: '1',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    backgroundColor: '#fff',
-    borderRadius: '8px',
-    padding: '15px',
-    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
-  },
-  subHeader: {
-    fontSize: '20px',
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: '10px',
-  },
   button: {
     marginTop: '20px',
     backgroundColor: '#007bff',
@@ -256,6 +133,5 @@ const styles = {
     backgroundColor: '#0056b3',
   },
 };
-
 
 export default FeedbackPage;

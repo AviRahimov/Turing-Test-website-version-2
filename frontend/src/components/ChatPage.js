@@ -29,6 +29,21 @@ function ChatPage() {
   const [guessCandidateA, setGuessCandidateA] = useState('');
   const [guessCandidateB, setGuessCandidateB] = useState('');
   const [experimenterBonus, setExperimenterBonus] = useState(null);
+  const [isWaitingForTester, setIsWaitingForTester] = useState(false); // Manage the experimenter's waiting status
+  const [showOverlay, setShowOverlay] = useState(false); // Manage overlay visibility
+
+  // Handlers to send messages on Enter key press
+  const handleKeyPressExperimenter = (e) => {
+    if (e.key === 'Enter') {
+      sendMessageToExperimenter();
+    }
+  };
+
+  const handleKeyPressBot = (e) => {
+    if (e.key === 'Enter') {
+      sendMessageToBot();
+    }
+  };
 
   // Helper to save chat logs
   const saveChatLogs = async (title) => {
@@ -41,7 +56,7 @@ function ChatPage() {
     console.log('Chat data being sent:', chatData); // Debug log
 
     try {
-      const response = await axios.post('/api/save_chat', chatData);
+      const response = await axios.post('http://localhost:5000/api/save_chat', chatData);
       console.log('Response from server:', response.data); // Debug log
     } catch (error) {
       console.error('Error saving chat logs:', error);
@@ -194,39 +209,13 @@ function ChatPage() {
     if (realTestTimer === 0) {
       saveChatLogs('During Turing Test');
 
-      if (role === 'tester') {
-        setIsGuessingPhase(true);
-      } else if (role === 'experimenter') {
-        setExperimenterBonus('Waiting for tester to guess...');
+      setShowOverlay(true);
+      if (role === 'experimenter') {
+        setIsWaitingForTester(true);
       }
     }
-  }, [realTestTimer, role, navigate, candidateMapping, candidateLocations]);
+  }, [realTestTimer, role]);
 
-  const submitGuess = async () => {
-    if (!guessCandidateA || !guessCandidateB) {
-      alert('Please make a guess for both candidates!');
-      return;
-    }
-
-    try {
-      const response = await axios.post('/api/submit_guess', {
-        pairId,
-        guessCandidateA,
-        guessCandidateB,
-        name,
-        userId,
-      });
-
-      if (response.data.status === 'success') {
-        alert('Guess submitted successfully!');
-        setIsGuessingPhase(false); // Return to a neutral state
-      } else {
-        alert('Failed to submit guess. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error submitting guess:', error);
-    }
-  };
 
   // Send a message to the experimenter
   const sendMessageToExperimenter = () => {
@@ -293,94 +282,211 @@ function ChatPage() {
     }
   };
 
-  // Modify the `renderChatWindow` function to include the overlay for the question form
-const renderChatWindow = (roomType) => {
-  if (realTestTimer === 0) {
-    // Show the overlay question form when `realTestTimer` is 0
-    return (
-      <div className="chat-window">
-        <div className="cover">
-          <p>Who was in this chat?</p>
-          <select
-            value={roomType === 'experimenter' ? guessCandidateA : guessCandidateB}
-            onChange={(e) =>
-              handleCandidateSelection(roomType === 'experimenter' ? 'A' : 'B', e.target.value)
-            }
-          >
-            <option value="">Select</option>
-            <option value="bot">Bot</option>
-            <option value="experimenter">Human</option>
-          </select>
-        </div>
-      </div>
-    );
-  }
 
-  // Default chat window rendering logic remains unchanged
-  if (roomType === 'experimenter') {
-    return (
-      <div className="chat-window">
-        <div className="chat-header">
-          {showIdentity ? 'Chat with Experimenter' : candidateMapping.A === 'experimenter' ? 'Candidate A' : 'Candidate B'}
-        </div>
-        <div className="chat-messages">
-          {messages.map((msg, index) => (
-            <p
-              className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`}
-              key={index}
-            >
-              {msg.content}
-            </p>
-          ))}
-        </div>
-        <div className="chat-input">
-          <input
-            type="text"
-            value={messageToExperimenter}
-            onChange={(e) => setMessageToExperimenter(e.target.value)}
-            placeholder="Type your message here..."
-            className="input-box"
-          />
-          <button onClick={sendMessageToExperimenter} className="send-button">
-            Send
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleSubmitGuesses = async () => {
+    if (!guessCandidateA || !guessCandidateB) {
+      alert('Please select both candidates before submitting.');
+      return;
+    }
 
-  if (roomType === 'bot') {
-    return (
-      <div className="chat-window">
-        <div className="chat-header">
-          {showIdentity ? 'Chat with Bot' : candidateMapping.B === 'bot' ? 'Candidate B' : 'Candidate A'}
+    try {
+      const response = await axios.post('http://localhost:5000/api/generate_code', {
+        role: 'tester',
+        name,
+        pairId,
+        guessCandidateA,
+        guessCandidateB,
+        realIdentityA: candidateMapping.A,
+        realIdentityB: candidateMapping.B,
+      });
+
+      if (response.data.status === 'success') {
+        console.log('Guesses submitted successfully:', response.data);
+        console.log('role in handleSubmitGuesses', role);
+        // Notify the experimenter
+        socket.emit('tester_guessed', { pairId });
+
+        navigate('/feedback', {
+          state: {
+            realIdentityA: candidateMapping.A,
+            realIdentityB: candidateMapping.B,
+            locations: candidateLocations,
+            name,
+            userId,
+          },
+        });
+      } else {
+        console.error('Error submitting guesses:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error submitting guesses:', error);
+    }
+  };
+
+  // Update the useEffect to listen for the tester's guess event
+  // useEffect(() => {
+  //   console.log('role in useEffect', role);
+  //   socket.on('tester_guessed', () => {
+  //     console.log('Tester has guessed the identities');
+  //     setIsWaitingForTester(true);
+  //   });
+  //
+  //   return () => {
+  //     socket.off('tester_guessed');
+  //   };
+  // }, []);
+
+  // Listen for the experimenter's bonus code and navigate to the thank_you page
+  useEffect(() => {
+    socket.on('bonus_code', (data) => {
+      console.log('Bonus code received:', data.bonus);
+      setExperimenterBonus(data.bonus);
+      navigate('/thank_you', {
+        state: {
+          bonusCode: data.bonus,
+          name,
+          userId,
+        },
+      });
+    });
+
+    return () => {
+      socket.off('bonus_code');
+    };
+  }, [navigate, name, userId]);
+
+  // Listen for the tester's guess event and hide the overlay for the experimenter
+  useEffect(() => {
+    socket.on('tester_guessed', () => {
+      setShowOverlay(false);
+      setIsWaitingForTester(false);
+      navigate('/thank_you', {
+        state: {
+          name,
+          userId,
+        },
+      });
+    });
+
+    return () => {
+      socket.off('tester_guessed');
+    };
+  }, [navigate, name, userId]);
+
+  const renderChatWindow = (roomType) => {
+    if (showOverlay && role === 'experimenter') {
+      return (
+        <div className="chat-window">
+          <div className="overlay">
+            <p>Waiting for the tester to submit their guesses...</p>
+          </div>
         </div>
-        <div className="chat-messages">
-          {botMessages.map((msg, index) => (
-            <p
-              className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`}
-              key={index}
+      );
+    }
+
+    if (realTestTimer === 0) {
+      // Show the overlay question form when `realTestTimer` is 0
+      return (
+        <div className="chat-window">
+          <div className="cover">
+            <p>Who was in this chat?</p>
+            <select
+              value={roomType === 'experimenter' ? guessCandidateA : guessCandidateB}
+              onChange={(e) =>
+                handleCandidateSelection(roomType === 'experimenter' ? 'A' : 'B', e.target.value)
+              }
             >
-              {msg.content}
-            </p>
-          ))}
+              <option value="">Select</option>
+              <option value="bot">Bot</option>
+              <option value="experimenter">Human</option>
+            </select>
+            {roomType === 'bot' && (
+              <button onClick={handleSubmitGuesses} className="submit-button">
+                Submit
+              </button>
+            )}
+          </div>
         </div>
-        <div className="chat-input">
-          <input
-            type="text"
-            value={messageToBot}
-            onChange={(e) => setMessageToBot(e.target.value)}
-            placeholder="Type your message here..."
-            className="input-box"
-          />
-          <button onClick={sendMessageToBot} className="send-button">
-            Send
-          </button>
+      );
+    }
+
+    if (role === 'experimenter' && isWaitingForTester) {
+      return (
+        <div className="chat-window">
+          <div className="overlay">
+            <p>Waiting for the tester to guess the identities, please wait a couple of seconds...</p>
+          </div>
         </div>
-      </div>
-    );
-  }
-};
+      );
+    }
+
+    // Default chat window rendering logic remains unchanged
+    if (roomType === 'experimenter') {
+      return (
+        <div className="chat-window">
+          <div className="chat-header">
+            {showIdentity ? 'Chat with Experimenter' : candidateMapping.A === 'experimenter' ? 'Candidate A' : 'Candidate B'}
+          </div>
+          <div className="chat-messages">
+            {messages.map((msg, index) => (
+              <p
+                className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`}
+                key={index}
+              >
+                {msg.content}
+              </p>
+            ))}
+          </div>
+          <div className="chat-input">
+            <input
+              type="text"
+              value={messageToExperimenter}
+              onChange={(e) => setMessageToExperimenter(e.target.value)}
+              onKeyPress={handleKeyPressExperimenter}
+              placeholder="Type your message here..."
+              className="input-box"
+            />
+            <button onClick={sendMessageToExperimenter} className="send-button">
+              Send
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (roomType === 'bot') {
+      return (
+        <div className="chat-window">
+          <div className="chat-header">
+            {showIdentity ? 'Chat with Bot' : candidateMapping.B === 'bot' ? 'Candidate B' : 'Candidate A'}
+          </div>
+          <div className="chat-messages">
+            {botMessages.map((msg, index) => (
+              <p
+                className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`}
+                key={index}
+              >
+                {msg.content}
+              </p>
+            ))}
+          </div>
+          <div className="chat-input">
+            <input
+              type="text"
+              value={messageToBot}
+              onChange={(e) => setMessageToBot(e.target.value)}
+              onKeyPress={handleKeyPressBot}
+              placeholder="Type your message here..."
+              className="input-box"
+            />
+            <button onClick={sendMessageToBot} className="send-button">
+              Send
+            </button>
+          </div>
+        </div>
+      );
+    }
+  };
 
   return (
     <div className={`chat-container ${shuffling ? 'shuffling' : ''}`}>
@@ -388,7 +494,7 @@ const renderChatWindow = (roomType) => {
         <div className="popup-overlay">
           <div className="popup">
             <h3>Important Information</h3>
-            <p>You will chat with both a human and a bot. Identify who is who.</p>
+            <p>You will chat with both a human and a bot. Identify who is who. If you guess correctly, you will get a bonus payment.</p>
             <button onClick={() => setShowNotification(false)} className="popup-dismiss-button">
               Dismiss
             </button>
@@ -418,6 +524,7 @@ const renderChatWindow = (roomType) => {
                     type="text"
                     value={messageToExperimenter}
                     onChange={(e) => setMessageToExperimenter(e.target.value)}
+                    onKeyPress={handleKeyPressExperimenter}
                     placeholder="Type your message here..."
                     className="input-box"
                 />

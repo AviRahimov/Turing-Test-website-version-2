@@ -96,47 +96,54 @@ def home():
 
 @app.route("/api/generate_code", methods=["POST"])
 def generate_code():
-    """
-    Generate a unique code for a tester or experimenter.
-    """
     data = request.json
     role = data.get("role")
     name = data.get("name")
+    pair_id = data.get("pairId")
+    guess_a = data.get("guessCandidateA")
+    guess_b = data.get("guessCandidateB")
+    real_a = data.get("realIdentityA")
+    real_b = data.get("realIdentityB")
 
     if role not in ["tester", "experimenter"]:
         return jsonify({"status": "error", "message": "Invalid role"}), 400
 
-    # Check if code already exists for this username
-    with code_lock:  # Ensure thread safety
+    with code_lock:
         if name in generated_codes:
             code = generated_codes[name]
-        # Determine code length based on feedback correctness
-        elif role == "tester" and is_tester_correct(name, user_sockets.get(name)):
-            code = generate_unique_code(digits=7)  # 7-digit code
+        elif role == "tester" and guess_a == real_a and guess_b == real_b:
+            code = generate_unique_code(digits=7)
         else:
-            code = generate_unique_code(digits=6)  # 6-digit code
+            code = generate_unique_code(digits=6)
 
         generated_codes[name] = code
 
-        # Save the code to the CSV file
         with open(CODES_FILE, "a", newline="") as file:
             writer = csv.writer(file)
             writer.writerow([code, role, time.strftime("%Y-%m-%d %H:%M:%S")])
 
+        # Notify the experimenter
+        print("pairs", pairs)
+        print("pair_id", pair_id)
+        print("user_sockets", user_sockets)
+
+        experimenter_id = user_sockets.get(pairs[pair_id]["experimenter"])
+        if experimenter_id:
+            socketio.emit("bonus_code", {"bonus": code})
+
         return jsonify({"status": "success", "code": code})
 
-
-def is_tester_correct(tester_name, tester_code):
-    """
-    Check if the tester guessed both identities correctly based on feedback.
-    """
-    with open(FEEDBACK_FILE, mode="r") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            if row.get("tester_name") == tester_name and row.get("user_id") == tester_code:
-                # Tester is correct if both guesses are accurate
-                return row.get("correct_guess_a") == "True" and row.get("correct_guess_b") == "True"
-    return False
+# def is_tester_correct(tester_name, tester_code):
+#     """
+#     Check if the tester guessed both identities correctly based on feedback.
+#     """
+#     with open(FEEDBACK_FILE, mode="r") as file:
+#         reader = csv.DictReader(file)
+#         for row in reader:
+#             if row.get("tester_name") == tester_name and row.get("user_id") == tester_code:
+#                 # Tester is correct if both guesses are accurate
+#                 return row.get("correct_guess_a") == "True" and row.get("correct_guess_b") == "True"
+#     return False
 
 
 @socketio.on("connect")
@@ -162,12 +169,12 @@ def register_user(data):
         logging.info(f"Registered user {username} with socket ID {request.sid}")
 
 
-
 @app.route("/api/submit_name", methods=["POST"])
 def submit_name():
     """
     Handle user submission and automatically assign roles to pair testers and experimenters.
     """
+    print("submit_name")
     data = request.json
     username = data.get("username")
 
@@ -325,28 +332,6 @@ def save_feedback():
         writer.writerow(feedback)
 
     return jsonify({"status": "success", "message": "Feedback saved"})
-
-@app.route("/api/submit_guess", methods=["POST"])
-def submit_guess():
-    data = request.json
-    pair_id = data.get("pairId")
-    guess_a = data.get("guessCandidateA")
-    guess_b = data.get("guessCandidateB")
-
-    real_a = pairs[pair_id]["candidate_a"]
-    real_b = pairs[pair_id]["candidate_b"]
-
-    if guess_a == real_a and guess_b == real_b:
-        bonus_code = generate_unique_code(7)  # 7-digit code
-    else:
-        bonus_code = generate_unique_code(6)  # 6-digit code
-
-    # Notify the experimenter
-    experimenter_id = user_sockets.get(pairs[pair_id]["experimenter"])
-    if experimenter_id:
-        socketio.emit("bonus_code", {"bonus": bonus_code}, to=experimenter_id)
-
-    return jsonify({"status": "success"})
 
 
 # --- Socket.IO Handlers ---
