@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import {useLocation} from "react-router-dom";
+import React from 'react';
+import { useLocation } from 'react-router-dom';
 
 const ThankYouPage = () => {
   const location = useLocation();
-  const {bonusCode, name, user_id} = location.state || {};
+  const { bonusCode, name, user_id, role } = location.state || {};
   const isSevenDigitCode = bonusCode && bonusCode.length === 7;
   console.log("bonus_code", bonusCode);
 
@@ -14,7 +14,9 @@ const ThankYouPage = () => {
       <p style={styles.code}>{bonusCode || 'Loading...'}</p>
       {isSevenDigitCode && (
         <p style={styles.bonusMessage}>
-          Hooray, the tester guessed true, thus you and him will get a bonus code!
+          {role === 'experimenter'
+            ? 'Hooray, the tester guessed true, thus both of you will get a bonus code!'
+            : 'Hooray, you guessed true, thus you and the experimenter will get a bonus code!'}
         </p>
       )}
     </div>

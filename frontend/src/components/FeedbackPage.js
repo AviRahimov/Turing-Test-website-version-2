@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 const FeedbackPage = () => {
   const location = useLocation();
-  const { name, userId } = location.state || {};
+  const { name, userId, realIdentityA, realIdentityB, guessCandidateA, guessCandidateB, code, role } = location.state || {};
 
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -28,12 +28,16 @@ const FeedbackPage = () => {
           ...formData,
           name,
           userId,
+          realIdentityA,
+          realIdentityB,
+          guessCandidateA,
+          guessCandidateB,
         }),
       });
 
       const result = await response.json();
       if (result.status === 'success') {
-        navigate('/thank_you', { state: { role: 'tester', name: name } });
+        navigate('/thank_you', { state: { role: 'tester', name: name, bonusCode:code } });
       } else {
         alert('Failed to submit feedback. Please try again.');
       }

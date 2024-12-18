@@ -104,7 +104,10 @@ def generate_code():
     guess_b = data.get("guessCandidateB")
     real_a = data.get("realIdentityA")
     real_b = data.get("realIdentityB")
-
+    print("real_a: ", real_a)
+    print("real_b: ", real_b)
+    print("guess_a: ", guess_a)
+    print("guess_b: ", guess_b)
     if role not in ["tester", "experimenter"]:
         return jsonify({"status": "error", "message": "Invalid role"}), 400
 
@@ -128,22 +131,12 @@ def generate_code():
         print("user_sockets", user_sockets)
 
         experimenter_id = user_sockets.get(pairs[pair_id]["experimenter"])
+        print("experimenter_id", experimenter_id)
         if experimenter_id:
             socketio.emit("bonus_code", {"bonus": code})
+            print("emitted bonus code")
 
         return jsonify({"status": "success", "code": code})
-
-# def is_tester_correct(tester_name, tester_code):
-#     """
-#     Check if the tester guessed both identities correctly based on feedback.
-#     """
-#     with open(FEEDBACK_FILE, mode="r") as file:
-#         reader = csv.DictReader(file)
-#         for row in reader:
-#             if row.get("tester_name") == tester_name and row.get("user_id") == tester_code:
-#                 # Tester is correct if both guesses are accurate
-#                 return row.get("correct_guess_a") == "True" and row.get("correct_guess_b") == "True"
-#     return False
 
 
 @socketio.on("connect")
@@ -224,6 +217,7 @@ def submit_name():
                 to=tester_id,
             )
         if experimenter_id:
+            print("experimenter_id in submit_name function", experimenter_id)
             socketio.emit(
                 "paired",
                 {
@@ -303,11 +297,11 @@ def save_feedback():
 
     # Normalize real identities
     if data.get("realIdentityA").lower() == "bot":
-        data["realIdentityA"] = "Bot"
-        data["realIdentityB"] = "human"
+        data["realIdentityA"] = "bot"
+        data["realIdentityB"] = "experimenter"
     else:
-        data["realIdentityA"] = "human"
-        data["realIdentityB"] = "Bot"
+        data["realIdentityA"] = "experimenter"
+        data["realIdentityB"] = "bot"
 
     feedback = {
         "user_id": data.get("userId"),
@@ -325,7 +319,7 @@ def save_feedback():
 
     # Save to CSV
     file_exists = os.path.isfile(FEEDBACK_FILE)
-    with open(FEEDBACK_FILE, mode="a", newline="") as file:
+    with open(FEEDBACK_FILE, mode="a", newline="", encoding="utf-16") as file:
         writer = csv.DictWriter(file, fieldnames=feedback.keys())
         if not file_exists:
             writer.writeheader()

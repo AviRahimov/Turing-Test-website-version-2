@@ -11,7 +11,7 @@ function HomePage() {
   return (
     <div style={{ textAlign: 'center', marginTop: '20%' }}>
       <h1>Welcome to the Turing Test Experiment</h1>
-      <p>Can you computer(bot) fool your team of humans?</p>
+      <p>Can a computer (bot) fool you and your human teammate?</p>
       <button
         onClick={handleStart}
         style={{

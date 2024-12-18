@@ -164,7 +164,35 @@ body {
   }
 }
 
-.chat-window .cover {
+/*.chat-window .cover {*/
+/*  top: 0;*/
+/*  left: 0;*/
+/*  right: 0;*/
+/*  bottom: 0;*/
+/*  background-color: rgba(255, 255, 255, 0.5); !* Slight transparency *!*/
+/*  display: flex;*/
+/*  flex-direction: column;*/
+/*  justify-content: center;*/
+/*  align-items: center;*/
+/*  z-index: 10; !* Ensure it covers everything *!*/
+/*  padding: 20px;*/
+/*}*/
+
+.chat-window .cover p {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.chat-window .cover select {
+  /*padding: 10px;*/
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  margin-bottom: 20px;
+}
+
+.chat-input .cover {
   top: 0;
   left: 0;
   right: 0;
@@ -176,20 +204,8 @@ body {
   align-items: center;
   z-index: 10; /* Ensure it covers everything */
   padding: 20px;
-}
-
-.chat-window .cover p {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.chat-window .cover select {
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  margin-bottom: 20px;
+  text-align: center;
+  width: 100%; /* Ensure it covers the entire chat window */
 }
 
 /* General Styling */
@@ -277,9 +293,33 @@ body {
   cursor: pointer;
   font-size: 16px;
   transition: background-color 0.3s, transform 0.2s;
-}
+  margin-top: -5px; /* Add some margin to separate it from other elements */}
 
 .submit-button:hover {
   background-color: #388e3c; /* Darker green */
   transform: scale(1.05); /* Slight zoom-in effect */
+}
+
+/* Overlay for experimenter */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255); /* Slight transparency */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10; /* Ensure it covers everything */
+  padding: 20px;
+  text-align: center;
+}
+
+.overlay h2 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
 }
