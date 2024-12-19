@@ -164,20 +164,6 @@ body {
   }
 }
 
-/*.chat-window .cover {*/
-/*  top: 0;*/
-/*  left: 0;*/
-/*  right: 0;*/
-/*  bottom: 0;*/
-/*  background-color: rgba(255, 255, 255, 0.5); !* Slight transparency *!*/
-/*  display: flex;*/
-/*  flex-direction: column;*/
-/*  justify-content: center;*/
-/*  align-items: center;*/
-/*  z-index: 10; !* Ensure it covers everything *!*/
-/*  padding: 20px;*/
-/*}*/
-
 .chat-window .cover p {
   font-size: 18px;
   font-weight: bold;
