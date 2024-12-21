@@ -121,99 +121,77 @@ function ChatPage() {
       setShuffling(true);
 
       setTimeout(() => {
-        const roles = ['bot', 'experimenter'];
-        // const { locations, shuffledRoles } = assignLocations(roles);
+        // 1. Randomly decide if we should swap rooms (Left/Right)
+        const shouldSwapRooms = Math.random() > 0.5;
+
+        // 2. Randomly decide if we should swap candidates (A/B)
+        const shouldSwapCandidates = Math.random() > 0.5;
+
+        // 3. Define the roles
+        const roles = ['experimenter', 'bot'];
         const shuffledRoles = [...roles].sort(() => Math.random() - 0.5);
 
-        // setCandidateMapping({ A: shuffledRoles[0], B: shuffledRoles[1] });
+        // 4. Create candidate mapping with possible candidate swap
+        const candidateSetup = shouldSwapCandidates ? {
+          B: shouldSwapRooms ? shuffledRoles[1] : shuffledRoles[0],
+          A: shouldSwapRooms ? shuffledRoles[0] : shuffledRoles[1]
+        } : {
+          A: shouldSwapRooms ? shuffledRoles[1] : shuffledRoles[0],
+          B: shouldSwapRooms ? shuffledRoles[0] : shuffledRoles[1]
+        };
 
-        // if (candidateLocations.A.name !== shuffledRoles[0]) {
-        //   console.log('Swapping A and B because A is: ' + candidateLocations.A.name + ' and shuffledRoles[0] is: ' + shuffledRoles[0]);
-        //   const swappedNames = {
-        //     A: {
-        //       ...candidateLocations.A,
-        //       name: shuffledRoles[0],
-        //     },
-        //     B: {
-        //       ...candidateLocations.B,
-        //       name: shuffledRoles[1],
-        //     }
-        //   };
-        //   setCandidateLocations(swappedNames);
-        // }
-        //
-        // if (roles[0] === shuffledRoles[0]) {
-        //   console.log('Swapping locations because roles[0] is: ' + roles[0] + ' and shuffledRoles[0] is: ' + shuffledRoles[0]);
-        //   const swappedLocations = {
-        //     A: {
-        //       name: shuffledRoles[0],
-        //       location: 'Right room',
-        //     },
-        //     B: {
-        //       name: shuffledRoles[1],
-        //       location: 'Left room',
-        //     }
-        //   };
-        //   setCandidateLocations(swappedLocations);
-        // }
-        // // Shuffle the identities, bot and experimenter
-        // const shuffledRoomOrder = ['experimenter', 'bot'].sort(() => Math.random() - 0.5);
-        // setRoomOrder(shuffledRoomOrder);
-        //
-        // // Change the room locations if the room order is not experimenter-bot
-        // if (roomOrder[0] !== 'experimenter' || roomOrder[1] !== 'bot') {
-        //   console.log('swapping locations because roomOrder[0] is: ' + roomOrder[0] + ' and shuffledRoomOrder[0] is: ' + shuffledRoomOrder[0]);
-        //   const updatedLocations = {
-        //     A: {
-        //       ...candidateLocations.A,
-        //       location: candidateLocations.A.location === 'Right room' ? 'Left room' : 'Right room',
-        //     },
-        //     B: {
-        //       ...candidateLocations.B,
-        //       location: candidateLocations.B.location === 'Right room' ? 'Left room' : 'Right room',
-        //     },
-        //   };
-        //   setCandidateLocations(updatedLocations);
-        // }
-        // Randomly decide if we should swap the room order
-        const shouldSwapRooms = Math.random() > 0.5;
-        const newRoomOrder = shouldSwapRooms
-          ? ['bot', 'experimenter']
-          : ['experimenter', 'bot'];
-
-        // Update locations based on the new room order
-        const newLocations = {
+        // 5. Set up locations with possible room and candidate swaps
+        const locationSetup = shouldSwapCandidates ? {
+          B: {
+            name: candidateSetup.B,
+            location: shouldSwapRooms ? 'Right room' : 'Left room'
+          },
           A: {
-            name: shouldSwapRooms ? shuffledRoles[1] : shuffledRoles[0],
+            name: candidateSetup.A,
+            location: shouldSwapRooms ? 'Left room' : 'Right room'
+          }
+        } : {
+          A: {
+            name: candidateSetup.A,
             location: shouldSwapRooms ? 'Right room' : 'Left room'
           },
           B: {
-            name: shouldSwapRooms ? shuffledRoles[0] : shuffledRoles[1],
+            name: candidateSetup.B,
             location: shouldSwapRooms ? 'Left room' : 'Right room'
           }
         };
 
-        // Update all necessary states
-        setCandidateMapping({
-          A: shouldSwapRooms ? shuffledRoles[1] : shuffledRoles[0],
-          B: shouldSwapRooms ? shuffledRoles[0] : shuffledRoles[1]
+        // 6. Update room order based on role positions
+        const newRoomOrder = shouldSwapRooms
+          ? ['bot', 'experimenter']
+          : ['experimenter', 'bot'];
+
+        // 7. Log the setup for debugging
+        console.log('Shuffle Setup:', {
+          shouldSwapRooms,
+          shouldSwapCandidates,
+          candidateSetup,
+          locationSetup,
+          newRoomOrder
         });
-        setCandidateLocations(newLocations);
+
+        // 8. Update all states
+        setCandidateMapping(candidateSetup);
+        setCandidateLocations(locationSetup);
         setRoomOrder(newRoomOrder);
 
         setShowIdentity(false);
         setShuffling(false);
 
-        saveChatLogs('Before Turing Test'); // Save chat logs before the Turing Test
-        setMessages([]); // Clear chat with experimenter
-        setBotMessages([]); // Clear chat with bot
-
-        setRealTestTimer(30); // Debugging: Real Turing Test starts (30 seconds)
-      }, 3000); // 3-second shuffle animation
+        saveChatLogs('Before Turing Test');
+        setMessages([]);
+        setBotMessages([]);
+        setRealTestTimer(30);
+      }, 3000);
     } else if (role === 'experimenter' && timer === 0) {
       setRealTestTimer(31);
     }
-  }, [timer, role]);
+}, [timer, role]);
 
   // Countdown for the real Turing Test
   useEffect(() => {
@@ -315,17 +293,25 @@ function ChatPage() {
     setMessageToBot('');
   };
 
-  // Modified candidate selection handler
+  // Updated handleCandidateSelection to work with shuffled candidates
   const handleCandidateSelection = (roomType, selectedValue) => {
-    // Determine which candidate (A or B) is in the current room
-    const currentRoom = roomType === 'experimenter' ? 'Left room' : 'Right room';
-    const candidateForRoom = Object.entries(candidateLocations).find(
+    // Determine which room we're dealing with
+    const isLeftRoom = roomType === 'experimenter';
+    const currentRoom = isLeftRoom ? 'Left room' : 'Right room';
+
+    // Find which candidate (A or B) is in this room
+    const candidateInRoom = Object.entries(candidateLocations).find(
       ([_, info]) => info.location === currentRoom
-    )?.[0];
+    )?.[0]; // Will be 'A' or 'B'
 
-    console.log(`Selection for ${roomType} (${candidateForRoom}): ${selectedValue}`);
+    console.log(`Selection for ${roomType} in ${currentRoom}:`, {
+      candidateInRoom,
+      selectedValue,
+      currentLocations: candidateLocations
+    });
 
-    if (candidateForRoom === 'A') {
+    // Update the appropriate guess based on which candidate is in this room
+    if (candidateInRoom === 'A') {
       setGuessCandidateA(selectedValue);
       setGuessCandidateB(selectedValue === 'bot' ? 'experimenter' : 'bot');
     } else {
@@ -341,10 +327,14 @@ function ChatPage() {
       return;
     }
 
-    console.log('GuessCandidateA:', guessCandidateA);
-    console.log('GuessCandidateB:', guessCandidateB);
-    console.log('Real Identity A:', candidateMapping.A);
-    console.log('Real Identity B:', candidateMapping.B);
+    // Validate that guesses match the actual room setup
+    console.log('Final Validation:', {
+      'GuessCandidateA': guessCandidateA,
+      'GuessCandidateB': guessCandidateB,
+      'Real Identity A': candidateMapping.A,
+      'Real Identity B': candidateMapping.B,
+      'Locations': candidateLocations
+    });
 
     try {
       const response = await axios.post('http://localhost:5000/api/generate_code', {
