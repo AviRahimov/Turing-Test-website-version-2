@@ -14,8 +14,17 @@ from threading import Lock
 
 # Flask app setup
 app = Flask(__name__)
-CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:3000"],
+        "supports_credentials": True
+    }
+})
+
+socketio = SocketIO(app,
+                   cors_allowed_origins="http://localhost:3000",
+                   ping_timeout=5000,
+                   ping_interval=25000)
 logging.basicConfig(level=logging.INFO)
 
 # File paths
@@ -27,12 +36,17 @@ FEEDBACK_FILE = "feedback.csv"
 tester_queue = deque()
 experimenter_queue = deque()
 pairs = {}
+
 # Dictionary to map usernames to socket IDs
 user_sockets = {}
+
 # Dictionary to store generated codes
 generated_codes = {}
+
 # Lock to ensure thread safety
 code_lock = Lock()
+pairing_lock = Lock()
+active_connections = {}
 
 # Ensure necessary files exist
 if not os.path.exists(CODES_FILE):
@@ -139,12 +153,30 @@ def generate_code():
         return jsonify({"status": "success", "code": code})
 
 
+@socketio.on('notification_dismissed')
+def handle_notification_dismissed(data):
+    pair_id = data.get('pair_id')
+    role = data.get('role')
+    emit('notification_dismissed', {'role': role}, room=pair_id)
+
+
+# Update the socket connection event handler
 @socketio.on("connect")
 def on_connect():
     """
-    Capture the user's socket connection when they connect.
+    Handle new socket connections
     """
-    logging.info(f"User connected: {request.sid}")
+    logging.info(f"User connected with SID: {request.sid}")
+    emit('connect_response', {'status': 'connected'})
+
+# Update the socket error handler
+@socketio.on_error()
+def error_handler(e):
+    """
+    Handle socket errors
+    """
+    logging.error(f"SocketIO error: {str(e)}")
+    emit('error', {'error': str(e)})
 
 
 @socketio.on("register_user")
@@ -174,85 +206,93 @@ def submit_name():
     if not username:
         return jsonify({"status": "error", "message": "Invalid username"}), 400
 
-    # Check if the user is already in the queues
-    if username in tester_queue or username in experimenter_queue:
-        return jsonify({"status": "error", "message": "You are already waiting to be paired"}), 400
+    with pairing_lock:  # Use the existing lock for thread safety
+        # Check if the user's socket is connected
+        if username not in user_sockets:
+            return jsonify({"status": "error", "message": "Socket connection not established"}), 400
 
-    # Automatic role assignment
-    role = None
-    if not tester_queue:
-        # First user becomes the Tester
-        tester_queue.append(username)
-        role = "tester"
-    elif not experimenter_queue:
-        # Second user becomes the Experimenter
-        experimenter_queue.append(username)
-        role = "experimenter"
-    else:
-        # If both queues are already full, return a waiting response
-        return jsonify({"status": "waiting", "message": "Waiting for another user to connect"}), 200
+        # Check if the user is already in the queues
+        if username in tester_queue or username in experimenter_queue:
+            return jsonify({"status": "waiting", "message": "You are already waiting to be paired"}), 200
 
-    # Attempt to pair users if both queues are filled
-    if tester_queue and experimenter_queue:
-        tester = tester_queue.popleft()
-        experimenter = experimenter_queue.popleft()
+        # Automatic role assignment
+        role = None
+        if not tester_queue:
+            # First user becomes the Tester
+            tester_queue.append(username)
+            role = "tester"
+        elif not experimenter_queue:
+            # Second user becomes the Experimenter
+            experimenter_queue.append(username)
+            role = "experimenter"
+        else:
+            # If both queues are already full, return a waiting response
+            return jsonify({"status": "waiting", "message": "Waiting for another user to connect"}), 200
 
-        pair_id = f"room_{random.randint(1000, 9999)}"
-        pairs[pair_id] = {"tester": tester, "experimenter": experimenter}
+        # Attempt to pair users if both queues are filled
+        if tester_queue and experimenter_queue:
+            tester = tester_queue[0]  # Don't pop yet
+            experimenter = experimenter_queue[0]  # Don't pop yet
 
-        # Retrieve socket IDs for both users
-        tester_id = user_sockets.get(tester)
-        experimenter_id = user_sockets.get(experimenter)
+            # Get socket IDs for both users
+            tester_id = user_sockets.get(tester)
+            experimenter_id = user_sockets.get(experimenter)
 
-        # Notify both users via WebSocket
-        if tester_id:
-            socketio.emit(
-                "paired",
-                {
-                    "pair_id": pair_id,
-                    "role": "tester",
-                    "user_id": tester_id,
-                    "username": tester,
-                },
-                to=tester_id,
-            )
-        if experimenter_id:
-            print("experimenter_id in submit_name function", experimenter_id)
-            socketio.emit(
-                "paired",
-                {
-                    "pair_id": pair_id,
-                    "role": "experimenter",
-                    "user_id": experimenter_id,
-                    "username": experimenter,
-                },
-                to=experimenter_id,
-            )
+            # Only proceed if both users have valid socket connections
+            if tester_id and experimenter_id:
+                # Now it's safe to remove from queues
+                tester_queue.popleft()
+                experimenter_queue.popleft()
 
-        logging.info(
-            f"Paired {tester} (ID: {tester_id}) with {experimenter} (ID: {experimenter_id}) in room {pair_id}"
-        )
-        return jsonify(
-            {
-                "status": "paired",
-                "pair_id": pair_id,
-                "users": [
+                pair_id = f"room_{random.randint(1000, 9999)}"
+                pairs[pair_id] = {"tester": tester, "experimenter": experimenter}
+
+                # Emit to both users
+                socketio.emit(
+                    "paired",
                     {
-                        "username": tester,
+                        "pair_id": pair_id,
                         "role": "tester",
                         "user_id": tester_id,
+                        "username": tester,
                     },
+                    to=tester_id,
+                )
+                socketio.emit(
+                    "paired",
                     {
-                        "username": experimenter,
+                        "pair_id": pair_id,
                         "role": "experimenter",
                         "user_id": experimenter_id,
+                        "username": experimenter,
                     },
-                ],
-            }
-        ), 200
+                    to=experimenter_id,
+                )
 
-    # If pairing wasn't possible, inform the user to wait
-    return jsonify({"status": "waiting", "message": "Waiting for another user to connect"}), 200
+                logging.info(
+                    f"Paired {tester} (ID: {tester_id}) with {experimenter} (ID: {experimenter_id}) in room {pair_id}"
+                )
+                return jsonify(
+                    {
+                        "status": "paired",
+                        "pair_id": pair_id,
+                        "users": [
+                            {
+                                "username": tester,
+                                "role": "tester",
+                                "user_id": tester_id,
+                            },
+                            {
+                                "username": experimenter,
+                                "role": "experimenter",
+                                "user_id": experimenter_id,
+                            },
+                        ],
+                    }
+                ), 200
+
+        # If pairing wasn't possible, inform the user to wait
+        return jsonify({"status": "waiting", "message": "Waiting for another user to connect"}), 200
 
 
 @app.route("/api/save_chat", methods=["POST"])
@@ -384,4 +424,8 @@ def on_disconnect():
 
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app,
+                debug=True,
+                host='0.0.0.0',
+                port=5000,
+                allow_unsafe_werkzeug=True)

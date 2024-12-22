@@ -32,6 +32,9 @@ function ChatPage() {
   const [showOverlay, setShowOverlay] = useState(false); // Manage overlay visibility
   const [showNotificationForExperimenter, setShowNotificationForExperimenter] = useState(role === 'experimenter');
   const [showNotificationForTester, setShowNotificationForTester] = useState(role === 'tester');
+  const [testerDismissed, setTesterDismissed] = useState(false);
+  const [experimenterDismissed, setExperimenterDismissed] = useState(false);
+  const [timerPaused, setTimerPaused] = useState(true); // Start with timer paused
 
   // Handlers to send messages on Enter key press
   const handleKeyPressExperimenter = (e) => {
@@ -68,6 +71,14 @@ function ChatPage() {
   useEffect(() => {
     socket.emit('join', { pair_id: pairId, username: role });
 
+    socket.on('notification_dismissed', (data) => {
+      if (data.role === 'tester') {
+        setTesterDismissed(true);
+      } else if (data.role === 'experimenter') {
+        setExperimenterDismissed(true);
+      }
+    });
+
     socket.on('message', (data) => {
       const newMessage = { sender: data.sender, content: data.message };
 
@@ -94,26 +105,48 @@ function ChatPage() {
 
     return () => {
       socket.off('message');
+      socket.off('notification_dismissed');
     };
   }, [pairId, role]);
 
+  // handle dismissal status
+  useEffect(() => {
+    if (testerDismissed && experimenterDismissed) {
+      setTimerPaused(false);
+      console.log('Both participants dismissed notifications, timer starting');
+    }
+  }, [testerDismissed, experimenterDismissed]);
+
   // Countdown for pre-shuffle timer
   useEffect(() => {
-    // if (!showNotificationForTester && !showNotificationForExperimenter) {
-      const countdownInterval = setInterval(() => {
-        setTimer((prev) => {
-          if (prev > 0) {
-            return prev - 1; // Decrement timer by 1 second
-          } else {
-            clearInterval(countdownInterval); // Stop the interval when timer reaches 0
-            return 0; // Ensure timer doesn't go negative
-          }
-        });
-      }, 1000); // Run every second
+    if (timerPaused) {
+      return; // Don't start countdown if timer is paused
+    }
+    const countdownInterval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev > 0) {
+          return prev - 1; // Decrement timer by 1 second
+        } else {
+          clearInterval(countdownInterval); // Stop the interval when timer reaches 0
+          return 0; // Ensure timer doesn't go negative
+        }
+      });
+    }, 1000); // Run every second
 
-      return () => clearInterval(countdownInterval); // Cleanup on unmount
-    // }
-  }, []);
+    return () => clearInterval(countdownInterval); // Cleanup on unmount
+  }, [timerPaused]);
+
+  const handleDismissNotification = () => {
+    if (role === 'tester') {
+      setShowNotificationForTester(false);
+      socket.emit('notification_dismissed', { pair_id: pairId, role: 'tester' });
+      setTesterDismissed(true);
+    } else if (role === 'experimenter') {
+      setShowNotificationForExperimenter(false);
+      socket.emit('notification_dismissed', { pair_id: pairId, role: 'experimenter' });
+      setExperimenterDismissed(true);
+    }
+  };
 
   // Handle shuffle logic when pre-shuffle timer reaches 0
   useEffect(() => {
@@ -503,8 +536,15 @@ function ChatPage() {
         <div className="popup-overlay">
           <div className="popup">
             <h3>Important Information</h3>
-            <p>You will chat with both a human and a bot. Identify who is who. If you guess correctly, you will get a bonus payment.</p>
-            <button onClick={() => setShowNotificationForTester(false)} className="popup-dismiss-button">
+            <p>You will chat with both a human and a bot. Identify who is who. If you guess correctly, you will get a
+              bonus payment.</p>
+            <p className="waiting-text">
+              {!experimenterDismissed && "Waiting for experimenter to acknowledge..."}
+            </p>
+            <button
+                onClick={handleDismissNotification}
+                className="popup-dismiss-button"
+            >
               Dismiss
             </button>
           </div>
@@ -512,15 +552,22 @@ function ChatPage() {
       )}
 
       {showNotificationForExperimenter && role === 'experimenter' && (
-        <div className="popup-overlay">
-          <div className="popup">
-            <h3>Important Information</h3>
-            <p>You will chat with the tester. Help them identify who is who. If they guess correctly, you will get a bonus payment.</p>
-            <button onClick={() => setShowNotificationForExperimenter(false)} className="popup-dismiss-button">
-              Dismiss
-            </button>
+          <div className="popup-overlay">
+            <div className="popup">
+              <h3>Important Information</h3>
+              <p>You will chat with the tester. Help them identify who is who. If they guess correctly, you will get a
+                bonus payment.</p>
+              <p className="waiting-text">
+                {!testerDismissed && "Waiting for tester to acknowledge..."}
+              </p>
+              <button
+                  onClick={handleDismissNotification}
+                  className="popup-dismiss-button"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
-        </div>
       )}
 
       <div className="chat-boxes">
