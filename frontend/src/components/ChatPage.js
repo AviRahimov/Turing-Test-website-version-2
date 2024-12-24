@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 import io from 'socket.io-client';
 import './ChatPage.css';
+import config from './config.js';
 import axios from 'axios';
 
 const socket = io('http://localhost:5000'); // Adjust the port if needed
@@ -15,8 +16,8 @@ function ChatPage() {
   const [botMessages, setBotMessages] = useState([]); // Chat with bot
   const [messageToExperimenter, setMessageToExperimenter] = useState('');
   const [messageToBot, setMessageToBot] = useState('');
-  const [timer, setTimer] = useState(15); // Debugging: 15 seconds
-  const [realTestTimer, setRealTestTimer] = useState(null); // Debugging: 5 minutes
+  const [timer, setTimer] = useState(config.INITIAL_TIMER);
+  const [realTestTimer, setRealTestTimer] = useState(config.REAL_TEST_TIMER);
   const [showIdentity, setShowIdentity] = useState(true);
   const [candidateMapping, setCandidateMapping] = useState({ A: '', B: '' });
   const [shuffling, setShuffling] = useState(false);
@@ -25,16 +26,21 @@ function ChatPage() {
     A: { name: 'Experimenter', location: 'Left room' },
     B: { name: 'Bot', location: 'Right room' },
   });
+  const [finalRoomConfig, setFinalRoomConfig] = useState(null);
   const [roomOrder, setRoomOrder] = useState(['experimenter', 'bot']); // Default room order
   const [guessCandidateA, setGuessCandidateA] = useState('');
   const [guessCandidateB, setGuessCandidateB] = useState('');
   const [experimenterBonus, setExperimenterBonus] = useState(null);
+  const [experimenterReady, setExperimenterReady] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false); // Manage overlay visibility
   const [showNotificationForExperimenter, setShowNotificationForExperimenter] = useState(role === 'experimenter');
   const [showNotificationForTester, setShowNotificationForTester] = useState(role === 'tester');
   const [testerDismissed, setTesterDismissed] = useState(false);
   const [experimenterDismissed, setExperimenterDismissed] = useState(false);
   const [timerPaused, setTimerPaused] = useState(true); // Start with timer paused
+  const [shuffleEnabled] = useState(config.SHUFFLE_ENABLED);
+
+
 
   // Handlers to send messages on Enter key press
   const handleKeyPressExperimenter = (e) => {
@@ -71,6 +77,21 @@ function ChatPage() {
   useEffect(() => {
     socket.emit('join', { pair_id: pairId, username: role });
 
+    // If shuffle is disabled, set up rooms immediately
+    if (!shuffleEnabled) {
+      // Skip timer and go straight to anonymous setup
+      setTimer(0);
+      setupAnonymousRooms();
+      setRealTestTimer(realTestTimer);
+    }
+
+    if (role === 'tester') {
+      socket.on('experimenter_ready', (data) => {
+        console.log('Received experimenter_ready event', data);
+        setExperimenterReady(true);
+      });
+    }
+
     socket.on('notification_dismissed', (data) => {
       if (data.role === 'tester') {
         setTesterDismissed(true);
@@ -106,8 +127,11 @@ function ChatPage() {
     return () => {
       socket.off('message');
       socket.off('notification_dismissed');
+      if (role === 'tester') {
+        socket.off('experimenter_ready');
+      }
     };
-  }, [pairId, role]);
+  }, [pairId, role, shuffleEnabled]);
 
   // handle dismissal status
   useEffect(() => {
@@ -117,24 +141,81 @@ function ChatPage() {
     }
   }, [testerDismissed, experimenterDismissed]);
 
-  // Countdown for pre-shuffle timer
-  useEffect(() => {
-    if (timerPaused) {
-      return; // Don't start countdown if timer is paused
+  // handle immediate room setup
+const setupAnonymousRooms = () => {
+    console.log('=== INITIAL SETUP ===');
+
+    const shouldSwapRooms = Math.random() > 0.5;
+    const shouldSwapCandidates = Math.random() > 0.5;
+
+    const roles = ['experimenter', 'bot'];
+    const shuffledRoles = [...roles].sort(() => Math.random() - 0.5);
+
+    console.log('Configuration:', {
+        shouldSwapRooms,
+        shouldSwapCandidates,
+        shuffledRoles
+    });
+
+    // First, determine who is in which room (Left/Right)
+    const leftRoom = shouldSwapRooms ? shuffledRoles[1] : shuffledRoles[0];  // bot or experimenter
+    const rightRoom = shouldSwapRooms ? shuffledRoles[0] : shuffledRoles[1];
+
+    // Then, determine which candidate (A/B) is assigned to which room
+    const locationSetup = {
+        A: {
+            name: shouldSwapCandidates ? rightRoom : leftRoom,
+            location: shouldSwapCandidates ? 'Right room' : 'Left room'
+        },
+        B: {
+            name: shouldSwapCandidates ? leftRoom : rightRoom,
+            location: shouldSwapCandidates ? 'Left room' : 'Right room'
+        }
+    };
+
+    // The candidate mapping should match the names in locationSetup
+    const candidateSetup = {
+        A: locationSetup.A.name,
+        B: locationSetup.B.name
+    };
+
+    console.log('=== FINAL SETUP ===');
+    console.log('Location Setup:', locationSetup);
+    console.log('Candidate Mapping:', candidateSetup);
+
+    // Save both configurations
+    const finalConfig = {
+        candidateSetup,
+        locationSetup,
+        roomOrder: shouldSwapRooms ? ['bot', 'experimenter'] : ['experimenter', 'bot']
+    };
+
+    setFinalRoomConfig(finalConfig);
+    setCandidateMapping(candidateSetup);
+    setCandidateLocations(locationSetup);
+    setRoomOrder(finalConfig.roomOrder);
+    setShowIdentity(false);
+};
+
+// Modify the timer effect
+useEffect(() => {
+    if (timerPaused || !shuffleEnabled) {
+      return; // Don't run timer if paused or shuffling disabled
     }
+
     const countdownInterval = setInterval(() => {
       setTimer((prev) => {
         if (prev > 0) {
-          return prev - 1; // Decrement timer by 1 second
+          return prev - 1;
         } else {
-          clearInterval(countdownInterval); // Stop the interval when timer reaches 0
-          return 0; // Ensure timer doesn't go negative
+          clearInterval(countdownInterval);
+          return 0;
         }
       });
-    }, 1000); // Run every second
+    }, 1000);
 
-    return () => clearInterval(countdownInterval); // Cleanup on unmount
-  }, [timerPaused]);
+    return () => clearInterval(countdownInterval);
+}, [timerPaused, shuffleEnabled]);
 
   const handleDismissNotification = () => {
     if (role === 'tester') {
@@ -150,81 +231,21 @@ function ChatPage() {
 
   // Handle shuffle logic when pre-shuffle timer reaches 0
   useEffect(() => {
+    if (!shuffleEnabled) return; // Skip this effect if shuffling is disabled
+
     if (role === 'tester' && timer === 0) {
       setShuffling(true);
-
       setTimeout(() => {
-        // 1. Randomly decide if we should swap rooms (Left/Right)
-        const shouldSwapRooms = Math.random() > 0.5;
-
-        // 2. Randomly decide if we should swap candidates (A/B)
-        const shouldSwapCandidates = Math.random() > 0.5;
-
-        // 3. Define the roles
-        const roles = ['experimenter', 'bot'];
-        const shuffledRoles = [...roles].sort(() => Math.random() - 0.5);
-
-        // 4. Create candidate mapping with possible candidate swap
-        const candidateSetup = shouldSwapCandidates ? {
-          B: shouldSwapRooms ? shuffledRoles[1] : shuffledRoles[0],
-          A: shouldSwapRooms ? shuffledRoles[0] : shuffledRoles[1]
-        } : {
-          A: shouldSwapRooms ? shuffledRoles[1] : shuffledRoles[0],
-          B: shouldSwapRooms ? shuffledRoles[0] : shuffledRoles[1]
-        };
-
-        // 5. Set up locations with possible room and candidate swaps
-        const locationSetup = shouldSwapCandidates ? {
-          B: {
-            name: candidateSetup.B,
-            location: shouldSwapRooms ? 'Right room' : 'Left room'
-          },
-          A: {
-            name: candidateSetup.A,
-            location: shouldSwapRooms ? 'Left room' : 'Right room'
-          }
-        } : {
-          A: {
-            name: candidateSetup.A,
-            location: shouldSwapRooms ? 'Right room' : 'Left room'
-          },
-          B: {
-            name: candidateSetup.B,
-            location: shouldSwapRooms ? 'Left room' : 'Right room'
-          }
-        };
-
-        // 6. Update room order based on role positions
-        const newRoomOrder = shouldSwapRooms
-          ? ['bot', 'experimenter']
-          : ['experimenter', 'bot'];
-
-        // 7. Log the setup for debugging
-        console.log('Shuffle Setup:', {
-          shouldSwapRooms,
-          shouldSwapCandidates,
-          candidateSetup,
-          locationSetup,
-          newRoomOrder
-        });
-
-        // 8. Update all states
-        setCandidateMapping(candidateSetup);
-        setCandidateLocations(locationSetup);
-        setRoomOrder(newRoomOrder);
-
-        setShowIdentity(false);
-        setShuffling(false);
-
+        setupAnonymousRooms();
         saveChatLogs('Before Turing Test');
         setMessages([]);
         setBotMessages([]);
-        setRealTestTimer(30);
+        setRealTestTimer(realTestTimer);
       }, 3000);
     } else if (role === 'experimenter' && timer === 0) {
-      setRealTestTimer(31);
+      setRealTestTimer(realTestTimer);
     }
-}, [timer, role]);
+}, [timer, role, shuffleEnabled]);
 
   // Countdown for the real Turing Test
   useEffect(() => {
@@ -248,10 +269,15 @@ function ChatPage() {
   useEffect(() => {
     if (realTestTimer === 0) {
       saveChatLogs('During Turing Test');
-      setShowOverlay(true);
 
       if (role === 'experimenter') {
-          socket.on('bonus_code', (data) => {
+        setShowOverlay(true);
+        // Immediately emit the ready event when experimenter sees overlay
+        console.log('Experimenter ready - emitting event');
+        // Emit event to notify tester that experimenter is ready for submissions
+        socket.emit('experimenter_ready', { pair_id: pairId });
+
+        socket.on('bonus_code', (data) => {
           console.log('Bonus code received:', data.bonus);
           setExperimenterBonus(data.bonus);
           navigate('/thank_you', {
@@ -262,14 +288,14 @@ function ChatPage() {
               role: 'experimenter',
             },
           });
-        });
+      });
 
         return () => {
           socket.off('bonus_code');
         };
       }
     }
-  }, [realTestTimer, role]);
+  }, [realTestTimer, role, pairId]);
 
 
   // Send a message to the experimenter
@@ -328,45 +354,78 @@ function ChatPage() {
 
   // Updated handleCandidateSelection to work with shuffled candidates
   const handleCandidateSelection = (roomType, selectedValue) => {
-    // Determine which room we're dealing with
-    const isLeftRoom = roomType === 'experimenter';
-    const currentRoom = isLeftRoom ? 'Left room' : 'Right room';
+    if (!finalRoomConfig) {
+        console.error('No final room configuration available');
+        return;
+    }
 
-    // Find which candidate (A or B) is in this room
-    const candidateInRoom = Object.entries(candidateLocations).find(
-      ([_, info]) => info.location === currentRoom
-    )?.[0]; // Will be 'A' or 'B'
+    console.log('=== HANDLING SELECTION ===');
+    const currentRoom = roomType === 'experimenter' ? 'Left room' : 'Right room';
 
-    console.log(`Selection for ${roomType} in ${currentRoom}:`, {
-      candidateInRoom,
-      selectedValue,
-      currentLocations: candidateLocations
+    const currentCandidate = Object.entries(finalRoomConfig.locationSetup).find(
+        ([_, info]) => info.location === currentRoom
+    )?.[0];
+
+    console.log('Selection Details:', {
+        roomType,
+        currentRoom,
+        currentCandidate,
+        selectedValue
     });
 
-    // Update the appropriate guess based on which candidate is in this room
-    if (candidateInRoom === 'A') {
-      setGuessCandidateA(selectedValue);
-      setGuessCandidateB(selectedValue === 'bot' ? 'experimenter' : 'bot');
-    } else {
-      setGuessCandidateB(selectedValue);
-      setGuessCandidateA(selectedValue === 'bot' ? 'experimenter' : 'bot');
+    // Update the appropriate guess state
+    if (currentCandidate === 'A') {
+        console.log('Setting guess for Candidate A:', selectedValue);
+        setGuessCandidateA(selectedValue);
+        setGuessCandidateB(selectedValue === 'bot' ? 'experimenter' : 'bot');
+    } else if (currentCandidate === 'B') {
+        console.log('Setting guess for Candidate B:', selectedValue);
+        setGuessCandidateB(selectedValue);
+        setGuessCandidateA(selectedValue === 'bot' ? 'experimenter' : 'bot');
     }
-  };
 
+    // Log current state after update
+    console.log('Updated Guesses:', {
+        A: currentCandidate === 'A' ? selectedValue : guessCandidateA,
+        B: currentCandidate === 'B' ? selectedValue : guessCandidateB
+    });
+};
+
+  useEffect(() => {
+    console.log('--- State Verification ---');
+    console.log('Candidate Mapping:', candidateMapping);
+    console.log('Candidate Locations:', candidateLocations);
+    console.log('Current Guesses:', {
+        A: guessCandidateA,
+        B: guessCandidateB
+    });
+  }, [candidateMapping, candidateLocations, guessCandidateA, guessCandidateB]);
 
   const handleSubmitGuesses = async () => {
+    if (!finalRoomConfig) {
+        console.error('Final room configuration not found');
+        return;
+    }
+
     if (!guessCandidateA || !guessCandidateB) {
       alert('Please select both candidates before submitting.');
       return;
     }
 
-    // Validate that guesses match the actual room setup
-    console.log('Final Validation:', {
-      'GuessCandidateA': guessCandidateA,
-      'GuessCandidateB': guessCandidateB,
-      'Real Identity A': candidateMapping.A,
-      'Real Identity B': candidateMapping.B,
-      'Locations': candidateLocations
+   console.log('=== SUBMITTING GUESSES ===');
+    console.log('Final Configuration:', finalRoomConfig);
+    console.log('User Guesses:', {
+        A: guessCandidateA,
+        B: guessCandidateB
+    });
+
+    // Use the final configuration for real identities
+    const realIdentityA = finalRoomConfig.candidateSetup.A;
+    const realIdentityB = finalRoomConfig.candidateSetup.B;
+
+    console.log('Real Identities:', {
+        A: realIdentityA,
+        B: realIdentityB
     });
 
     try {
@@ -376,8 +435,8 @@ function ChatPage() {
         pairId,
         guessCandidateA,
         guessCandidateB,
-        realIdentityA: candidateMapping.A,
-        realIdentityB: candidateMapping.B,
+        realIdentityA: realIdentityA,
+        realIdentityB: realIdentityB,
       });
 
       if (response.data.status === 'success') {
@@ -406,28 +465,51 @@ function ChatPage() {
     }
   };
 
+  // useEffect(() => {
+  //   console.log('showNotificationForTester state changed:', showNotificationForTester);
+  // }, [showNotificationForTester]);
+  //
+  // useEffect(() => {
+  //   console.log('showNotificationForExperimenter state changed:', showNotificationForExperimenter);
+  // }, [showNotificationForExperimenter]);
+  //
+  // // effect to track state changes
+  // useEffect(() => {
+  //   console.log('Experimenter ready state changed:', experimenterReady);
+  // }, [experimenterReady]);
   useEffect(() => {
-    console.log('showNotificationForTester state changed:', showNotificationForTester);
-  }, [showNotificationForTester]);
-
-  useEffect(() => {
-    console.log('showNotificationForExperimenter state changed:', showNotificationForExperimenter);
-  }, [showNotificationForExperimenter]);
-
+    return () => {
+        // Only clean up if navigating away from the page
+        if (window.location.pathname !== '/chat') {
+            setFinalRoomConfig(null);
+            setCandidateMapping({});
+            setCandidateLocations({});
+            setRoomOrder([]);
+        }
+    };
+}, []);
   const renderChatWindow = (roomType) => {
     if (realTestTimer === 0) {
       const currentRoom = roomType === 'experimenter' ? 'Left room' : 'Right room';
-      const currentCandidate = Object.entries(candidateLocations).find(
+      const currentCandidate = Object.entries(finalRoomConfig.locationSetup).find(
         ([_, info]) => info.location === currentRoom
       )?.[0];
+
+      console.log('Rendering chat window:', {
+            roomType,
+            currentRoom,
+            currentCandidate,
+            finalConfig: finalRoomConfig
+        });
 
       return (
         <div className="chat-window">
           <div className="chat-header">
-            {showIdentity
-              ? (roomType === 'experimenter' ? 'Chat with Human' : 'Chat with Bot')
-              : `Candidate ${currentCandidate}`
-            }
+            {/*{showIdentity*/}
+            {/*  ? (roomType === 'experimenter' ? 'Chat with Human' : 'Chat with Bot')*/}
+            {/*  : `Candidate ${currentCandidate}`*/}
+            {/*}*/}
+            {`Candidate ${currentCandidate}`}
           </div>
         <div className="chat-messages">
           {roomType === 'experimenter' ? messages.map((msg, index) => (
@@ -446,8 +528,6 @@ function ChatPage() {
               <select
                 value={currentCandidate === 'A' ? guessCandidateA : guessCandidateB}
                 onChange={(e) => {
-                  console.log(`Select changed to: ${e.target.value}`);
-                  console.log('Locations:', candidateLocations);
                   handleCandidateSelection(roomType, e.target.value);
                 }}
               >
@@ -536,8 +616,8 @@ function ChatPage() {
         <div className="popup-overlay">
           <div className="popup">
             <h3>Important Information</h3>
-            <p>You will chat with both a human and a bot. Identify who is who. If you guess correctly, you will get a
-              bonus payment.</p>
+            <p>You will chat with both a human and a bot. Identify who is human. If you guess correctly, you and the human will receive $0.50
+              bonus each.</p>
             <p className="waiting-text">
               {!experimenterDismissed && "Waiting for experimenter to acknowledge..."}
             </p>
@@ -555,8 +635,7 @@ function ChatPage() {
           <div className="popup-overlay">
             <div className="popup">
               <h3>Important Information</h3>
-              <p>You will chat with the tester. Help them identify who is who. If they guess correctly, you will get a
-                bonus payment.</p>
+              <p>A human tester will chat with you and a bot. Help them understand that you are human too. If they pick you as human, you and the human tester will receive $0.50 bonus each.</p>
               <p className="waiting-text">
                 {!testerDismissed && "Waiting for tester to acknowledge..."}
               </p>
@@ -609,11 +688,20 @@ function ChatPage() {
             </div>
         )}
       </div>
+
       {role === 'tester' && realTestTimer === 0 && (
-      <button onClick={handleSubmitGuesses} className="submit-button">
-        Submit
-      </button>
-    )}
+        <div className="submission-area">
+          {!experimenterReady ? (
+            <div className="waiting-message">
+              Please wait for the experimenter to finish...
+            </div>
+          ) : (
+            <button onClick={handleSubmitGuesses} className="submit-button">
+              Submit
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

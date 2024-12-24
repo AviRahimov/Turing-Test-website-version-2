@@ -22,9 +22,9 @@ CORS(app, resources={
 })
 
 socketio = SocketIO(app,
-                   cors_allowed_origins="http://localhost:3000",
-                   ping_timeout=5000,
-                   ping_interval=25000)
+                    cors_allowed_origins="http://localhost:3000",
+                    ping_timeout=5000,
+                    ping_interval=25000)
 logging.basicConfig(level=logging.INFO)
 
 # File paths
@@ -168,6 +168,7 @@ def on_connect():
     """
     logging.info(f"User connected with SID: {request.sid}")
     emit('connect_response', {'status': 'connected'})
+
 
 # Update the socket error handler
 @socketio.on_error()
@@ -395,6 +396,17 @@ def on_join(data):
         logging.error(f"Error joining room {pair_id}: {e}")
 
 
+@socketio.on("experimenter_ready")
+def handle_experimenter_ready(data):
+    """
+    Handle when experimenter is ready and notify tester
+    """
+    pair_id = data.get("pair_id")
+    logging.info(f"Experimenter ready in room {pair_id}")
+    # Emit to everyone in the room
+    emit("experimenter_ready", {"status": "ready"}, room=pair_id)
+
+
 @socketio.on("message")
 def handle_message(data):
     """
@@ -425,7 +437,7 @@ def on_disconnect():
 
 if __name__ == "__main__":
     socketio.run(app,
-                debug=True,
-                host='0.0.0.0',
-                port=5000,
-                allow_unsafe_werkzeug=True)
+                 debug=True,
+                 host='0.0.0.0',
+                 port=5000,
+                 allow_unsafe_werkzeug=True)

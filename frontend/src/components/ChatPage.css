@@ -271,6 +271,7 @@ body {
 
 /* Styling for the submit button */
 .submit-button {
+  width: 100%;
   padding: 10px 20px;
   background-color: #4caf50; /* Green background */
   color: white;
@@ -310,9 +311,9 @@ body {
   margin-bottom: 10px;
 }
 
-.waiting-text {
+.waiting-message {
+  text-align: center;
+  padding: 20px;
   color: #666;
-  font-style: italic;
-  margin-top: 10px;
-  font-size: 0.9em;
+  font-size: 16px;
 }
