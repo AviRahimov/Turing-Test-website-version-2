@@ -11,6 +11,8 @@ import logging
 import csv
 import json
 from threading import Lock
+from pymongo import MongoClient
+from dotenv import load_dotenv
 
 # Flask app setup
 app = Flask(__name__)
@@ -27,10 +29,18 @@ socketio = SocketIO(app,
                     ping_interval=25000)
 logging.basicConfig(level=logging.INFO)
 
-# File paths
-CODES_FILE = "codes.csv"
-CHAT_LOGS_FILE = "chats.json"
-FEEDBACK_FILE = "feedback.csv"
+# Replace the MongoDB connection part with:
+load_dotenv()
+MONGODB_URI = os.getenv('MONGODB_URI')
+
+# MongoDB connection
+client = MongoClient(MONGODB_URI)
+db = client['turing_test_db']  # database name
+
+# Collections instead of files
+codes_collection = db['codes']
+chats_collection = db['chats']
+feedback_collection = db['feedback']
 
 # Initialize queues and state
 tester_queue = deque()
@@ -48,16 +58,6 @@ code_lock = Lock()
 pairing_lock = Lock()
 active_connections = {}
 
-# Ensure necessary files exist
-if not os.path.exists(CODES_FILE):
-    with open(CODES_FILE, "w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(["code", "role", "timestamp"])  # Header row
-
-if not os.path.exists(CHAT_LOGS_FILE):
-    with open(CHAT_LOGS_FILE, "w") as file:
-        json.dump([], file)
-
 
 # --- Serve React App ---
 @app.route("/", defaults={"path": ""})
@@ -70,36 +70,12 @@ def serve_react(path):
 
 # --- Helper Functions ---
 def generate_unique_code(digits=6):
-    """
-    Generate a unique code with a specified number of digits.
-    """
-    code = ''.join(random.choices(string.digits, k=digits))
-
-    # Ensure the code is unique in the CSV file
-    with open(CODES_FILE, "r") as file:
-        existing_codes = {row[0] for row in csv.reader(file)}
-
-    while code in existing_codes:
+    """Generate a unique code with a specified number of digits."""
+    while True:
         code = ''.join(random.choices(string.digits, k=digits))
-
-    return code
-
-
-def load_chat_logs():
-    """
-    Load chat logs from the JSON file.
-    """
-    with open(CHAT_LOGS_FILE, "r") as file:
-        content = file.read()
-        return json.loads(content) if content.strip() else []
-
-
-def save_chat_logs(logs):
-    """
-    Save chat logs to the JSON file.
-    """
-    with open(CHAT_LOGS_FILE, "w") as file:
-        json.dump(logs, file, indent=4)
+        # Check if code exists in MongoDB
+        if not codes_collection.find_one({"code": code}):
+            return code
 
 
 # --- Routes ---
@@ -118,32 +94,40 @@ def generate_code():
     guess_b = data.get("guessCandidateB")
     real_a = data.get("realIdentityA")
     real_b = data.get("realIdentityB")
-    print("real_a: ", real_a)
-    print("real_b: ", real_b)
-    print("guess_a: ", guess_a)
-    print("guess_b: ", guess_b)
+
     if role not in ["tester", "experimenter"]:
         return jsonify({"status": "error", "message": "Invalid role"}), 400
 
     with code_lock:
-        if name in generated_codes:
-            code = generated_codes[name]
+        # Check if code already exists for this name and pair_id
+        existing_code = codes_collection.find_one({
+            "name": name,
+            "pairId": pair_id
+        })
+
+        if existing_code:
+            code = existing_code["code"]
         elif role == "tester" and guess_a == real_a and guess_b == real_b:
             code = generate_unique_code(digits=7)
         else:
             code = generate_unique_code(digits=6)
 
+        # Save to MongoDB
+        code_data = {
+            "code": code,
+            "role": role,
+            "name": name,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "pairId": pair_id,
+        }
+
+        # Insert new document instead of update
+        codes_collection.insert_one(code_data)
+
+        # Store in memory for quick lookup
         generated_codes[name] = code
 
-        with open(CODES_FILE, "a", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow([code, role, time.strftime("%Y-%m-%d %H:%M:%S")])
-
         # Notify the experimenter
-        print("pairs", pairs)
-        print("pair_id", pair_id)
-        print("user_sockets", user_sockets)
-
         experimenter_id = user_sockets.get(pairs[pair_id]["experimenter"])
         print("experimenter_id", experimenter_id)
         if experimenter_id:
@@ -298,30 +282,24 @@ def submit_name():
 
 @app.route("/api/save_chat", methods=["POST"])
 def save_chat():
-    """
-    Save chat logs to the JSON file.
-    """
+    """Save chat logs to MongoDB."""
     chat_data = request.json
     pair_id = chat_data.get("pairId")
     title = chat_data.get("title")
 
     try:
-        logs = load_chat_logs()
-
-        # Check if pairId exists and update logs
-        existing_entry = next((entry for entry in logs if entry["pairId"] == pair_id), None)
+        # Create new chat log
         new_log = {
+            "pairId": pair_id,
             "title": title,
             "testerChatWithExperimenter": chat_data.get("testerChatWithExperimenter"),
-            "testerChatWithBot": chat_data.get("testerChatWithBot")
+            "testerChatWithBot": chat_data.get("testerChatWithBot"),
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         }
 
-        if existing_entry:
-            existing_entry.setdefault("logs", []).append(new_log)
-        else:
-            logs.append({"pairId": pair_id, "logs": [new_log]})
+        # Insert into MongoDB
+        chats_collection.insert_one(new_log)
 
-        save_chat_logs(logs)
         return jsonify({"status": "success"})
     except Exception as e:
         logging.error(f"Error saving chat logs: {e}")
@@ -330,43 +308,56 @@ def save_chat():
 
 @app.route("/api/save_feedback", methods=["POST"])
 def save_feedback():
-    """
-    Save feedback to a CSV file and evaluate tester guesses.
-    """
+    """Save feedback to MongoDB."""
     logging.info("Received feedback data: %s", request.json)
     data = request.json
 
     # Normalize real identities
-    if data.get("realIdentityA").lower() == "bot":
-        data["realIdentityA"] = "bot"
-        data["realIdentityB"] = "experimenter"
+    if data.get("realIdentityA", "").lower() == "bot":
+        real_identity_a = "bot"
+        real_identity_b = "experimenter"
     else:
-        data["realIdentityA"] = "experimenter"
-        data["realIdentityB"] = "bot"
+        real_identity_a = "experimenter"
+        real_identity_b = "bot"
 
     feedback = {
-        "user_id": data.get("userId"),
-        "tester_name": data.get("name"),
+        "userId": data.get("userId"),
+        "pairId": data.get("pairId"),
+        "testerName": data.get("name"),
         "experience": data.get("experience"),
         "comments": data.get("comments"),
         "improvements": data.get("improvements"),
-        "guess_candidate_a": data.get("guessCandidateA"),
-        "guess_candidate_b": data.get("guessCandidateB"),
-        "real_identity_a": data.get("realIdentityA"),
-        "real_identity_b": data.get("realIdentityB"),
-        "correct_guess_a": data.get("guessCandidateA") == data.get("realIdentityA"),
-        "correct_guess_b": data.get("guessCandidateB") == data.get("realIdentityB"),
+        "guessCandidateA": data.get("guessCandidateA"),
+        "guessCandidateB": data.get("guessCandidateB"),
+        "realIdentityA": real_identity_a,
+        "realIdentityB": real_identity_b,
+        "correctGuessA": data.get("guessCandidateA") == real_identity_a,
+        "correctGuessB": data.get("guessCandidateB") == real_identity_b,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     }
 
-    # Save to CSV
-    file_exists = os.path.isfile(FEEDBACK_FILE)
-    with open(FEEDBACK_FILE, mode="a", newline="", encoding="utf-16") as file:
-        writer = csv.DictWriter(file, fieldnames=feedback.keys())
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow(feedback)
+    try:
+        # Save to MongoDB
+        feedback_collection.insert_one(feedback)
+        return jsonify({"status": "success", "message": "Feedback saved"})
+    except Exception as e:
+        logging.error(f"Error saving feedback: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
-    return jsonify({"status": "success", "message": "Feedback saved"})
+
+@app.route("/api/verify_code", methods=["POST"])
+def verify_code():
+    try:
+        code = request.json.get("code")
+        # Query MongoDB for the code
+        code_doc = codes_collection.find_one({"code": code})
+
+        return jsonify({
+            "status": "success",
+            "valid": bool(code_doc)
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 # --- Socket.IO Handlers ---

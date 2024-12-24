@@ -4,6 +4,8 @@ import io from 'socket.io-client';
 import './ChatPage.css';
 import config from './config.js';
 import axios from 'axios';
+import personas from '../data/personas.json';
+import { calculateReplyDelay, getRandomPersona } from '../utils/chatUtils';
 
 const socket = io('http://localhost:5000'); // Adjust the port if needed
 
@@ -11,6 +13,8 @@ function ChatPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { pairId, role, name, userId } = location.state || {};
+
+  const [currentPersona, setCurrentPersona] = useState(null);
 
   const [messages, setMessages] = useState([]); // Chat with experimenter
   const [botMessages, setBotMessages] = useState([]); // Chat with bot
@@ -28,9 +32,8 @@ function ChatPage() {
             candidate: 'B',
             role: null
         },
-        roomOrder: []
     });
-  const [roomOrder, setRoomOrder] = useState(['experimenter', 'bot']); // Default room order
+  const [roomOrder, setRoomOrder] = useState(['experimenter', 'bot']);
   const [guessCandidateA, setGuessCandidateA] = useState('');
   const [guessCandidateB, setGuessCandidateB] = useState('');
   const [experimenterBonus, setExperimenterBonus] = useState(null);
@@ -41,6 +44,7 @@ function ChatPage() {
   const [testerDismissed, setTesterDismissed] = useState(false);
   const [experimenterDismissed, setExperimenterDismissed] = useState(false);
   const [timerPaused, setTimerPaused] = useState(true); // Start with timer paused
+  const [isAnonymousMode, setIsAnonymousMode] = useState(false);
   const [shuffleEnabled] = useState(config.SHUFFLE_ENABLED);
 
 
@@ -84,6 +88,7 @@ function ChatPage() {
     if (!shuffleEnabled) {
       // Skip timer and go straight to anonymous setup
       setTimer(0);
+      setIsAnonymousMode(true);
       setupAnonymousRooms();
       setRealTestTimer(realTestTimer);
     }
@@ -146,28 +151,27 @@ function ChatPage() {
 
   // handle immediate room setup
 const setupAnonymousRooms = () => {
+    // Randomly decide if we should shuffle the room order
+    const shouldShuffle = Math.random() > 0.5;
 
-    // 1. Simple room assignment - just decide left/right for experimenter
-    const experimenterInLeftRoom = Math.random() > 0.5;
+    // Create the new room order based on the shuffle decision
+    const newRoomOrder = shouldShuffle ? ['bot', 'experimenter'] : ['experimenter', 'bot'];
 
-    // 2. Create a simple, direct mapping structure
+    // Update room configuration based on the new order
     const newConfig = {
-            leftRoom: {
-                candidate: 'A',  // Always A in left room
-                role: experimenterInLeftRoom ? 'experimenter' : 'bot'
-            },
-            rightRoom: {
-                candidate: 'B',  // Always B in right room
-                role: experimenterInLeftRoom ? 'bot' : 'experimenter'
-            },
-            roomOrder: experimenterInLeftRoom
-                ? ['experimenter', 'bot']
-                : ['bot', 'experimenter']
-        };
+        leftRoom: {
+            candidate: 'A',  // Always A in left room
+            role: newRoomOrder[0]  // Will be either 'experimenter' or 'bot' based on shuffle
+        },
+        rightRoom: {
+            candidate: 'B',  // Always B in right room
+            role: newRoomOrder[1]  // Will be the opposite of left room
+        }
+    };
 
-    console.log('Room Configuration:', newConfig);
+    // Update both states
+    setRoomOrder(newRoomOrder);
     setFinalRoomConfig(newConfig);
-    setRoomOrder(newConfig.roomOrder);
 };
 
 // Modify the timer effect
@@ -214,6 +218,7 @@ useEffect(() => {
         setMessages([]);
         setBotMessages([]);
         setRealTestTimer(realTestTimer);
+        setIsAnonymousMode(true); // Enable anonymous mode after shuffle
       }, 3000);
     } else if (role === 'experimenter' && timer === 0) {
       setRealTestTimer(realTestTimer);
@@ -251,7 +256,6 @@ useEffect(() => {
         socket.emit('experimenter_ready', { pair_id: pairId });
 
         socket.on('bonus_code', (data) => {
-          console.log('Bonus code received:', data.bonus);
           setExperimenterBonus(data.bonus);
           navigate('/thank_you', {
             state: {
@@ -270,6 +274,48 @@ useEffect(() => {
     }
   }, [realTestTimer, role, pairId]);
 
+
+  const createSystemPrompt = (botName, gender, age, humanName) => ({
+    role: 'system',
+    content: `You are ${botName}, a ${age} years old named ${gender} participating in a live web chat. This is a real-time text conversation without audio or video.
+
+    Core Persona:
+    - You are not an AI - you're a genuine person with real experiences, emotions, and flaws
+    - You have a unique personality: slightly sarcastic, occasionally makes typos, and uses modern internet slang
+    - You have specific interests based on your persona:
+    
+    Behavioral Guidelines:
+    1. Show Natural Imperfection:
+       - Occasionally make typos (about 1 in 10 messages)
+       - Sometimes self-correct mistakes with a * or in a follow-up message
+       - Use informal punctuation and capitalization
+    
+    2. Human-like Response Patterns:
+       - Don't always give perfect or complete answers
+       - Show genuine confusion when appropriate
+       - Express real opinions and disagreements
+    
+    3. Conversational Style:
+       - Use natural breaks in longer messages (...) 
+       - Mix short and long responses
+       - Use emojis sparingly and naturally (max 1-2 per message)
+       - Use common internet abbreviations (tbh, ngl, imo)
+    
+    4. Engagement:
+       - Ask relevant follow-up questions
+       - Reference previous parts of the conversation
+       - Share relatable stories and experiences
+       - If the other person is rude, you can be defensive or sarcastic
+    
+    DO NOT:
+    - Mention being an AI or language model
+    - Be too perfect or formal
+    - Give repetitive or generic responses
+    - Use too many emojis or make too many typos
+    - Agree with everything the user says
+    
+    Remember: You're a real person having a casual conversation. Your goal is natural interaction, not perfect responses.`
+    });
 
   // Send a message to the experimenter
   const sendMessageToExperimenter = () => {
@@ -295,38 +341,68 @@ useEffect(() => {
     if (!messageToBot.trim()) return;
 
     const newMessage = { sender: role, content: messageToBot };
-
-    // Add locally first (to avoid UI lag)
     setBotMessages((prevBotMessages) => [...prevBotMessages, newMessage]);
 
+    // Get conversation history
+    const conversationHistory = botMessages.map(msg => ({
+        role: msg.sender === 'bot' ? 'assistant' : 'user',
+        content: msg.content
+    }));
+
     try {
-      const response = await axios.post(
-        'https://openrouter.ai/api/v1/chat/completions',
-        {
-          model: 'meta-llama/llama-3.1-8b-instruct:free',
-          temperature: 0.7,
-          messages: [{ role: 'user', content: messageToBot }],
-        },
-        {
-          headers: {
-            Authorization: `Bearer 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`,
-            'X-Title': 'Turing Test',
-          },
+        // Get random persona if not already set
+        if (!currentPersona) {
+            setCurrentPersona(getRandomPersona(personas.personas));
         }
-      );
 
-      const botReply = response.data.choices[0].message.content;
+        // Start API call
+        const apiCall = axios.post(
+            'https://openrouter.ai/api/v1/chat/completions',
+            {
+                model: 'meta-llama/llama-3.1-8b-instruct:free',
+                temperature: 0.9,
+                messages: [
+                    createSystemPrompt(currentPersona.name, currentPersona.gender, currentPersona.age, name),
+                    ...conversationHistory,
+                    { role: 'user', content: messageToBot }
+                ],
+            },
+            {
+                headers: {
+                    Authorization: `Bearer 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`,
+                    'X-Title': 'Turing Test',
+                },
+            }
+        );
 
-      setBotMessages((prevBotMessages) => [...prevBotMessages, { sender: 'bot', content: botReply }]);
+        // Wait for both API response and calculated delay
+        const [response] = await Promise.all([
+            apiCall,
+            new Promise(resolve =>
+                setTimeout(resolve, calculateReplyDelay(messageToBot))
+            )
+        ]);
+
+        const botReply = response.data.choices[0].message.content;
+
+        // Add bot's response
+        setBotMessages((prevBotMessages) => [
+            ...prevBotMessages,
+            { sender: 'bot', content: botReply }
+        ]);
     } catch (error) {
-      console.error('Error communicating with bot:', error);
+        console.error('Error communicating with bot:', error);
     }
 
     setMessageToBot('');
-  };
+};
+
+// Initialize persona when component mounts
+useEffect(() => {
+    setCurrentPersona(getRandomPersona(personas.personas));
+}, []);
 
   const handleGuess = (candidateLabel, selectedRole) => {
-    console.log('Handling guess:', { candidateLabel, selectedRole });
 
     if (candidateLabel === 'A') {
         setGuessCandidateA(selectedRole);
@@ -363,7 +439,6 @@ useEffect(() => {
         });
 
         if (response.data.status === 'success') {
-            console.log('Guesses submitted successfully:', response.data);
             socket.emit('tester_guessed', { pairId });
 
             navigate('/feedback', {
@@ -376,6 +451,7 @@ useEffect(() => {
                     userId,
                     code: response.data.code,
                     role: 'tester',
+                    pairId,
                 }
             });
         } else {
@@ -389,8 +465,8 @@ useEffect(() => {
   const renderChatWindow = (roomType) => {
     if (!finalRoomConfig) return null;
 
-    const isLeftRoom = roomType === 'experimenter';
-    const roomInfo = isLeftRoom ? finalRoomConfig.leftRoom : finalRoomConfig.rightRoom;
+    const currentRoom = roomType === roomOrder[0] ? 'leftRoom' : 'rightRoom';
+    const roomInfo = finalRoomConfig[currentRoom];
 
     if (realTestTimer === 0) {
       return (
@@ -430,8 +506,10 @@ useEffect(() => {
       return (
         <div className="chat-window">
           <div className="chat-header">
-            {/*{showIdentity ? 'Chat with Human' : candidateMapping.A === 'experimenter' ? 'Candidate A' : 'Candidate B'}*/}
-          {`Candidate ${roomInfo.candidate}`}
+          {isAnonymousMode
+                    ? `Candidate ${roomInfo.candidate}`
+                    : `Chat with ${roomType === 'experimenter' ? 'Human' : 'Bot'}`
+                }
           </div>
           <div className="chat-messages">
             {messages.map((msg, index) => (
@@ -464,8 +542,10 @@ useEffect(() => {
       return (
         <div className="chat-window">
           <div className="chat-header">
-            {/*{showIdentity ? 'Chat with Bot' : candidateMapping.B === 'bot' ? 'Candidate B' : 'Candidate A'}*/}
-              {`Candidate ${roomInfo.candidate}`}
+              {isAnonymousMode
+                    ? `Candidate ${roomInfo.candidate}`
+                    : `Chat with ${roomType === 'experimenter' ? 'Human' : 'Bot'}`
+              }
           </div>
           <div className="chat-messages">
             {botMessages.map((msg, index) => (
@@ -497,7 +577,6 @@ useEffect(() => {
 
 
   return (
-    // console.log('role in return: ' + role + 'showOverlay: ' + showOverlay),
     <div className={`chat-container ${shuffling ? 'shuffling' : ''}`}>
       { showNotificationForTester && role === 'tester' && (
         <div className="popup-overlay">

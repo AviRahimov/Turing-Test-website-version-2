@@ -4,3 +4,5 @@ Flask-CORS
 gunicorn
 eventlet
 requests
+pymongo[srv]
+python-dotenv

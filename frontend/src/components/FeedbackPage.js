@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 const FeedbackPage = () => {
   const location = useLocation();
-  const { name, userId, realIdentityA, realIdentityB, guessCandidateA, guessCandidateB, code, role } = location.state || {};
+  const { name, userId, realIdentityA, realIdentityB, guessCandidateA, guessCandidateB, code, role, pairId } = location.state || {};
 
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -28,6 +28,7 @@ const FeedbackPage = () => {
           ...formData,
           name,
           userId,
+          pairId,
           realIdentityA,
           realIdentityB,
           guessCandidateA,
