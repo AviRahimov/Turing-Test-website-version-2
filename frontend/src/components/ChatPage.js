@@ -18,15 +18,18 @@ function ChatPage() {
   const [messageToBot, setMessageToBot] = useState('');
   const [timer, setTimer] = useState(config.INITIAL_TIMER);
   const [realTestTimer, setRealTestTimer] = useState(config.REAL_TEST_TIMER);
-  const [showIdentity, setShowIdentity] = useState(true);
-  const [candidateMapping, setCandidateMapping] = useState({ A: '', B: '' });
   const [shuffling, setShuffling] = useState(false);
-  const [candidates, setCandidates] = useState({ A: 'Experimenter', B: 'Bot' });
-  const [candidateLocations, setCandidateLocations] = useState({
-    A: { name: 'Experimenter', location: 'Left room' },
-    B: { name: 'Bot', location: 'Right room' },
-  });
-  const [finalRoomConfig, setFinalRoomConfig] = useState(null);
+  const [finalRoomConfig, setFinalRoomConfig] = useState({
+        leftRoom: {
+            candidate: 'A',
+            role: null
+        },
+        rightRoom: {
+            candidate: 'B',
+            role: null
+        },
+        roomOrder: []
+    });
   const [roomOrder, setRoomOrder] = useState(['experimenter', 'bot']); // Default room order
   const [guessCandidateA, setGuessCandidateA] = useState('');
   const [guessCandidateB, setGuessCandidateB] = useState('');
@@ -143,58 +146,28 @@ function ChatPage() {
 
   // handle immediate room setup
 const setupAnonymousRooms = () => {
-    console.log('=== INITIAL SETUP ===');
 
-    const shouldSwapRooms = Math.random() > 0.5;
-    const shouldSwapCandidates = Math.random() > 0.5;
+    // 1. Simple room assignment - just decide left/right for experimenter
+    const experimenterInLeftRoom = Math.random() > 0.5;
 
-    const roles = ['experimenter', 'bot'];
-    const shuffledRoles = [...roles].sort(() => Math.random() - 0.5);
+    // 2. Create a simple, direct mapping structure
+    const newConfig = {
+            leftRoom: {
+                candidate: 'A',  // Always A in left room
+                role: experimenterInLeftRoom ? 'experimenter' : 'bot'
+            },
+            rightRoom: {
+                candidate: 'B',  // Always B in right room
+                role: experimenterInLeftRoom ? 'bot' : 'experimenter'
+            },
+            roomOrder: experimenterInLeftRoom
+                ? ['experimenter', 'bot']
+                : ['bot', 'experimenter']
+        };
 
-    console.log('Configuration:', {
-        shouldSwapRooms,
-        shouldSwapCandidates,
-        shuffledRoles
-    });
-
-    // First, determine who is in which room (Left/Right)
-    const leftRoom = shouldSwapRooms ? shuffledRoles[1] : shuffledRoles[0];  // bot or experimenter
-    const rightRoom = shouldSwapRooms ? shuffledRoles[0] : shuffledRoles[1];
-
-    // Then, determine which candidate (A/B) is assigned to which room
-    const locationSetup = {
-        A: {
-            name: shouldSwapCandidates ? rightRoom : leftRoom,
-            location: shouldSwapCandidates ? 'Right room' : 'Left room'
-        },
-        B: {
-            name: shouldSwapCandidates ? leftRoom : rightRoom,
-            location: shouldSwapCandidates ? 'Left room' : 'Right room'
-        }
-    };
-
-    // The candidate mapping should match the names in locationSetup
-    const candidateSetup = {
-        A: locationSetup.A.name,
-        B: locationSetup.B.name
-    };
-
-    console.log('=== FINAL SETUP ===');
-    console.log('Location Setup:', locationSetup);
-    console.log('Candidate Mapping:', candidateSetup);
-
-    // Save both configurations
-    const finalConfig = {
-        candidateSetup,
-        locationSetup,
-        roomOrder: shouldSwapRooms ? ['bot', 'experimenter'] : ['experimenter', 'bot']
-    };
-
-    setFinalRoomConfig(finalConfig);
-    setCandidateMapping(candidateSetup);
-    setCandidateLocations(locationSetup);
-    setRoomOrder(finalConfig.roomOrder);
-    setShowIdentity(false);
+    console.log('Room Configuration:', newConfig);
+    setFinalRoomConfig(newConfig);
+    setRoomOrder(newConfig.roomOrder);
 };
 
 // Modify the timer effect
@@ -352,54 +325,17 @@ useEffect(() => {
     setMessageToBot('');
   };
 
-  // Updated handleCandidateSelection to work with shuffled candidates
-  const handleCandidateSelection = (roomType, selectedValue) => {
-    if (!finalRoomConfig) {
-        console.error('No final room configuration available');
-        return;
+  const handleGuess = (candidateLabel, selectedRole) => {
+    console.log('Handling guess:', { candidateLabel, selectedRole });
+
+    if (candidateLabel === 'A') {
+        setGuessCandidateA(selectedRole);
+        setGuessCandidateB(selectedRole === 'experimenter' ? 'bot' : 'experimenter');
+    } else {
+        setGuessCandidateB(selectedRole);
+        setGuessCandidateA(selectedRole === 'experimenter' ? 'bot' : 'experimenter');
     }
-
-    console.log('=== HANDLING SELECTION ===');
-    const currentRoom = roomType === 'experimenter' ? 'Left room' : 'Right room';
-
-    const currentCandidate = Object.entries(finalRoomConfig.locationSetup).find(
-        ([_, info]) => info.location === currentRoom
-    )?.[0];
-
-    console.log('Selection Details:', {
-        roomType,
-        currentRoom,
-        currentCandidate,
-        selectedValue
-    });
-
-    // Update the appropriate guess state
-    if (currentCandidate === 'A') {
-        console.log('Setting guess for Candidate A:', selectedValue);
-        setGuessCandidateA(selectedValue);
-        setGuessCandidateB(selectedValue === 'bot' ? 'experimenter' : 'bot');
-    } else if (currentCandidate === 'B') {
-        console.log('Setting guess for Candidate B:', selectedValue);
-        setGuessCandidateB(selectedValue);
-        setGuessCandidateA(selectedValue === 'bot' ? 'experimenter' : 'bot');
-    }
-
-    // Log current state after update
-    console.log('Updated Guesses:', {
-        A: currentCandidate === 'A' ? selectedValue : guessCandidateA,
-        B: currentCandidate === 'B' ? selectedValue : guessCandidateB
-    });
 };
-
-  useEffect(() => {
-    console.log('--- State Verification ---');
-    console.log('Candidate Mapping:', candidateMapping);
-    console.log('Candidate Locations:', candidateLocations);
-    console.log('Current Guesses:', {
-        A: guessCandidateA,
-        B: guessCandidateB
-    });
-  }, [candidateMapping, candidateLocations, guessCandidateA, guessCandidateB]);
 
   const handleSubmitGuesses = async () => {
     if (!finalRoomConfig) {
@@ -408,108 +344,59 @@ useEffect(() => {
     }
 
     if (!guessCandidateA || !guessCandidateB) {
-      alert('Please select both candidates before submitting.');
-      return;
+        alert('Please select both candidates before submitting.');
+        return;
     }
 
-   console.log('=== SUBMITTING GUESSES ===');
-    console.log('Final Configuration:', finalRoomConfig);
-    console.log('User Guesses:', {
-        A: guessCandidateA,
-        B: guessCandidateB
-    });
-
-    // Use the final configuration for real identities
-    const realIdentityA = finalRoomConfig.candidateSetup.A;
-    const realIdentityB = finalRoomConfig.candidateSetup.B;
-
-    console.log('Real Identities:', {
-        A: realIdentityA,
-        B: realIdentityB
-    });
+    const realIdentityA = finalRoomConfig.leftRoom.role;
+    const realIdentityB = finalRoomConfig.rightRoom.role;
 
     try {
-      const response = await axios.post('http://localhost:5000/api/generate_code', {
-        role: 'tester',
-        name,
-        pairId,
-        guessCandidateA,
-        guessCandidateB,
-        realIdentityA: realIdentityA,
-        realIdentityB: realIdentityB,
-      });
-
-      if (response.data.status === 'success') {
-        console.log('Guesses submitted successfully:', response.data);
-        console.log('role in handleSubmitGuesses', role);
-        // Notify the experimenter
-        socket.emit('tester_guessed', { pairId });
-
-        navigate('/feedback', {
-          state: {
-            realIdentityA: candidateMapping.A,
-            realIdentityB: candidateMapping.B,
+        const response = await axios.post('http://localhost:5000/api/generate_code', {
+            role: 'tester',
+            name,
+            pairId,
             guessCandidateA,
             guessCandidateB,
-            name,
-            userId,
-            code: response.data.code,
-            role: 'tester',
-          },
+            realIdentityA,
+            realIdentityB
         });
-      } else {
-        console.error('Error submitting guesses:', response.data.message);
-      }
-    } catch (error) {
-      console.error('Error submitting guesses:', error);
-    }
-  };
 
-  // useEffect(() => {
-  //   console.log('showNotificationForTester state changed:', showNotificationForTester);
-  // }, [showNotificationForTester]);
-  //
-  // useEffect(() => {
-  //   console.log('showNotificationForExperimenter state changed:', showNotificationForExperimenter);
-  // }, [showNotificationForExperimenter]);
-  //
-  // // effect to track state changes
-  // useEffect(() => {
-  //   console.log('Experimenter ready state changed:', experimenterReady);
-  // }, [experimenterReady]);
-  useEffect(() => {
-    return () => {
-        // Only clean up if navigating away from the page
-        if (window.location.pathname !== '/chat') {
-            setFinalRoomConfig(null);
-            setCandidateMapping({});
-            setCandidateLocations({});
-            setRoomOrder([]);
+        if (response.data.status === 'success') {
+            console.log('Guesses submitted successfully:', response.data);
+            socket.emit('tester_guessed', { pairId });
+
+            navigate('/feedback', {
+                state: {
+                    realIdentityA,
+                    realIdentityB,
+                    guessCandidateA,
+                    guessCandidateB,
+                    name,
+                    userId,
+                    code: response.data.code,
+                    role: 'tester',
+                }
+            });
+        } else {
+            console.error('Error submitting guesses:', response.data.message);
         }
-    };
-}, []);
+    } catch (error) {
+        console.error('Error submitting guesses:', error);
+    }
+};
+
   const renderChatWindow = (roomType) => {
+    if (!finalRoomConfig) return null;
+
+    const isLeftRoom = roomType === 'experimenter';
+    const roomInfo = isLeftRoom ? finalRoomConfig.leftRoom : finalRoomConfig.rightRoom;
+
     if (realTestTimer === 0) {
-      const currentRoom = roomType === 'experimenter' ? 'Left room' : 'Right room';
-      const currentCandidate = Object.entries(finalRoomConfig.locationSetup).find(
-        ([_, info]) => info.location === currentRoom
-      )?.[0];
-
-      console.log('Rendering chat window:', {
-            roomType,
-            currentRoom,
-            currentCandidate,
-            finalConfig: finalRoomConfig
-        });
-
       return (
         <div className="chat-window">
           <div className="chat-header">
-            {/*{showIdentity*/}
-            {/*  ? (roomType === 'experimenter' ? 'Chat with Human' : 'Chat with Bot')*/}
-            {/*  : `Candidate ${currentCandidate}`*/}
-            {/*}*/}
-            {`Candidate ${currentCandidate}`}
+            {`Candidate ${roomInfo.candidate}`}
           </div>
         <div className="chat-messages">
           {roomType === 'experimenter' ? messages.map((msg, index) => (
@@ -526,10 +413,8 @@ useEffect(() => {
             <div className="cover">
               <p>Who was in this chat?</p>
               <select
-                value={currentCandidate === 'A' ? guessCandidateA : guessCandidateB}
-                onChange={(e) => {
-                  handleCandidateSelection(roomType, e.target.value);
-                }}
+                value={roomInfo.candidate === 'A' ? guessCandidateA : guessCandidateB}
+                            onChange={(e) => handleGuess(roomInfo.candidate, e.target.value)}
               >
                 <option value="">Select</option>
                 <option value="bot">Bot</option>
@@ -545,7 +430,8 @@ useEffect(() => {
       return (
         <div className="chat-window">
           <div className="chat-header">
-            {showIdentity ? 'Chat with Human' : candidateMapping.A === 'experimenter' ? 'Candidate A' : 'Candidate B'}
+            {/*{showIdentity ? 'Chat with Human' : candidateMapping.A === 'experimenter' ? 'Candidate A' : 'Candidate B'}*/}
+          {`Candidate ${roomInfo.candidate}`}
           </div>
           <div className="chat-messages">
             {messages.map((msg, index) => (
@@ -578,7 +464,8 @@ useEffect(() => {
       return (
         <div className="chat-window">
           <div className="chat-header">
-            {showIdentity ? 'Chat with Bot' : candidateMapping.B === 'bot' ? 'Candidate B' : 'Candidate A'}
+            {/*{showIdentity ? 'Chat with Bot' : candidateMapping.B === 'bot' ? 'Candidate B' : 'Candidate A'}*/}
+              {`Candidate ${roomInfo.candidate}`}
           </div>
           <div className="chat-messages">
             {botMessages.map((msg, index) => (
