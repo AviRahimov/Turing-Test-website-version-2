@@ -247,9 +247,9 @@ useEffect(() => {
   useEffect(() => {
     if (realTestTimer === 0) {
       saveChatLogs('During Turing Test');
+      setShowOverlay(true);
 
       if (role === 'experimenter') {
-        setShowOverlay(true);
         // Immediately emit the ready event when experimenter sees overlay
         console.log('Experimenter ready - emitting event');
         // Emit event to notify tester that experimenter is ready for submissions
@@ -257,6 +257,7 @@ useEffect(() => {
 
         socket.on('bonus_code', (data) => {
           setExperimenterBonus(data.bonus);
+          setShowOverlay(false);
           navigate('/thank_you', {
             state: {
               bonusCode: data.bonus,
@@ -359,7 +360,7 @@ useEffect(() => {
         const apiCall = axios.post(
             'https://openrouter.ai/api/v1/chat/completions',
             {
-                model: 'meta-llama/llama-3.1-8b-instruct:free',
+                model: 'meta-llama/llama-3.2-1b-instruct:free',
                 temperature: 0.9,
                 messages: [
                     createSystemPrompt(currentPersona.name, currentPersona.gender, currentPersona.age, name),

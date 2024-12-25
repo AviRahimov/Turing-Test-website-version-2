@@ -17,10 +17,6 @@
       <change afterPath="$PROJECT_DIR$/frontend/src/data/personas.json" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/utils/chatUtils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/backend/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chats.json" beforeDir="false" afterPath="$PROJECT_DIR$/chats.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/codes.csv" beforeDir="false" afterPath="$PROJECT_DIR$/codes.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.js" afterDir="false" />
@@ -28,7 +24,6 @@
       <change beforePath="$PROJECT_DIR$/frontend/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/index.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/reportWebVitals.js" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/setupTests.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,7 +59,7 @@
       </map>
     </option>
     <option name="RECENT_COMMON_BRANCH" value="master" />
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/frontend" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="ROOT_SYNC" value="SYNC" />
     <option name="UPDATE_TYPE" value="REBASE" />
   </component>
@@ -142,8 +137,8 @@
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
-        <env name="OPENROUTER_API_KEY" value="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" />
         <env name="PYTHONUNBUFFERED" value="1" />
+        <env name="OPENROUTER_API_KEY" value="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" />
         <env name="MONGODB_URI" value="mongodb+srv://rahimovavi3:ETNxszMGP5Rr7jlf@cluster0.hohjh.mongodb.net/?retryWrites=true&amp;w=majority&amp;appName=Cluster0" />
       </envs>
       <option name="SDK_HOME" value="" />
@@ -244,7 +239,8 @@
       <workItem from="1734801818249" duration="4160000" />
       <workItem from="1734866404428" duration="5265000" />
       <workItem from="1734947156095" duration="36084000" />
-      <workItem from="1735071015171" duration="8014000" />
+      <workItem from="1735071015171" duration="8381000" />
+      <workItem from="1735128419747" duration="2969000" />
     </task>
     <servers />
   </component>
@@ -264,6 +260,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$app.coverage" NAME="app Coverage Results" MODIFIED="1733154028030" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
-    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1735077761570" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
+    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1735130391929" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
   </component>
 </project>
