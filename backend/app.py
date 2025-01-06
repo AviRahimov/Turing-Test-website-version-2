@@ -15,16 +15,23 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 
 # Flask app setup
-app = Flask(__name__)
+# app = Flask(__name__)
+
+app = Flask(__name__, static_folder="../frontend/build", static_url_path='/')
+
+allowed = ["http://localhost:5000", "http://0.0.0.0:5000", "http://localhost:3000", "http://0.0.0.0:3000"]
+
 CORS(app, resources={
     r"/*": {
-        "origins": ["http://localhost:3000"],
+        "origins": allowed,
+        # "origins": ["http://localhost:3000"],
         "supports_credentials": True
     }
 })
 
 socketio = SocketIO(app,
-                    cors_allowed_origins="http://localhost:3000",
+                    # cors_allowed_origins="http://localhost:3000",
+                    cors_allowed_origins=allowed,
                     ping_timeout=5000,
                     ping_interval=25000)
 logging.basicConfig(level=logging.INFO)
@@ -59,13 +66,13 @@ pairing_lock = Lock()
 active_connections = {}
 
 
-# --- Serve React App ---
-@app.route("/", defaults={"path": ""})
-@app.route("/<path:path>")
-def serve_react(path):
-    if path != "" and os.path.exists(f"static/{path}"):
-        return send_from_directory("static", path)
-    return send_from_directory("static", "index.html")
+# # --- Serve React App ---
+# @app.route("/", defaults={"path": ""})
+# @app.route("/<path:path>")
+# def serve_react(path):
+#     if path != "" and os.path.exists(f"static/{path}"):
+#         return send_from_directory("static", path)
+#     return send_from_directory("static", "index.html")
 
 
 # --- Helper Functions ---
@@ -81,7 +88,8 @@ def generate_unique_code(digits=6):
 # --- Routes ---
 @app.route("/")
 def home():
-    return "Backend is running!"
+    # return "Backend is running!"
+    return app.send_static_file('index.html')
 
 
 @app.route("/api/generate_code", methods=["POST"])
