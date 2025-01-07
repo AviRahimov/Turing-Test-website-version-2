@@ -4,10 +4,10 @@ import axios from 'axios';
 import io from 'socket.io-client';
 
 // Create socket with explicit configuration
-const socket = io('http://localhost:5000', {
+const socket = io('http://54.208.255.25:5000', {
   transports: ['websocket', 'polling'],
   cors: {
-    origin: "http://localhost:3000",
+    origin: "http://54.208.255.25:5000",
     credentials: true
   },
   reconnection: true,
@@ -92,7 +92,7 @@ function LoadingPage() {
     try {
       socket.emit('register_user', { username: name });
 
-      const response = await axios.post('http://localhost:5000/api/submit_name', {
+      const response = await axios.post('http://54.208.255.25:5000/api/submit_name', {
         username: name
       });
 

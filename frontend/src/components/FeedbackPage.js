@@ -21,7 +21,7 @@ const FeedbackPage = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:5000/api/save_feedback', {
+      const response = await fetch('http://54.208.255.25:5000/api/save_feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -15,25 +15,37 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 
 # Flask app setup
-# app = Flask(__name__)
+app = Flask(__name__, static_folder="build", static_url_path='/')
 
-app = Flask(__name__, static_folder="../frontend/build", static_url_path='/')
-
-allowed = ["http://localhost:5000", "http://0.0.0.0:5000", "http://localhost:3000", "http://0.0.0.0:3000"]
+# this is my change
+allowed = [
+    "http://localhost:5000", 
+    "http://localhost:3000", 
+    "https://localhost:5000", 
+    "https://localhost:3000", 
+    "http://0.0.0.0:5000", 
+    "http://0.0.0.0:3000", 
+    "https://0.0.0.0:5000", 
+    "https://0.0.0.0:3000", 
+    "http://54.208.255.25:5000", 
+    "http://54.208.255.25:3000",
+    "https://54.208.255.25:5000", 
+    "https://54.208.255.25:3000"
+    ]
 
 CORS(app, resources={
     r"/*": {
-        "origins": allowed,
-        # "origins": ["http://localhost:3000"],
+        # "origins": allowed,
+        "origins": "*",
         "supports_credentials": True
     }
 })
 
 socketio = SocketIO(app,
-                    # cors_allowed_origins="http://localhost:3000",
                     cors_allowed_origins=allowed,
                     ping_timeout=5000,
-                    ping_interval=25000)
+                    ping_interval=25000
+                    )
 logging.basicConfig(level=logging.INFO)
 
 # Replace the MongoDB connection part with:
@@ -66,13 +78,15 @@ pairing_lock = Lock()
 active_connections = {}
 
 
-# # --- Serve React App ---
-# @app.route("/", defaults={"path": ""})
-# @app.route("/<path:path>")
-# def serve_react(path):
-#     if path != "" and os.path.exists(f"static/{path}"):
-#         return send_from_directory("static", path)
-#     return send_from_directory("static", "index.html")
+# Handle all other routes (for React client-side routing)
+@app.route('/<path:path>')
+def serve_static_files(path):
+    try:
+        # Try to serve the requested file from the React build folder
+        return send_from_directory(app.static_folder, path)
+    except FileNotFoundError:
+        # If file is not found, serve React's index.html (for client-side routing)
+        return send_from_directory(app.static_folder, 'index.html')
 
 
 # --- Helper Functions ---
@@ -385,12 +399,14 @@ def on_join(data):
 
     try:
         join_room(pair_id)
+        
+        logging.info(f"User {username} (ID: {user_id}) joined room {pair_id}")
+        
         emit(
             "joined_room",
             {"username": username, "pair_id": pair_id, "user_id": user_id},
             to=pair_id,
         )
-        logging.info(f"User {username} (ID: {user_id}) joined room {pair_id}")
     except Exception as e:
         logging.error(f"Error joining room {pair_id}: {e}")
 
@@ -426,7 +442,7 @@ def on_disconnect():
     username = next((u for u, s in user_sockets.items() if s == sid), None)
 
     if username:
-        logging.info(f"User {username} disconnected")
+        logging.info(f"User {username} (SID: {sid}) disconnected")
         user_sockets.pop(username, None)
         if username in tester_queue:
             tester_queue.remove(username)

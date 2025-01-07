@@ -1,0 +1,9 @@
+flask~=3.1.0
+Flask
+Flask-SocketIO
+Flask-CORS
+gunicorn
+eventlet
+requests
+pymongo[srv]
+python-dotenv

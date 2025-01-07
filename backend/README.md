@@ -2,12 +2,12 @@
 
 
 
-# Setup
+# Setup Env
 
-1. Enter the app folder:
+1. Navigate to the app folder:
 
 ```bash
-cd Turing-Test-website-version-2
+cd Turing-Test-website-version-2/
 ```
 
 2. Create virtual env:
@@ -23,6 +23,31 @@ source venv/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+
+# Setup Frontend Project
+
+1. Navigate to the frontend folder
+
+```bash
+cd frontend/
+```
+
+2. Install npm
+```bash
+npm install
+```
+
+3. Build the react project
+```bash
+npm run build
+```
+
+4. Copy the new build folder to the backend folder
+```bash
+cd ..
+cp -r frontend/build backend/
+```
+
 
 # How to run
 

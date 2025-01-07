@@ -3,3 +3,5 @@ keys
 venv
 myvenv
 __pycache__
+backend/build
+frontend/build
