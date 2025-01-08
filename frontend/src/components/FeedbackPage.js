@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import './FeedbackPage.css';
 
 const FeedbackPage = () => {
   const location = useLocation();
@@ -10,6 +11,12 @@ const FeedbackPage = () => {
     experience: '',
     comments: '',
     improvements: '',
+    gender: '',
+    age: '',
+    education: '',
+    employment: '',
+    country: '',
+    aiExperience: '',
   });
 
   const handleChange = (e) => {
@@ -38,7 +45,7 @@ const FeedbackPage = () => {
 
       const result = await response.json();
       if (result.status === 'success') {
-        navigate('/thank_you', { state: { role: 'tester', name: name, bonusCode:code } });
+        navigate('/thank_you', { state: { role: 'tester', name: name, bonusCode: code } });
       } else {
         alert('Failed to submit feedback. Please try again.');
       }
@@ -48,95 +55,103 @@ const FeedbackPage = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.header}>Feedback Form</h1>
-      <form style={styles.form} onSubmit={handleSubmit}>
-        <label style={styles.label}>
+    <div className="feedback-container">
+      <h1 className="feedback-header">Feedback Form</h1>
+      <form className="feedback-form" onSubmit={handleSubmit}>
+        <label className="feedback-label">
           How would you describe your overall experience?
           <textarea
             name="experience"
             value={formData.experience}
             onChange={handleChange}
-            style={styles.textarea}
+            className="feedback-textarea"
             required
           />
         </label>
-        <label style={styles.label}>
+        <label className="feedback-label">
           Do you have any comments about the conversation?
           <textarea
             name="comments"
             value={formData.comments}
             onChange={handleChange}
-            style={styles.textarea}
+            className="feedback-textarea"
             required
           />
         </label>
-        <label style={styles.label}>
+        <label className="feedback-label">
           What could be improved in this experiment?
           <textarea
             name="improvements"
             value={formData.improvements}
             onChange={handleChange}
-            style={styles.textarea}
+            className="feedback-textarea"
           />
         </label>
-        <button type="submit" style={styles.button}>
+
+        <h2>Demographic Information</h2>
+        <label className="feedback-label">
+          Gender:
+          <select name="gender" value={formData.gender} onChange={handleChange} required>
+            <option value="">Select</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Non-binary">Non-binary</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+        </label>
+        <label className="feedback-label">
+          Age:
+          <input type="number" name="age" value={formData.age} onChange={handleChange} required />
+        </label>
+        <label className="feedback-label">
+          Educational Degree:
+          <select name="education" value={formData.education} onChange={handleChange} required>
+            <option value="">Select</option>
+            <option value="High School">High School</option>
+            <option value="Bachelor's Degree">Bachelor's Degree</option>
+            <option value="Master's Degree">Master's Degree</option>
+            <option value="Doctorate">Doctorate</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+        <label className="feedback-label">
+          Employment Status:
+          <select name="employment" value={formData.employment} onChange={handleChange} required>
+            <option value="">Select</option>
+            <option value="Employed">Employed</option>
+            <option value="Unemployed">Unemployed</option>
+            <option value="Student">Student</option>
+            <option value="Retired">Retired</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+        <label className="feedback-label">
+          Country of Residence:
+          <select name="country" value={formData.country} onChange={handleChange} required>
+            <option value="">Select</option>
+            <option value="USA">USA</option>
+            <option value="Canada">Canada</option>
+            <option value="UK">UK</option>
+            {/* Add more countries as needed */}
+          </select>
+        </label>
+        <label className="feedback-label">
+          Experience with AI:
+          <select name="aiExperience" value={formData.aiExperience} onChange={handleChange} required>
+            <option value="">Select</option>
+            <option value="None">None</option>
+            <option value="Basic">Basic</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </label>
+
+        <button type="submit" className="feedback-button">
           Submit Feedback
         </button>
       </form>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    margin: '0 auto',
-    maxWidth: '800px',
-    padding: '20px',
-    fontFamily: "'Arial', sans-serif",
-    backgroundColor: '#f9f9f9',
-    borderRadius: '10px',
-    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
-  },
-  header: {
-    textAlign: 'center',
-    color: '#333',
-    fontSize: '28px',
-    marginBottom: '20px',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '15px',
-  },
-  label: {
-    fontWeight: 'bold',
-    fontSize: '16px',
-    color: '#555',
-    marginBottom: '5px',
-  },
-  textarea: {
-    width: '100%',
-    padding: '10px',
-    fontSize: '14px',
-    borderRadius: '5px',
-    border: '1px solid #ccc',
-    resize: 'vertical',
-  },
-  button: {
-    marginTop: '20px',
-    backgroundColor: '#007bff',
-    color: '#fff',
-    fontSize: '16px',
-    padding: '10px',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer',
-    textAlign: 'center',
-  },
-  buttonHover: {
-    backgroundColor: '#0056b3',
-  },
 };
 
 export default FeedbackPage;

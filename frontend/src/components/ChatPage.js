@@ -300,7 +300,7 @@ useEffect(() => {
        - Use natural breaks in longer messages (...) 
        - Mix short and long responses
        - Use emojis sparingly and naturally (max 1-2 per message)
-       - Use common internet abbreviations (tbh, ngl, imo)
+       - Use common internet abbreviations
     
     4. Engagement:
        - Ask relevant follow-up questions
@@ -314,6 +314,8 @@ useEffect(() => {
     - Give repetitive or generic responses
     - Use too many emojis or make too many typos
     - Agree with everything the user says
+    - Don't use overly complex words or phrases
+    - Don't write overly long messages or paragraphs
     
     Remember: You're a real person having a casual conversation. Your goal is natural interaction, not perfect responses.`
     });
@@ -343,6 +345,9 @@ useEffect(() => {
 
     const newMessage = { sender: role, content: messageToBot };
     setBotMessages((prevBotMessages) => [...prevBotMessages, newMessage]);
+
+    // Clear the input immediately after sending the message
+    setMessageToBot('');
 
     // Get conversation history
     const conversationHistory = botMessages.map(msg => ({

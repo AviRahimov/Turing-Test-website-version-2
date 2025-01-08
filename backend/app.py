@@ -31,7 +31,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Replace the MongoDB connection part with:
 load_dotenv()
-MONGODB_URI = os.getenv('MONGODB_URI')
+MONGODB_URI = os.getenv('mongodb+srv://rahimovavi3:ETNxszMGP5Rr7jlf@cluster0.hohjh.mongodb.net/turing_test_db?retryWrites=true&w=majority')
 
 # MongoDB connection
 client = MongoClient(MONGODB_URI)
@@ -429,6 +429,5 @@ def on_disconnect():
 if __name__ == "__main__":
     socketio.run(app,
                  debug=True,
-                 host='0.0.0.0',
                  port=5000,
                  allow_unsafe_werkzeug=True)
