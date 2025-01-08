@@ -19,18 +19,18 @@ app = Flask(__name__, static_folder="build", static_url_path='/')
 
 # this is my change
 allowed = [
-    "http://localhost:5000", 
-    "http://localhost:3000", 
-    "https://localhost:5000", 
-    "https://localhost:3000", 
-    "http://0.0.0.0:5000", 
-    "http://0.0.0.0:3000", 
-    "https://0.0.0.0:5000", 
-    "https://0.0.0.0:3000", 
-    "http://54.208.255.25:5000", 
-    "http://54.208.255.25:3000",
-    "https://54.208.255.25:5000", 
-    "https://54.208.255.25:3000"
+    "http://localhost:5000",
+    "http://localhost:3000",
+    "https://localhost:5000",
+    "https://localhost:3000",
+    "http://0.0.0.0:5000",
+    "http://0.0.0.0:3000",
+    "https://0.0.0.0:5000",
+    "https://0.0.0.0:3000",
+    "http://3.93.242.186:5000",
+    "http://3.93.242.186:3000",
+    "https://3.93.242.186:5000",
+    "https://3.93.242.186:3000"
     ]
 
 CORS(app, resources={
@@ -399,14 +399,12 @@ def on_join(data):
 
     try:
         join_room(pair_id)
-        
-        logging.info(f"User {username} (ID: {user_id}) joined room {pair_id}")
-        
         emit(
             "joined_room",
             {"username": username, "pair_id": pair_id, "user_id": user_id},
             to=pair_id,
         )
+        logging.info(f"User {username} (ID: {user_id}) joined room {pair_id}")
     except Exception as e:
         logging.error(f"Error joining room {pair_id}: {e}")
 
@@ -442,7 +440,7 @@ def on_disconnect():
     username = next((u for u, s in user_sockets.items() if s == sid), None)
 
     if username:
-        logging.info(f"User {username} (SID: {sid}) disconnected")
+        logging.info(f"User {username} disconnected")
         user_sockets.pop(username, None)
         if username in tester_queue:
             tester_queue.remove(username)

@@ -5,6 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fbcb205b-a937-474d-88ad-dfaffcbe4bbe" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/backend/config.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/database.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/routes.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/socketio_handlers.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/ChatPage.css" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/ChatPage.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/FeedbackPage.js" afterDir="false" />
@@ -17,8 +21,15 @@
       <change afterPath="$PROJECT_DIR$/frontend/src/data/personas.json" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/utils/chatUtils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Procfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/README.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/public/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/public/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/public/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/public/manifest.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/App.test.js" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/index.js" afterDir="false" />
@@ -33,11 +44,11 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Python Script" />
         <option value="package.json" />
         <option value="CSS File" />
         <option value="HTML File" />
         <option value="JavaScript File" />
+        <option value="Python Script" />
       </list>
     </option>
   </component>
@@ -55,7 +66,8 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="master" />
+        <entry key="$PROJECT_DIR$" value="Changes_Work_On_Local_Server" />
+        <entry key="$PROJECT_DIR$/frontend" value="master" />
       </map>
     </option>
     <option name="RECENT_COMMON_BRANCH" value="master" />
@@ -84,37 +96,38 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;Jest.renders learn react link.executor&quot;: &quot;Run&quot;,
-    &quot;Python.app.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;Local__No__Vercel__Settings&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/rahim/PycharmProjects/Local working on the Turing Test project&quot;,
-    &quot;list.type.of.created.stylesheet&quot;: &quot;CSS&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs.jest.jest_package&quot;: &quot;C:/Users/rahim/PycharmProjects/Turing Test Project (Version 2)/frontend/node_modules/react-scripts&quot;,
-    &quot;nodejs_interpreter_path&quot;: &quot;C:/Program Files/nodejs/node&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;C:\\Program Files\\nodejs\\npm&quot;,
-    &quot;npm.React Dev Server.executor&quot;: &quot;Run&quot;,
-    &quot;npm.start.executor&quot;: &quot;Run&quot;,
-    &quot;npm.test.executor&quot;: &quot;Run&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Program Files\\JetBrains\\PyCharm 2023.3.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultHtmlFileTemplate": "HTML File",
+    "Jest.renders learn react link.executor": "Run",
+    "Python.app.executor": "Run",
+    "Python.main.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "Changes__Work__On__Local__Server",
+    "last_opened_file_path": "C:/Users/rahim/PycharmProjects/Local working on the Turing Test project",
+    "list.type.of.created.stylesheet": "CSS",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs.jest.jest_package": "C:/Users/rahim/PycharmProjects/Turing Test Project (Version 2)/frontend/node_modules/react-scripts",
+    "nodejs_interpreter_path": "C:/Program Files/nodejs/node",
+    "nodejs_package_manager_path": "C:\\Program Files\\nodejs\\npm",
+    "npm.React Dev Server.executor": "Run",
+    "npm.start.executor": "Run",
+    "npm.test.executor": "Run",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\PyCharm 2023.3.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)\backend" />
+      <recent name="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)\backend\services" />
       <recent name="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)\frontend\src\components" />
     </key>
   </component>
@@ -198,9 +211,11 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="npm.test" />
         <item itemvalue="npm.start" />
         <item itemvalue="Jest.renders learn react link" />
-        <item itemvalue="npm.test" />
+        <item itemvalue="npm.start" />
+        <item itemvalue="Jest.renders learn react link" />
       </list>
     </recent_temporary>
   </component>
