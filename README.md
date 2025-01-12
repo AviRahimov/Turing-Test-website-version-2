@@ -46,7 +46,6 @@ The frontend is built using **React** and serves as the user interface for teste
     - **`ChatPage.js`**: Handles the chat interface where testers interact with experimenters or bots.
     - **`FeedbackPage.js`**: Displays a form for testers to submit feedback after completing the chat.
     - **`HomePage.js`**: The landing page of the application.
-    - **`LoadingPage.js`**: Displays a waiting screen while users are being paired.
     - **`NotFoundPage.js`**: A fallback page for invalid routes.
     - **`ThankYouPage.js`**: Displays a thank-you message after users submit feedback.
     - **`utils.js`**: Contains helper functions used across multiple components.

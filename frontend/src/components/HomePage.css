@@ -1,0 +1,83 @@
+/* HomePage.css */
+.container {
+  text-align: center;
+  margin-top: 5%; /* Reduced margin to move content higher */
+  padding: 20px;
+  background-color: transparent; /* Keep the original background */
+}
+
+.header {
+  font-size: 2.5em;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.instructions {
+  font-size: 1.2em;
+  margin-bottom: 20px;
+  color: #555;
+}
+
+.demographic-form {
+  display: inline-block;
+  text-align: left;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.demographic-form label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: #333;
+}
+
+.demographic-form select,
+.demographic-form input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1em;
+}
+
+.start-button {
+  display: block;
+  margin: 20px auto; /* Center the button and add margin */
+  padding: 15px 30px;
+  font-size: 1.2em;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.start-button:hover {
+  background-color: #45a049;
+}
+
+.status-message {
+  margin-top: 10px;
+  font-size: 1em;
+}
+
+.status-connected {
+  color: green;
+}
+
+.status-connecting {
+  color: red;
+}
+
+.status-warning {
+  color: orange;
+}

@@ -29,9 +29,11 @@ socketio = SocketIO(app,
                     ping_interval=25000)
 logging.basicConfig(level=logging.INFO)
 
-# Replace the MongoDB connection part with:
+# Load environment variables from .env file
 load_dotenv()
-MONGODB_URI = os.getenv('mongodb+srv://rahimovavi3:ETNxszMGP5Rr7jlf@cluster0.hohjh.mongodb.net/turing_test_db?retryWrites=true&w=majority')
+
+# Get the connection string from the environment variable
+MONGODB_URI = os.getenv("MONGODB_URI")
 
 # MongoDB connection
 client = MongoClient(MONGODB_URI)
@@ -41,6 +43,7 @@ db = client['turing_test_db']  # database name
 codes_collection = db['codes']
 chats_collection = db['chats']
 feedback_collection = db['feedback']
+demographic_collection = db['demographic_data']
 
 # Initialize queues and state
 tester_queue = deque()
@@ -58,6 +61,16 @@ code_lock = Lock()
 pairing_lock = Lock()
 active_connections = {}
 
+# Add a counter for unique user IDs
+user_counter = 0
+user_lock = Lock()
+
+try:
+    # Attempt to connect to the server
+    client.server_info()
+    print("Connected to MongoDB successfully")
+except Exception as e:
+    print(f"Error connecting to MongoDB: {e}")
 
 # --- Serve React App ---
 @app.route("/", defaults={"path": ""})
@@ -78,6 +91,12 @@ def generate_unique_code(digits=6):
             return code
 
 
+def get_unique_user_id():
+    global user_counter
+    with user_lock:
+        user_counter += 1
+        return user_counter
+
 # --- Routes ---
 @app.route("/")
 def home():
@@ -88,7 +107,7 @@ def home():
 def generate_code():
     data = request.json
     role = data.get("role")
-    name = data.get("name")
+    userId = data.get("userId")
     pair_id = data.get("pairId")
     guess_a = data.get("guessCandidateA")
     guess_b = data.get("guessCandidateB")
@@ -101,7 +120,7 @@ def generate_code():
     with code_lock:
         # Check if code already exists for this name and pair_id
         existing_code = codes_collection.find_one({
-            "name": name,
+            "userId": userId,
             "pairId": pair_id
         })
 
@@ -167,9 +186,10 @@ def error_handler(e):
 @socketio.on("register_user")
 def register_user(data):
     """
-    Register the username with the socket ID upon connection.
+    Register the user with a unique ID upon connection.
     """
-    username = data.get("username")
+    unique_id = get_unique_user_id()
+    username = f"user_{unique_id}"
     if username and username in user_sockets:
         logging.warning(f"User {username} is already connected.")
         return  # Do not re-register
@@ -177,6 +197,37 @@ def register_user(data):
     if username:
         user_sockets[username] = request.sid
         logging.info(f"Registered user {username} with socket ID {request.sid}")
+        emit('user_registered', {'username': username, 'user_id': unique_id})
+
+
+@app.route("/api/save_demographics", methods=["POST"])
+def save_demographics():
+    data = request.json
+    user_id = data.get("user_id")
+    gender = data.get("gender")
+    age = data.get("age")
+    education = data.get("education")
+    employment = data.get("employment")
+    country = data.get("country")
+    ai_experience = data.get("aiExperience")
+
+    demographic_data = {
+        "user_id": user_id,
+        "gender": gender,
+        "age": age,
+        "education": education,
+        "employment": employment,
+        "country": country,
+        "ai_experience": ai_experience,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    try:
+        demographic_data.insert_one(demographic_data)
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        logging.error(f"Error saving demographic data: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @app.route("/api/submit_name", methods=["POST"])
@@ -184,12 +235,12 @@ def submit_name():
     """
     Handle user submission and automatically assign roles to pair testers and experimenters.
     """
-    print("submit_name")
     data = request.json
     username = data.get("username")
+    unique_id = data.get("user_id")
 
-    if not username:
-        return jsonify({"status": "error", "message": "Invalid username"}), 400
+    if not username or not unique_id:
+        return jsonify({"status": "error", "message": "Invalid username or user ID"}), 400
 
     with pairing_lock:  # Use the existing lock for thread safety
         # Check if the user's socket is connected
@@ -323,7 +374,6 @@ def save_feedback():
     feedback = {
         "userId": data.get("userId"),
         "pairId": data.get("pairId"),
-        "testerName": data.get("name"),
         "experience": data.get("experience"),
         "comments": data.get("comments"),
         "improvements": data.get("improvements"),
@@ -368,7 +418,6 @@ def on_join(data):
     """
     logging.info(f"Joining room with data: {data}")
     pair_id = data.get("pair_id")
-    username = data.get("username", "unknown")
     user_id = data.get("user_id")
 
     if not pair_id:
@@ -379,7 +428,7 @@ def on_join(data):
         join_room(pair_id)
         emit(
             "joined_room",
-            {"username": username, "pair_id": pair_id, "user_id": user_id},
+            {"pair_id": pair_id, "user_id": user_id},
             to=pair_id,
         )
         logging.info(f"User {username} (ID: {user_id}) joined room {pair_id}")

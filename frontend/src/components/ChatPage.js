@@ -12,7 +12,7 @@ const socket = io('http://localhost:5000'); // Adjust the port if needed
 function ChatPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { pairId, role, name, userId } = location.state || {};
+  const { pairId, role, userId } = location.state || {};
 
   const [currentPersona, setCurrentPersona] = useState(null);
 
@@ -261,7 +261,6 @@ useEffect(() => {
           navigate('/thank_you', {
             state: {
               bonusCode: data.bonus,
-              name,
               userId,
               role: 'experimenter',
             },
@@ -276,7 +275,7 @@ useEffect(() => {
   }, [realTestTimer, role, pairId]);
 
 
-  const createSystemPrompt = (botName, gender, age, humanName) => ({
+  const createSystemPrompt = (botName, gender, age) => ({
     role: 'system',
     content: `You are ${botName}, a ${age} years old named ${gender} participating in a live web chat. This is a real-time text conversation without audio or video.
 
@@ -368,7 +367,7 @@ useEffect(() => {
                 model: 'meta-llama/llama-3.2-1b-instruct:free',
                 temperature: 0.9,
                 messages: [
-                    createSystemPrompt(currentPersona.name, currentPersona.gender, currentPersona.age, name),
+                    createSystemPrompt(currentPersona.name, currentPersona.gender, currentPersona.age),
                     ...conversationHistory,
                     { role: 'user', content: messageToBot }
                 ],
@@ -436,7 +435,7 @@ useEffect(() => {
     try {
         const response = await axios.post('http://localhost:5000/api/generate_code', {
             role: 'tester',
-            name,
+            userId,
             pairId,
             guessCandidateA,
             guessCandidateB,
@@ -453,7 +452,6 @@ useEffect(() => {
                     realIdentityB,
                     guessCandidateA,
                     guessCandidateB,
-                    name,
                     userId,
                     code: response.data.code,
                     role: 'tester',
