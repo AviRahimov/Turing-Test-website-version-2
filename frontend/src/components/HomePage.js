@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
+import config from './config';  // Import the config file
 import './HomePage.css';  // Import the updated CSS file
 
 const socket = io('http://localhost:5000', {
@@ -29,6 +30,7 @@ function HomePage() {
   const [status, setStatus] = useState('');
   const [userID, setUserID] = useState(null);
   const [username, setUsername] = useState('');
+  const [isBlocked, setIsBlocked] = useState(false);  // New state variable to track if the user is blocked
 
   useEffect(() => {
     const handleConnect = () => {
@@ -63,14 +65,22 @@ function HomePage() {
     });
 
     socket.on('paired', (data) => {
-      console.log('Paired event received:', data);
-      navigate(`/chat/${data.pair_id}`, {
-        state: {
-          pairId: data.pair_id,
-          role: data.role,
-          userId: data.user_id,
-        },
-      });
+      if (!isBlocked) {
+        console.log('Paired event received:', data);
+        navigate(`/chat/${data.pair_id}`, {
+          state: {
+            pairId: data.pair_id,
+            role: data.role,
+            userId: data.user_id,
+          },
+        });
+      }
+    });
+
+    socket.on('ip_blocked', (message) => {
+      alert(message);  // Display the block message to the user
+      setIsBlocked(true);  // Set the user as blocked
+      setIsSubmitting(false);  // Stop the submission process
     });
 
     if (!socket.connected) {
@@ -83,8 +93,9 @@ function HomePage() {
       socket.off('connect_error', handleConnectError);
       socket.off('user_registered');
       socket.off('paired');
+      socket.off('ip_blocked');  // Clean up the event listener
     };
-  }, [navigate]);
+  }, [navigate, isBlocked]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -101,6 +112,23 @@ function HomePage() {
     setStatus('Connecting...');
 
     try {
+      if (config.CHECK_IP) {
+        // Fetch the user's IP address from an external service
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        const userIp = ipData.ip;
+
+        // Emit the check_ip event to the server
+        socket.emit('check_ip', { ip: userIp });
+
+        // If the user is blocked, stop further actions
+        if (isBlocked) {
+          setStatus('You have already participated.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       // Save demographic data
       await fetch('http://localhost:5000/api/save_demographics', {
         method: 'POST',

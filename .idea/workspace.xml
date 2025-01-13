@@ -7,7 +7,6 @@
     <list default="true" id="fbcb205b-a937-474d-88ad-dfaffcbe4bbe" name="Changes" comment="">
       <change afterPath="$PROJECT_DIR$/frontend/src/components/ChatPage.css" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/ChatPage.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/FeedbackPage.css" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/FeedbackPage.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/HomePage.css" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/HomePage.js" afterDir="false" />
@@ -18,7 +17,7 @@
       <change afterPath="$PROJECT_DIR$/frontend/src/data/personas.json" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/utils/chatUtils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/.env" beforeDir="false" afterPath="$PROJECT_DIR$/backend/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/README.md" beforeDir="false" />
@@ -144,6 +143,7 @@
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
+        <env name="MONGODB_URI" value="mongodb+srv://rahimovavi3:ETNxszMGP5Rr7jlf@cluster0.hohjh.mongodb.net/?retryWrites=true&amp;w=majority&amp;appName=Cluster0" />
         <env name="OPENROUTER_API_KEY" value="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" />
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
@@ -247,7 +247,8 @@
       <workItem from="1734947156095" duration="36084000" />
       <workItem from="1735071015171" duration="8381000" />
       <workItem from="1735128419747" duration="2969000" />
-      <workItem from="1736671029905" duration="15744000" />
+      <workItem from="1736671029905" duration="16586000" />
+      <workItem from="1736769008186" duration="12029000" />
     </task>
     <servers />
   </component>
@@ -267,6 +268,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$app.coverage" NAME="app Coverage Results" MODIFIED="1733154028030" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
-    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1736698723355" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
+    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1736778082170" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
   </component>
 </project>

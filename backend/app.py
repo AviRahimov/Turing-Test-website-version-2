@@ -1,6 +1,7 @@
 import os
 import string
 import time
+from datetime import datetime, timedelta
 from collections import deque
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, join_room, emit
@@ -13,6 +14,13 @@ import json
 from threading import Lock
 from pymongo import MongoClient
 from dotenv import load_dotenv
+
+# Get the connection string from the environment variable
+MONGODB_URI = os.getenv("MONGODB_URI")
+
+# MongoDB connection
+client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+db = client['turing_test_db']  # database name
 
 # Flask app setup
 app = Flask(__name__)
@@ -29,21 +37,16 @@ socketio = SocketIO(app,
                     ping_interval=25000)
 logging.basicConfig(level=logging.INFO)
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Get the connection string from the environment variable
-MONGODB_URI = os.getenv("MONGODB_URI")
-
-# MongoDB connection
-client = MongoClient(MONGODB_URI)
-db = client['turing_test_db']  # database name
 
 # Collections instead of files
 codes_collection = db['codes']
 chats_collection = db['chats']
 feedback_collection = db['feedback']
 demographic_collection = db['demographic_data']
+blocked_ips_collection = db['blocked_ips']
+
+# Fetch and print collections stored in the database
+collection_names = db.list_collection_names()
 
 # Initialize queues and state
 tester_queue = deque()
@@ -65,12 +68,28 @@ active_connections = {}
 user_counter = 0
 user_lock = Lock()
 
-try:
-    # Attempt to connect to the server
-    client.server_info()
-    print("Connected to MongoDB successfully")
-except Exception as e:
-    print(f"Error connecting to MongoDB: {e}")
+
+@socketio.on('check_ip')
+def handle_check_ip(data):
+    ip_address = data['ip']
+    blocked_ip = blocked_ips_collection.find_one({"ip": ip_address})
+    if blocked_ip:
+        blocked_at = blocked_ip.get("blocked_at")
+        if blocked_at:
+            blocked_duration = datetime.now() - blocked_at
+            if blocked_duration < timedelta(days=1):  # Block for one day
+                socketio.emit('ip_blocked', 'You have already participated.')
+                return
+            else:
+                # Unblock the IP after 1 day
+                blocked_ips_collection.delete_one({"ip": ip_address})
+    # Log the IP address
+    blocked_ips_collection.update_one(
+        {"ip": ip_address},
+        {"$set": {"blocked_at": datetime.now()}},
+        upsert=True
+    )
+
 
 # --- Serve React App ---
 @app.route("/", defaults={"path": ""})
@@ -96,6 +115,7 @@ def get_unique_user_id():
     with user_lock:
         user_counter += 1
         return user_counter
+
 
 # --- Routes ---
 @app.route("/")
@@ -223,7 +243,7 @@ def save_demographics():
     }
 
     try:
-        demographic_data.insert_one(demographic_data)
+        demographic_collection.insert_one(demographic_data)
         return jsonify({"status": "success"}), 200
     except Exception as e:
         logging.error(f"Error saving demographic data: {e}")
