@@ -155,7 +155,6 @@ def generate_code():
         code_data = {
             "code": code,
             "role": role,
-            "name": name,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "pairId": pair_id,
         }
@@ -164,7 +163,7 @@ def generate_code():
         codes_collection.insert_one(code_data)
 
         # Store in memory for quick lookup
-        generated_codes[name] = code
+        # generated_codes[name] = code
 
         # Notify the experimenter
         experimenter_id = user_sockets.get(pairs[pair_id]["experimenter"])
@@ -256,6 +255,7 @@ def submit_name():
     Handle user submission and automatically assign roles to pair testers and experimenters.
     """
     data = request.json
+    print("data", data)
     username = data.get("username")
     unique_id = data.get("user_id")
 
@@ -456,15 +456,22 @@ def on_join(data):
         logging.error(f"Error joining room {pair_id}: {e}")
 
 
+@socketio.on("chat_end")
+def handle_chat_end(data):
+    pair_id = data.get("pair_id")
+    emit("chat_end", room=pair_id)
+
+
 @socketio.on("experimenter_ready")
 def handle_experimenter_ready(data):
-    """
-    Handle when experimenter is ready and notify tester
-    """
     pair_id = data.get("pair_id")
-    logging.info(f"Experimenter ready in room {pair_id}")
-    # Emit to everyone in the room
     emit("experimenter_ready", {"status": "ready"}, room=pair_id)
+
+
+@socketio.on("tester_guessed")
+def handle_tester_guessed(data):
+    pair_id = data.get("pair_id")
+    emit("bonus_code", {"bonus": generate_unique_code()}, room=pair_id)
 
 
 @socketio.on("message")

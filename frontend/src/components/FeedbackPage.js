@@ -46,42 +46,97 @@ const FeedbackPage = () => {
     }
   };
   
-  return (
-      <div className="feedback-container">
-        <h1 className="feedback-header">Feedback Form</h1>
-        <form className="feedback-form" onSubmit={handleSubmit}>
-          <label className="feedback-label">
-            How would you describe your overall experience?
-            <textarea
-                name="experience"
-                value={formData.experience}
-                onChange={handleChange}
-                className="feedback-textarea"
-                required
-            />
-          </label>
-          <label className="feedback-label">
-            Do you have any comments about the conversation?
-            <textarea
-                name="comments"
-                value={formData.comments}
-                onChange={handleChange}
-                className="feedback-textarea"
-                required
-            />
-          </label>
-          <label className="feedback-label">
-            What could be improved in this experiment?
-            <textarea
-                name="improvements"
-                value={formData.improvements}
-                onChange={handleChange}
-                className="feedback-textarea"
-            />
-          </label>
-        </form>
-      </div>
+   return (
+    <div style={styles.container}>
+      <h1 style={styles.header}>Feedback Form</h1>
+      <form style={styles.form} onSubmit={handleSubmit}>
+        <label style={styles.label}>
+          How would you describe your overall experience?
+          <textarea
+            name="experience"
+            value={formData.experience}
+            onChange={handleChange}
+            style={styles.textarea}
+            required
+          />
+        </label>
+        <label style={styles.label}>
+          Do you have any comments about the conversation?
+          <textarea
+            name="comments"
+            value={formData.comments}
+            onChange={handleChange}
+            style={styles.textarea}
+            required
+          />
+        </label>
+        <label style={styles.label}>
+          What could be improved in this experiment?
+          <textarea
+            name="improvements"
+            value={formData.improvements}
+            onChange={handleChange}
+            style={styles.textarea}
+          />
+        </label>
+        <button type="submit" style={styles.button}>
+          Submit Feedback
+        </button>
+      </form>
+    </div>
   );
 };
+
+const styles = {
+  container: {
+    margin: '0 auto',
+    maxWidth: '800px',
+    padding: '20px',
+    fontFamily: "'Arial', sans-serif",
+    backgroundColor: '#f9f9f9',
+    borderRadius: '10px',
+    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+  },
+  header: {
+    textAlign: 'center',
+    color: '#333',
+    fontSize: '28px',
+    marginBottom: '20px',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '15px',
+  },
+  label: {
+    fontWeight: 'bold',
+    fontSize: '16px',
+    color: '#555',
+    marginBottom: '5px',
+  },
+  textarea: {
+    width: '100%',
+    padding: '10px',
+    fontSize: '14px',
+    borderRadius: '5px',
+    border: '1px solid #ccc',
+    resize: 'vertical',
+  },
+  button: {
+    marginTop: '20px',
+    backgroundColor: '#007bff',
+    color: '#fff',
+    fontSize: '16px',
+    padding: '10px',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    textAlign: 'center',
+  },
+  buttonHover: {
+    backgroundColor: '#0056b3',
+  },
+};
+
 
 export default FeedbackPage;

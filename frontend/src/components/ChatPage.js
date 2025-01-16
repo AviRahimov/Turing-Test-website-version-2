@@ -248,12 +248,12 @@ useEffect(() => {
     if (realTestTimer === 0) {
       saveChatLogs('During Turing Test');
       setShowOverlay(true);
-
+      socket.emit('experimenter_ready', { pair_id: pairId });
       if (role === 'experimenter') {
         // Immediately emit the ready event when experimenter sees overlay
         console.log('Experimenter ready - emitting event');
         // Emit event to notify tester that experimenter is ready for submissions
-        socket.emit('experimenter_ready', { pair_id: pairId });
+
 
         socket.on('bonus_code', (data) => {
           setExperimenterBonus(data.bonus);
