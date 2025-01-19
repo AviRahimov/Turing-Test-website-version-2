@@ -7,7 +7,7 @@ import axios from 'axios';
 import personas from '../data/personas.json';
 import { calculateReplyDelay, getRandomPersona } from '../utils/chatUtils';
 
-const socket = io('http://localhost:5000'); // Adjust the port if needed
+const socket = io(config.SERVER_URL); // Adjust the port if needed
 
 function ChatPage() {
   const location = useLocation();
@@ -73,7 +73,7 @@ function ChatPage() {
     console.log('Chat data being sent:', chatData); // Debug log
 
     try {
-      const response = await axios.post('http://localhost:5000/api/save_chat', chatData);
+      const response = await axios.post(config.SERVER_URL + '/api/save_chat', chatData);
       console.log('Response from server:', response.data); // Debug log
     } catch (error) {
       console.error('Error saving chat logs:', error);
@@ -258,7 +258,7 @@ useEffect(() => {
         // Set a timeout for 30 seconds
       const timeoutId = setTimeout(async () => {
         try {
-          const response = await axios.post('http://localhost:5000/api/generate_code', {
+          const response = await axios.post(config.SERVER_URL + '/api/generate_code', {
             role: 'experimenter',
             name,
             pairId,
@@ -457,7 +457,7 @@ useEffect(() => {
     const realIdentityB = finalRoomConfig.rightRoom.role;
 
     try {
-        const response = await axios.post('http://localhost:5000/api/generate_code', {
+        const response = await axios.post(config.SERVER_URL + '/api/generate_code', {
             role: 'tester',
             userId,
             pairId,

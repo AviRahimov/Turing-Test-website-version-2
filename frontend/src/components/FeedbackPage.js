@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import config from "./config";
 
 const FeedbackPage = () => {
   const location = useLocation();
@@ -21,7 +22,7 @@ const FeedbackPage = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:5000/api/save_feedback', {
+      const response = await fetch(config.SERVER_URL + '/api/save_feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

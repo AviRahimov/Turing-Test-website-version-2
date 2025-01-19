@@ -4,7 +4,10 @@ import io from 'socket.io-client';
 import config from './config';  // Import the config file
 import './HomePage.css';  // Import the updated CSS file
 
-const socket = io('http://localhost:5000', {
+let server_url;
+server_url = config.SERVER_URL
+
+const socket = io(server_url, {
   transports: ['websocket', 'polling'],
   cors: {
     origin: "http://localhost:3000",
@@ -130,14 +133,14 @@ function HomePage() {
       }
 
       // Save demographic data
-      await fetch('http://localhost:5000/api/save_demographics', {
+      await fetch(server_url + '/api/save_demographics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userID, ...formData }),
       });
 
       // Submit the user information to the server
-      const response = await fetch('http://localhost:5000/api/submit_name', {
+      const response = await fetch(server_url + '/api/submit_name', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, username, user_id: userID }),

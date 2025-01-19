@@ -3,6 +3,7 @@ const config = {
   INITIAL_TIMER: 60,       // Only used when SHUFFLE_ENABLED is true
   REAL_TEST_TIMER: 60,     // Duration of the actual test
   CHECK_IP: false,         // Set to true to check IP address, false to skip
+  SERVER_URL: 'http://3.93.242.186:5000/',  // URL of the server
 };
 
 export default config;

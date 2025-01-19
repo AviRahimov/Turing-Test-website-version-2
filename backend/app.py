@@ -15,6 +15,7 @@ from threading import Lock
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
+load_dotenv()
 # Get the connection string from the environment variable
 MONGODB_URI = os.getenv("MONGODB_URI")
 
@@ -23,16 +24,31 @@ client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
 db = client['turing_test_db']  # database name
 
 # Flask app setup
-app = Flask(__name__)
+allowed = [
+    "http://localhost:5000",
+    "http://localhost:3000",
+    "https://localhost:5000",
+    "https://localhost:3000",
+    "http://0.0.0.0:5000",
+    "http://0.0.0.0:3000",
+    "https://0.0.0.0:5000",
+    "https://0.0.0.0:3000",
+    "http://3.93.242.186:5000",
+    "http://3.93.242.186:3000",
+    "https://3.93.242.186:5000",
+    "https://3.93.242.186:3000"
+    ]
+app = Flask(__name__, static_folder="build", static_url_path='/')
+
 CORS(app, resources={
     r"/*": {
-        "origins": ["http://localhost:3000"],
+        "origins": "*",
         "supports_credentials": True
     }
 })
 
 socketio = SocketIO(app,
-                    cors_allowed_origins="http://localhost:3000",
+                    cors_allowed_origins=allowed,
                     ping_timeout=5000,
                     ping_interval=25000)
 logging.basicConfig(level=logging.INFO)
@@ -92,12 +108,15 @@ def handle_check_ip(data):
 
 
 # --- Serve React App ---
-@app.route("/", defaults={"path": ""})
-@app.route("/<path:path>")
-def serve_react(path):
-    if path != "" and os.path.exists(f"static/{path}"):
-        return send_from_directory("static", path)
-    return send_from_directory("static", "index.html")
+# Handle all other routes (for React client-side routing)
+@app.route('/<path:path>')
+def serve_static_files(path):
+    try:
+        # Try to serve the requested file from the React build folder
+        return send_from_directory(app.static_folder, path)
+    except FileNotFoundError:
+        # If file is not found, serve React's index.html (for client-side routing)
+        return send_from_directory(app.static_folder, 'index.html')
 
 
 # --- Helper Functions ---
@@ -120,7 +139,7 @@ def get_unique_user_id():
 # --- Routes ---
 @app.route("/")
 def home():
-    return "Backend is running!"
+    return app.send_static_file('index.html')
 
 
 @app.route("/api/generate_code", methods=["POST"])
@@ -502,5 +521,6 @@ def on_disconnect():
 if __name__ == "__main__":
     socketio.run(app,
                  debug=True,
+                 host='0.0.0.0',
                  port=5000,
                  allow_unsafe_werkzeug=True)
