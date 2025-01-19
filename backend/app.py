@@ -146,6 +146,9 @@ def generate_code():
 
         if existing_code:
             code = existing_code["code"]
+        # Handle case where guesses are None (experimenter waiting scenario)
+        elif role == "experimenter" or guess_a is None or guess_b is None:
+            code = generate_unique_code(digits=6)
         elif role == "tester" and guess_a == real_a and guess_b == real_b:
             code = generate_unique_code(digits=7)
         else:
@@ -454,12 +457,6 @@ def on_join(data):
         logging.info(f"User {username} (ID: {user_id}) joined room {pair_id}")
     except Exception as e:
         logging.error(f"Error joining room {pair_id}: {e}")
-
-
-@socketio.on("chat_end")
-def handle_chat_end(data):
-    pair_id = data.get("pair_id")
-    emit("chat_end", room=pair_id)
 
 
 @socketio.on("experimenter_ready")

@@ -248,31 +248,55 @@ useEffect(() => {
     if (realTestTimer === 0) {
       saveChatLogs('During Turing Test');
       setShowOverlay(true);
+      // Emit event to notify tester that experimenter is ready for submissions
       socket.emit('experimenter_ready', { pair_id: pairId });
+
       if (role === 'experimenter') {
         // Immediately emit the ready event when experimenter sees overlay
         console.log('Experimenter ready - emitting event');
-        // Emit event to notify tester that experimenter is ready for submissions
 
-
-        socket.on('bonus_code', (data) => {
-          setExperimenterBonus(data.bonus);
-          setShowOverlay(false);
-          navigate('/thank_you', {
-            state: {
-              bonusCode: data.bonus,
-              userId,
-              role: 'experimenter',
-            },
+        // Set a timeout for 30 seconds
+      const timeoutId = setTimeout(async () => {
+        try {
+          const response = await axios.post('http://localhost:5000/api/generate_code', {
+            role: 'experimenter',
+            name,
+            pairId,
           });
+          if (response.data.status === 'success') {
+            navigate('/thank_you', {
+              state: {
+                bonusCode: response.data.code,
+                userId,
+                role: 'experimenter',
+              },
+            });
+          }
+        } catch (error) {
+          console.error('Error generating code:', error);
+        }
+      }, 30000); // 30 seconds
+
+      socket.on('bonus_code', (data) => {
+        clearTimeout(timeoutId); // Clear the timeout if the bonus code is received
+        setExperimenterBonus(data.bonus);
+        setShowOverlay(false);
+        navigate('/thank_you', {
+          state: {
+            bonusCode: data.bonus,
+            userId,
+            role: 'experimenter',
+          },
+        });
       });
 
-        return () => {
-          socket.off('bonus_code');
-        };
-      }
+      return () => {
+        socket.off('bonus_code');
+        clearTimeout(timeoutId); // Clear the timeout on cleanup
+      };
     }
-  }, [realTestTimer, role, pairId]);
+  }
+}, [realTestTimer, role, pairId]);
 
 
   const createSystemPrompt = (botName, gender, age) => ({
