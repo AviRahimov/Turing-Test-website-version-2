@@ -51,8 +51,28 @@ cp -r frontend/build backend/
 
 # How to run
 
+Run app on ec2 instance inside the venv
 ```bash
-python3 app.py
+nohup gunicorn --worker-class eventlet -w 1 -b 0.0.0.0:5000 backend.app:app &
+```
+
+Check the running processes
+```bash
+ps aux | grep gunicorn
+```
+
+Kill all gunicorn processes
+```bash
+pkill gunicorn
+```
+
+Kill specific gunicorn process
+```bash
+pkill gunicorn
+```
+
+```bash
+kill -9 <process number>
 ```
 
 # My env pip list
