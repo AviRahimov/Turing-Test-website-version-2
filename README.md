@@ -48,7 +48,6 @@ The frontend is built using **React** and serves as the user interface for teste
     - **`HomePage.js`**: The landing page of the application.
     - **`NotFoundPage.js`**: A fallback page for invalid routes.
     - **`ThankYouPage.js`**: Displays a thank-you message after users submit feedback.
-    - **`utils.js`**: Contains helper functions used across multiple components.
 
   - **`App.js`**:  
     The root component that defines the main routes of the application and links pages together.

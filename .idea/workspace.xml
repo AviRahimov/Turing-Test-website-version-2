@@ -13,24 +13,10 @@
       <change afterPath="$PROJECT_DIR$/frontend/src/components/NotFoundPage.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/ThankYouPage.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/config.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/utils.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/data/personas.json" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/utils/chatUtils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/asset-manifest.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/favicon.ico" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/index.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/logo192.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/logo512.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/manifest.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/robots.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/css/main.5f8fee5f.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/css/main.5f8fee5f.css.map" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.aba88ac3.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.aba88ac3.js.LICENSE.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.aba88ac3.js.map" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/media/background_image.5f57e1d2930202662c06.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/README.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
@@ -77,7 +63,7 @@
       </map>
     </option>
     <option name="RECENT_COMMON_BRANCH" value="master" />
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/frontend" />
     <option name="ROOT_SYNC" value="SYNC" />
     <option name="UPDATE_TYPE" value="REBASE" />
   </component>
@@ -109,7 +95,7 @@
     "Python.app.executor": "Run",
     "Python.main.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "Work__On__Avi__PC__Local__Changes",
+    "git-widget-placeholder": "Local__No__Vercel__Settings",
     "last_opened_file_path": "C:/Users/rahim/PycharmProjects/Local working on the Turing Test project",
     "list.type.of.created.stylesheet": "CSS",
     "node.js.detected.package.eslint": "true",
@@ -263,7 +249,7 @@
       <workItem from="1736769008186" duration="12029000" />
       <workItem from="1737279491897" duration="6324000" />
       <workItem from="1737302159009" duration="8168000" />
-      <workItem from="1737366687987" duration="1835000" />
+      <workItem from="1737366687987" duration="3133000" />
     </task>
     <servers />
   </component>
