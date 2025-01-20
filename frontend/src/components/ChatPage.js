@@ -467,6 +467,7 @@ useEffect(() => {
             realIdentityB
         });
 
+        console.log("The user ID in the chat page is: ", userId);
         if (response.data.status === 'success') {
             socket.emit('tester_guessed', { pairId });
 

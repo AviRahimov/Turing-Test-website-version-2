@@ -60,6 +60,7 @@ chats_collection = db['chats']
 feedback_collection = db['feedback']
 demographic_collection = db['demographic_data']
 blocked_ips_collection = db['blocked_ips']
+room_numbers_collection = db['room_numbers']
 
 # Fetch and print collections stored in the database
 collection_names = db.list_collection_names()
@@ -271,13 +272,28 @@ def save_demographics():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+def generate_unique_room_number():
+    while True:
+        # Generate a random room number
+        room_number = random.randint(1000, 9999)
+        pair_id = f"room_{room_number}"
+
+        # Check if the room number already exists in the collection
+        if not room_numbers_collection.find_one({"pair_id": pair_id}):
+            # If it doesn't exist, insert it with a timestamp
+            room_numbers_collection.insert_one({
+                "pair_id": pair_id,
+            })
+            return pair_id
+
+
 @app.route("/api/submit_name", methods=["POST"])
 def submit_name():
     """
     Handle user submission and automatically assign roles to pair testers and experimenters.
     """
     data = request.json
-    print("data", data)
+    logging.info(f"Received name submission data: {data}")
     username = data.get("username")
     unique_id = data.get("user_id")
 
@@ -322,7 +338,7 @@ def submit_name():
                 tester_queue.popleft()
                 experimenter_queue.popleft()
 
-                pair_id = f"room_{random.randint(1000, 9999)}"
+                pair_id = generate_unique_room_number()
                 pairs[pair_id] = {"tester": tester, "experimenter": experimenter}
 
                 # Emit to both users
@@ -431,6 +447,17 @@ def save_feedback():
     try:
         # Save to MongoDB
         feedback_collection.insert_one(feedback)
+
+        # Extract the numeric part of userId and convert it to an integer
+        user_id_str = data.get("userId")
+        user_id = saasd(user_id_str.split('_')[-1])  # Extract the number part and convert to int
+
+        # Add pair_id to demographic collection
+        demographic_collection.update_one(
+            {"user_id": user_id},
+            {"$set": {"pair_id": data.get("pairId")}}
+        )
+
         return jsonify({"status": "success", "message": "Feedback saved"})
     except Exception as e:
         logging.error(f"Error saving feedback: {e}")

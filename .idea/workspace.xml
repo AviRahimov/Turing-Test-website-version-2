@@ -18,6 +18,19 @@
       <change afterPath="$PROJECT_DIR$/frontend/src/utils/chatUtils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/asset-manifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/favicon.ico" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/logo192.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/logo512.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/manifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/robots.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/static/css/main.5f8fee5f.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/static/css/main.5f8fee5f.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.aba88ac3.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.aba88ac3.js.LICENSE.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.aba88ac3.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/static/media/background_image.5f57e1d2930202662c06.jpg" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/README.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
@@ -248,7 +261,9 @@
       <workItem from="1735128419747" duration="2969000" />
       <workItem from="1736671029905" duration="16586000" />
       <workItem from="1736769008186" duration="12029000" />
-      <workItem from="1737279491897" duration="5332000" />
+      <workItem from="1737279491897" duration="6324000" />
+      <workItem from="1737302159009" duration="8168000" />
+      <workItem from="1737366687987" duration="1835000" />
     </task>
     <servers />
   </component>

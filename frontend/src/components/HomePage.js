@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
-import config from './config';  // Import the config file
-import './HomePage.css';  // Import the updated CSS file
+import config from './config';
+import './HomePage.css';
 
-let server_url;
-server_url = config.SERVER_URL
+let server_url = config.SERVER_URL;
 
 const socket = io(server_url, {
   transports: ['websocket', 'polling'],
@@ -33,13 +32,13 @@ function HomePage() {
   const [status, setStatus] = useState('');
   const [userID, setUserID] = useState(null);
   const [username, setUsername] = useState('');
-  const [isBlocked, setIsBlocked] = useState(false);  // New state variable to track if the user is blocked
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     const handleConnect = () => {
       console.log('Socket connected');
       setSocketConnected(true);
-      setStatus('');  // Clear any error status
+      setStatus('');
       socket.emit('register_user', {});
     };
 
@@ -81,14 +80,31 @@ function HomePage() {
     });
 
     socket.on('ip_blocked', (message) => {
-      alert(message);  // Display the block message to the user
-      setIsBlocked(true);  // Set the user as blocked
-      setIsSubmitting(false);  // Stop the submission process
+      setIsBlocked(true);
+      setIsSubmitting(false);
+      setStatus(message);
     });
 
     if (!socket.connected) {
       socket.connect();
     }
+
+    // Perform IP check on page load
+    const checkIP = async () => {
+      try {
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        const userIp = ipData.ip;
+
+        // Emit the check_ip event to the server
+        socket.emit('check_ip', { ip: userIp });
+      } catch (error) {
+        console.error('Error checking IP:', error);
+        setStatus('Error checking IP. Please try again.');
+      }
+    };
+
+    checkIP();
 
     return () => {
       socket.off('connect', handleConnect);
@@ -96,7 +112,7 @@ function HomePage() {
       socket.off('connect_error', handleConnectError);
       socket.off('user_registered');
       socket.off('paired');
-      socket.off('ip_blocked');  // Clean up the event listener
+      socket.off('ip_blocked');
     };
   }, [navigate, isBlocked]);
 
@@ -115,31 +131,18 @@ function HomePage() {
     setStatus('Connecting...');
 
     try {
-      if (config.CHECK_IP) {
-        // Fetch the user's IP address from an external service
-        const ipResponse = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipResponse.json();
-        const userIp = ipData.ip;
-
-        // Emit the check_ip event to the server
-        socket.emit('check_ip', { ip: userIp });
-
-        // If the user is blocked, stop further actions
-        if (isBlocked) {
-          setStatus('You have already participated.');
-          setIsSubmitting(false);
-          return;
-        }
+      if (isBlocked) {
+        setStatus('You have already participated.');
+        setIsSubmitting(false);
+        return;
       }
 
-      // Save demographic data
       await fetch(server_url + '/api/save_demographics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userID, ...formData }),
       });
 
-      // Submit the user information to the server
       const response = await fetch(server_url + '/api/submit_name', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,83 +167,92 @@ function HomePage() {
 
   return (
     <div className="container">
+      {isBlocked && (
+        <div className="blocked-overlay">
+          <p>You have already participated.</p>
+        </div>
+      )}
       <h1 className="header">Welcome to the Turing Test Experiment</h1>
       <p className="instructions">Please fill in the following fields to start the experiment:</p>
 
-      <form className="demographic-form">
-        <label>
-          Gender:
-          <select name="gender" value={formData.gender} onChange={handleChange} required>
-            <option value="">Select</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Non-binary">Non-binary</option>
-            <option value="Prefer not to say">Prefer not to say</option>
-          </select>
-        </label>
-        <label>
-          Age:
-          <select name="age" value={formData.age} onChange={handleChange} required>
-            <option value="">Select</option>
-            <option value="10-20">10-20</option>
-            <option value="20-30">20-30</option>
-            <option value="30-40">30-40</option>
-            <option value="40-50">40-50</option>
-            <option value="50-60">50-60</option>
-            <option value="60-70">60-70</option>
-            <option value="70+">70+</option>
-          </select>
-        </label>
-        <label>
-          Educational Degree:
-          <select name="education" value={formData.education} onChange={handleChange} required>
-            <option value="">Select</option>
-            <option value="High School">High School</option>
-            <option value="Bachelor's Degree">Bachelor's Degree</option>
-            <option value="Master's Degree">Master's Degree</option>
-            <option value="Doctorate">Doctorate</option>
-            <option value="Other">Other</option>
-          </select>
-        </label>
-        <label>
-          Employment Status:
-          <select name="employment" value={formData.employment} onChange={handleChange} required>
-            <option value="">Select</option>
-            <option value="Employed">Employed</option>
-            <option value="Unemployed">Unemployed</option>
-            <option value="Student">Student</option>
-            <option value="Retired">Retired</option>
-            <option value="Other">Other</option>
-          </select>
-        </label>
-        <label>
-          Country of Residence:
-          <select name="country" value={formData.country} onChange={handleChange} required>
-            <option value="">Select</option>
-            <option value="USA">USA</option>
-            <option value="Canada">Canada</option>
-            <option value="UK">UK</option>
-            {/* Add more countries as needed */}
-          </select>
-        </label>
-        <label>
-          Experience with AI:
-          <select name="aiExperience" value={formData.aiExperience} onChange={handleChange} required>
-            <option value="">Select</option>
-            <option value="None">None</option>
-            <option value="Basic">Basic</option>
-            <option value="Intermediate">Intermediate</option>
-            <option value="Advanced">Advanced</option>
-          </select>
-        </label>
-      </form>
-      <button
-        className="start-button"
-        onClick={handleStart}
-        disabled={isSubmitting}
-      >
-        Start
-      </button>
+      {!isBlocked && (
+        <>
+          <form className="demographic-form">
+            <label>
+              Gender:
+              <select name="gender" value={formData.gender} onChange={handleChange} required>
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Non-binary">Non-binary</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </label>
+            <label>
+              Age:
+              <select name="age" value={formData.age} onChange={handleChange} required>
+                <option value="">Select</option>
+                <option value="10-20">10-20</option>
+                <option value="20-30">20-30</option>
+                <option value="30-40">30-40</option>
+                <option value="40-50">40-50</option>
+                <option value="50-60">50-60</option>
+                <option value="60-70">60-70</option>
+                <option value="70+">70+</option>
+              </select>
+            </label>
+            <label>
+              Educational Degree:
+              <select name="education" value={formData.education} onChange={handleChange} required>
+                <option value="">Select</option>
+                <option value="High School">High School</option>
+                <option value="Bachelor's Degree">Bachelor's Degree</option>
+                <option value="Master's Degree">Master's Degree</option>
+                <option value="Doctorate">Doctorate</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <label>
+              Employment Status:
+              <select name="employment" value={formData.employment} onChange={handleChange} required>
+                <option value="">Select</option>
+                <option value="Employed">Employed</option>
+                <option value="Unemployed">Unemployed</option>
+                <option value="Student">Student</option>
+                <option value="Retired">Retired</option>
+                <option value="Other">Other</option>
+              </select>
+            </label>
+            <label>
+              Country of Residence:
+              <select name="country" value={formData.country} onChange={handleChange} required>
+                <option value="">Select</option>
+                <option value="USA">USA</option>
+                <option value="Canada">Canada</option>
+                <option value="UK">UK</option>
+                <option value={"Other"}>Other</option>
+              </select>
+            </label>
+            <label>
+              Experience with AI:
+              <select name="aiExperience" value={formData.aiExperience} onChange={handleChange} required>
+                <option value="">Select</option>
+                <option value="None">None</option>
+                <option value="Basic">Basic</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced">Advanced</option>
+              </select>
+            </label>
+          </form>
+          <button
+            className="start-button"
+            onClick={handleStart}
+            disabled={isSubmitting}
+          >
+            Start
+          </button>
+        </>
+      )}
       <p className="status-message">{status}</p>
       <p className={`status-message ${socketConnected ? 'status-connected' : 'status-connecting'}`}>
         {socketConnected ? 'Connected to server' : 'Connecting to server...'}
