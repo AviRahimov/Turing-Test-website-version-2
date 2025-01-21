@@ -16,7 +16,20 @@
       <change afterPath="$PROJECT_DIR$/frontend/src/data/personas.json" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/utils/chatUtils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/asset-manifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/favicon.ico" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/logo192.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/logo512.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/manifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/robots.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/static/css/main.a8c74eff.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/static/css/main.a8c74eff.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.a87a6a2f.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.a87a6a2f.js.LICENSE.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.a87a6a2f.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/build/static/media/background_image.5f57e1d2930202662c06.jpg" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/README.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
@@ -269,6 +282,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$app.coverage" NAME="app Coverage Results" MODIFIED="1733154028030" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
-    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1737279499218" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
+    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1737446527432" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
   </component>
 </project>

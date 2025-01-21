@@ -5,7 +5,7 @@ import config from "./config";
 const FeedbackPage = () => {
   const location = useLocation();
   const {realIdentityA, realIdentityB, guessCandidateA, guessCandidateB, userId, code, role, pairId } = location.state || {};
-  console.log("THe user id in the feedback page is", userId);
+  console.log("The user id in the feedback page is", userId);
 
   const navigate = useNavigate();
   const [formData, setFormData] = useState({

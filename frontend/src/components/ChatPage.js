@@ -15,6 +15,7 @@ function ChatPage() {
   const { pairId, role, userId } = location.state || {};
 
   const [currentPersona, setCurrentPersona] = useState(null);
+  const [messageQueue, setMessageQueue] = useState([]); // Queue for tester messages
 
   const [messages, setMessages] = useState([]); // Chat with experimenter
   const [botMessages, setBotMessages] = useState([]); // Chat with bot
@@ -55,10 +56,17 @@ function ChatPage() {
       sendMessageToExperimenter();
     }
   };
-
+  
+  const addToMessageQueue = (message) => {
+      setMessageQueue((prevQueue) => [...prevQueue, message]);
+  };
+  
   const handleKeyPressBot = (e) => {
     if (e.key === 'Enter') {
-      sendMessageToBot().then(() => console.log('Message sent to bot'));
+        const newMessage = { sender: role, content: messageToBot };
+        setBotMessages((prevBotMessages) => [...prevBotMessages, newMessage]); // Display each tester message
+        addToMessageQueue(messageToBot);
+        setMessageToBot('');
     }
   };
 
@@ -362,21 +370,37 @@ useEffect(() => {
     setMessageToExperimenter('');
   };
 
+  // Message queue for bot messages
+  useEffect(() => {
+    const processQueue = () => {
+        if (messageQueue.length > 0) {
+            const combinedMessage = messageQueue.join(' ');
+            sendMessageToBotQueue(combinedMessage);
+            setMessageQueue([]);
+        }
+    };
+
+    const interval = setInterval(processQueue, 5000); // Process queue every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [messageQueue]);
+
+
   // Send a message to the bot
-  const sendMessageToBot = async () => {
-    if (!messageToBot.trim()) return;
+  const sendMessageToBotQueue = async (message) => {
+    // if (!messageToBot.trim()) return;
 
-    const newMessage = { sender: role, content: messageToBot };
-    setBotMessages((prevBotMessages) => [...prevBotMessages, newMessage]);
-
-    // Clear the input immediately after sending the message
-    setMessageToBot('');
-
-    // Get conversation history
-    const conversationHistory = botMessages.map(msg => ({
-        role: msg.sender === 'bot' ? 'assistant' : 'user',
-        content: msg.content
-    }));
+    // const newMessage = { sender: role, content: message };
+    // setBotMessages((prevBotMessages) => [...prevBotMessages, newMessage]);
+    //
+    // // Clear the input immediately after sending the message
+    // // setMessageToBot('');
+    //
+    // // Get conversation history
+    // const conversationHistory = botMessages.map(msg => ({
+    //     role: msg.sender === 'bot' ? 'assistant' : 'user',
+    //     content: msg.content
+    // }));
 
     try {
         // Get random persona if not already set
@@ -392,8 +416,11 @@ useEffect(() => {
                 temperature: 0.9,
                 messages: [
                     createSystemPrompt(currentPersona.name, currentPersona.gender, currentPersona.age),
-                    ...conversationHistory,
-                    { role: 'user', content: messageToBot }
+                    ...botMessages.map((msg) => ({
+                        role: msg.sender === 'bot' ? 'assistant' : 'user',
+                        content: msg.content
+                    })),
+                    { role: 'user', content: message }
                 ],
             },
             {
@@ -407,12 +434,17 @@ useEffect(() => {
         // Wait for both API response and calculated delay
         const [response] = await Promise.all([
             apiCall,
-            new Promise(resolve =>
-                setTimeout(resolve, calculateReplyDelay(messageToBot))
-            )
+            apiCall.then(response => {
+              const botReply = response.data.choices[0].message.content;
+              return new Promise((resolve) => setTimeout(resolve, calculateReplyDelay(botReply)));
+            })
         ]);
 
+        // Log the API response
+        console.log('API Response:', response.data);
+
         const botReply = response.data.choices[0].message.content;
+
 
         // Add bot's response
         setBotMessages((prevBotMessages) => [
@@ -595,7 +627,7 @@ useEffect(() => {
               placeholder="Type your message here..."
               className="input-box"
             />
-            <button onClick={sendMessageToBot} className="send-button">
+            <button onClick={sendMessageToBotQueue} className="send-button">
               Send
             </button>
           </div>

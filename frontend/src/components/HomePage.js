@@ -27,6 +27,7 @@ function HomePage() {
     country: '',
     aiExperience: ''
   });
+  const [agreedToParticipate, setAgreedToParticipate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [socketConnected, setSocketConnected] = useState(socket.connected);
   const [status, setStatus] = useState('');
@@ -104,7 +105,9 @@ function HomePage() {
       }
     };
 
-    checkIP();
+    if (config.CHECK_IP){
+        checkIP();
+    }
 
     return () => {
       socket.off('connect', handleConnect);
@@ -115,6 +118,12 @@ function HomePage() {
       socket.off('ip_blocked');
     };
   }, [navigate, isBlocked]);
+
+  const handleCheckboxChange = (e) => {
+      if (!agreedToParticipate) {
+          setAgreedToParticipate(e.target.checked);
+      }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -166,101 +175,113 @@ function HomePage() {
   };
 
   return (
-    <div className="container">
-      {isBlocked && (
-        <div className="blocked-overlay">
-          <p>You have already participated.</p>
-        </div>
-      )}
-      <h1 className="header">Welcome to the Turing Test Experiment</h1>
-      <p className="instructions">Please fill in the following fields to start the experiment:</p>
+      <div className="container">
+        {isBlocked && (
+            <div className="blocked-overlay">
+              <p>You have already participated.</p>
+            </div>
+        )}
+        <h1 className="header">Welcome to the Turing Test Experiment</h1>
+        <h2 className="subtitle">Can a computer (bot) fool you and your human teammate?</h2>
+        <h3 className="subtitle2">It's two humans against one bot. Who will win?</h3>
+        <p className="instructions">Please fill in the following fields to start the experiment:</p>
 
-      {!isBlocked && (
-        <>
-          <form className="demographic-form">
-            <label>
-              Gender:
-              <select name="gender" value={formData.gender} onChange={handleChange} required>
-                <option value="">Select</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Non-binary">Non-binary</option>
-                <option value="Prefer not to say">Prefer not to say</option>
-              </select>
-            </label>
-            <label>
-              Age:
-              <select name="age" value={formData.age} onChange={handleChange} required>
-                <option value="">Select</option>
-                <option value="10-20">10-20</option>
-                <option value="20-30">20-30</option>
-                <option value="30-40">30-40</option>
-                <option value="40-50">40-50</option>
-                <option value="50-60">50-60</option>
-                <option value="60-70">60-70</option>
-                <option value="70+">70+</option>
-              </select>
-            </label>
-            <label>
-              Educational Degree:
-              <select name="education" value={formData.education} onChange={handleChange} required>
-                <option value="">Select</option>
-                <option value="High School">High School</option>
-                <option value="Bachelor's Degree">Bachelor's Degree</option>
-                <option value="Master's Degree">Master's Degree</option>
-                <option value="Doctorate">Doctorate</option>
-                <option value="Other">Other</option>
-              </select>
-            </label>
-            <label>
-              Employment Status:
-              <select name="employment" value={formData.employment} onChange={handleChange} required>
-                <option value="">Select</option>
-                <option value="Employed">Employed</option>
-                <option value="Unemployed">Unemployed</option>
-                <option value="Student">Student</option>
-                <option value="Retired">Retired</option>
-                <option value="Other">Other</option>
-              </select>
-            </label>
-            <label>
-              Country of Residence:
-              <select name="country" value={formData.country} onChange={handleChange} required>
-                <option value="">Select</option>
-                <option value="USA">USA</option>
-                <option value="Canada">Canada</option>
-                <option value="UK">UK</option>
-                <option value={"Other"}>Other</option>
-              </select>
-            </label>
-            <label>
-              Experience with AI:
-              <select name="aiExperience" value={formData.aiExperience} onChange={handleChange} required>
-                <option value="">Select</option>
-                <option value="None">None</option>
-                <option value="Basic">Basic</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
-              </select>
-            </label>
-          </form>
-          <button
-            className="start-button"
-            onClick={handleStart}
-            disabled={isSubmitting}
-          >
-            Start
-          </button>
-        </>
-      )}
-      <p className="status-message">{status}</p>
-      <p className={`status-message ${socketConnected ? 'status-connected' : 'status-connecting'}`}>
-        {socketConnected ? 'Connected to server' : 'Connecting to server...'}
-      </p>
-      {socketConnected && Object.values(formData).some(value => value === '') && (
-        <p className="status-warning">Please fill in all fields to start</p>
-      )}
-    </div>
+        {!isBlocked && (
+            <>
+              <form className="demographic-form">
+                <label>
+                  Gender:
+                  <select name="gender" value={formData.gender} onChange={handleChange} required>
+                    <option value="">Select</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Non-binary">Non-binary</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
+                </label>
+                <label>
+                  Age:
+                  <select name="age" value={formData.age} onChange={handleChange} required>
+                    <option value="">Select</option>
+                    <option value="10-20">10-20</option>
+                    <option value="20-30">20-30</option>
+                    <option value="30-40">30-40</option>
+                    <option value="40-50">40-50</option>
+                    <option value="50-60">50-60</option>
+                    <option value="60-70">60-70</option>
+                    <option value="70+">70+</option>
+                  </select>
+                </label>
+                <label>
+                  Educational Degree:
+                  <select name="education" value={formData.education} onChange={handleChange} required>
+                    <option value="">Select</option>
+                    <option value="High School">High School</option>
+                    <option value="Bachelor's Degree">Bachelor's Degree</option>
+                    <option value="Master's Degree">Master's Degree</option>
+                    <option value="Doctorate">Doctorate</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </label>
+                <label>
+                  Employment Status:
+                  <select name="employment" value={formData.employment} onChange={handleChange} required>
+                    <option value="">Select</option>
+                    <option value="Employed">Employed</option>
+                    <option value="Unemployed">Unemployed</option>
+                    <option value="Student">Student</option>
+                    <option value="Retired">Retired</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </label>
+                <label>
+                  Country of Residence:
+                  <select name="country" value={formData.country} onChange={handleChange} required>
+                    <option value="">Select</option>
+                    <option value="USA">USA</option>
+                    <option value="Canada">Canada</option>
+                    <option value="UK">UK</option>
+                    <option value={"Other"}>Other</option>
+                  </select>
+                </label>
+                <label>
+                  Experience with AI:
+                  <select name="aiExperience" value={formData.aiExperience} onChange={handleChange} required>
+                    <option value="">Select</option>
+                    <option value="None">None</option>
+                    <option value="Basic">Basic</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                </label>
+              </form>
+              <div className="agreement-checkbox">
+                <label>
+                  <input
+                      type="checkbox"
+                      checked={agreedToParticipate}
+                      onChange={handleCheckboxChange}
+                  />
+                  I agree to participate in the experiment, and agree for the data to be used in research.
+                </label>
+              </div>
+              <button
+                  className="start-button"
+                  onClick={handleStart}
+                  disabled={isSubmitting || !agreedToParticipate}
+              >
+                Start
+              </button>
+            </>
+        )}
+        <p className="status-message">{status}</p>
+        <p className={`status-message ${socketConnected ? 'status-connected' : 'status-connecting'}`}>
+          {socketConnected ? 'Connected to server' : 'Connecting to server...'}
+        </p>
+        {socketConnected && Object.values(formData).some(value => value === '') && (
+            <p className="status-warning"></p>
+        )}
+      </div>
   );
 }
 

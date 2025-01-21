@@ -38,7 +38,8 @@ allowed = [
     "https://3.93.242.186:5000",
     "https://3.93.242.186:3000"
     ]
-app = Flask(__name__, static_folder="build", static_url_path='/')
+# app = Flask(__name__, static_folder="build", static_url_path='/')
+app = Flask(__name__)
 
 CORS(app, resources={
     r"/*": {
@@ -548,6 +549,5 @@ def on_disconnect():
 if __name__ == "__main__":
     socketio.run(app,
                  debug=True,
-                 host='0.0.0.0',
                  port=5000,
                  allow_unsafe_werkzeug=True)
