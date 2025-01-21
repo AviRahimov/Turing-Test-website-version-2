@@ -38,8 +38,8 @@ allowed = [
     "https://3.93.242.186:5000",
     "https://3.93.242.186:3000"
     ]
-# app = Flask(__name__, static_folder="build", static_url_path='/')
-app = Flask(__name__)
+app = Flask(__name__, static_folder="build", static_url_path='/')
+# app = Flask(__name__)  # For local testing
 
 CORS(app, resources={
     r"/*": {
@@ -529,25 +529,43 @@ def handle_message(data):
     emit("message", {"sender": sender, "message": message}, to=pair_id)
 
 
-@socketio.on("disconnect")
-def on_disconnect():
-    """
-    Handle user disconnection.
-    """
+@socketio.on('disconnect')
+def on_disconnect(data):
+    """ Handle user disconnections. """
     sid = request.sid
     username = next((u for u, s in user_sockets.items() if s == sid), None)
-
     if username:
         logging.info(f"User {username} disconnected")
         user_sockets.pop(username, None)
-        if username in tester_queue:
-            tester_queue.remove(username)
-        if username in experimenter_queue:
-            experimenter_queue.remove(username)
+
+        with pairing_lock:  # Ensure thread safety
+            if username in tester_queue:
+                tester_queue.remove(username)
+            if username in experimenter_queue:
+                experimenter_queue.remove(username)
+
+            # Check if the disconnected user was paired
+            for pair_id, pair in pairs.items():
+                if pair['tester'] == username or pair['experimenter'] == username:
+                    logging.info(f"User {username} was in pair {pair_id}, updating status")
+
+                    # Notify the other user that their partner has disconnected
+                    other_user = pair['experimenter'] if pair['tester'] == username else pair['tester']
+                    other_user_id = user_sockets.get(other_user)
+
+                    if other_user_id:
+                        socketio.emit('partner_disconnected',
+                                      {'message': 'Your partner has disconnected. Please wait for a new partner.'},
+                                      room=other_user_id)
+
+                    # Remove the pair
+                    del pairs[pair_id]
+                    break
 
 
 if __name__ == "__main__":
     socketio.run(app,
                  debug=True,
+                 host='0.0.0.0',  # Disable for testing locally
                  port=5000,
                  allow_unsafe_werkzeug=True)

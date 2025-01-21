@@ -17,19 +17,6 @@
       <change afterPath="$PROJECT_DIR$/frontend/src/utils/chatUtils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/asset-manifest.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/favicon.ico" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/index.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/logo192.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/logo512.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/manifest.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/robots.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/css/main.a8c74eff.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/css/main.a8c74eff.css.map" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.a87a6a2f.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.a87a6a2f.js.LICENSE.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.a87a6a2f.js.map" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/media/background_image.5f57e1d2930202662c06.jpg" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/README.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
@@ -76,7 +63,7 @@
       </map>
     </option>
     <option name="RECENT_COMMON_BRANCH" value="master" />
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/frontend" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="ROOT_SYNC" value="SYNC" />
     <option name="UPDATE_TYPE" value="REBASE" />
   </component>
@@ -108,7 +95,7 @@
     "Python.app.executor": "Run",
     "Python.main.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "Local__No__Vercel__Settings",
+    "git-widget-placeholder": "Work__On__Avi__PC__Local__Changes",
     "last_opened_file_path": "C:/Users/rahim/PycharmProjects/Local working on the Turing Test project",
     "list.type.of.created.stylesheet": "CSS",
     "node.js.detected.package.eslint": "true",
@@ -263,6 +250,7 @@
       <workItem from="1737279491897" duration="6324000" />
       <workItem from="1737302159009" duration="8168000" />
       <workItem from="1737366687987" duration="3133000" />
+      <workItem from="1737453404285" duration="3161000" />
     </task>
     <servers />
   </component>
@@ -282,6 +270,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$app.coverage" NAME="app Coverage Results" MODIFIED="1733154028030" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
-    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1737446527432" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
+    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1737457954252" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
   </component>
 </project>

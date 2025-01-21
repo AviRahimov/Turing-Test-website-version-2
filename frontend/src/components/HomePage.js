@@ -55,7 +55,7 @@ function HomePage() {
       setStatus('Connection error. Retrying...');
     };
 
-    setSocketConnected(socket.connected);
+    // setSocketConnected(socket.connected);
 
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
@@ -136,6 +136,11 @@ function HomePage() {
       return;
     }
 
+    if (!agreedToParticipate) {
+            alert('You must agree to participate in the experiment.');
+            return;
+    }
+
     setIsSubmitting(true);
     setStatus('Connecting...');
 
@@ -162,10 +167,10 @@ function HomePage() {
       console.log('Server response:', result);
 
       if (result.status === 'waiting') {
-        setStatus('Waiting for another user to connect...');
+          setStatus('Waiting for another user to connect...');
       } else if (result.status === 'error') {
-        setStatus(result.message);
-        setIsSubmitting(false);
+          setStatus(result.message);
+          setIsSubmitting(false);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -278,9 +283,9 @@ function HomePage() {
         <p className={`status-message ${socketConnected ? 'status-connected' : 'status-connecting'}`}>
           {socketConnected ? 'Connected to server' : 'Connecting to server...'}
         </p>
-        {socketConnected && Object.values(formData).some(value => value === '') && (
-            <p className="status-warning"></p>
-        )}
+        {/*{socketConnected && Object.values(formData).some(value => value === '') && (*/}
+        {/*    <p className="status-warning"></p>*/}
+        {/*)}*/}
       </div>
   );
 }
