@@ -7,6 +7,8 @@
     <list default="true" id="fbcb205b-a937-474d-88ad-dfaffcbe4bbe" name="Changes" comment="">
       <change afterPath="$PROJECT_DIR$/frontend/src/components/ChatPage.css" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/ChatPage.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/Disconnect.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/Disconnect.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/FeedbackPage.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/HomePage.css" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/components/HomePage.js" afterDir="false" />
@@ -16,19 +18,7 @@
       <change afterPath="$PROJECT_DIR$/frontend/src/data/personas.json" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/utils/chatUtils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/asset-manifest.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/favicon.ico" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/index.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/logo192.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/logo512.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/manifest.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/robots.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/css/main.cb6c5fc6.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/css/main.cb6c5fc6.css.map" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.ed4f5840.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.ed4f5840.js.LICENSE.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/js/main.ed4f5840.js.map" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/build/static/media/background_image.5f57e1d2930202662c06.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/README.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
@@ -75,7 +65,7 @@
       </map>
     </option>
     <option name="RECENT_COMMON_BRANCH" value="master" />
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/frontend" />
     <option name="ROOT_SYNC" value="SYNC" />
     <option name="UPDATE_TYPE" value="REBASE" />
   </component>
@@ -100,38 +90,38 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;Jest.renders learn react link.executor&quot;: &quot;Run&quot;,
-    &quot;Python.app.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;Work__On__Avi__PC__Local__Changes&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/rahim/PycharmProjects/Local working on the Turing Test project&quot;,
-    &quot;list.type.of.created.stylesheet&quot;: &quot;CSS&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs.jest.jest_package&quot;: &quot;C:/Users/rahim/PycharmProjects/Turing Test Project (Version 2)/frontend/node_modules/react-scripts&quot;,
-    &quot;nodejs_interpreter_path&quot;: &quot;C:/Program Files/nodejs/node&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;C:\\Program Files\\nodejs\\npm&quot;,
-    &quot;npm.React Dev Server.executor&quot;: &quot;Run&quot;,
-    &quot;npm.start.executor&quot;: &quot;Run&quot;,
-    &quot;npm.test.executor&quot;: &quot;Run&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Program Files\\JetBrains\\PyCharm 2023.3.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultHtmlFileTemplate": "HTML File",
+    "Jest.renders learn react link.executor": "Run",
+    "Python.app.executor": "Run",
+    "Python.main.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "Local__No__Vercel__Settings",
+    "last_opened_file_path": "C:/Users/rahim/PycharmProjects/Local working on the Turing Test project",
+    "list.type.of.created.stylesheet": "CSS",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs.jest.jest_package": "C:/Users/rahim/PycharmProjects/Turing Test Project (Version 2)/frontend/node_modules/react-scripts",
+    "nodejs_interpreter_path": "C:/Program Files/nodejs/node",
+    "nodejs_package_manager_path": "C:\\Program Files\\nodejs\\npm",
+    "npm.React Dev Server.executor": "Run",
+    "npm.start.executor": "Run",
+    "npm.test.executor": "Run",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\PyCharm 2023.3.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)\backend" />
       <recent name="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)\frontend\src\components" />
+      <recent name="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)\backend" />
     </key>
   </component>
   <component name="RunManager" selected="npm.React Dev Server">
@@ -263,6 +253,7 @@
       <workItem from="1737302159009" duration="8168000" />
       <workItem from="1737366687987" duration="3133000" />
       <workItem from="1737453404285" duration="5526000" />
+      <workItem from="1737557935370" duration="20183000" />
     </task>
     <servers />
   </component>
@@ -282,6 +273,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$app.coverage" NAME="app Coverage Results" MODIFIED="1733154028030" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
-    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1737457954252" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
+    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1737582378660" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
   </component>
 </project>

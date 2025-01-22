@@ -38,8 +38,8 @@ allowed = [
     "https://3.93.242.186:5000",
     "https://3.93.242.186:3000"
     ]
-app = Flask(__name__, static_folder="build", static_url_path='/')
-# app = Flask(__name__)  # For local testing
+# app = Flask(__name__, static_folder="build", static_url_path='/')
+app = Flask(__name__)  # For local testing
 
 CORS(app, resources={
     r"/*": {
@@ -206,6 +206,23 @@ def handle_notification_dismissed(data):
     emit('notification_dismissed', {'role': role}, room=pair_id)
 
 
+@socketio.on("participant_inactivity_warning")
+def handle_inactivity_warning(data):
+    print("Received inactivity warning:", data)  # Debug log
+    pair_id = data.get("pair_id")
+    role = data.get("role")
+    emit("inactivity_warning", {"role": role}, room=pair_id)
+    print(f"Sent inactivity warning to room {pair_id}")  # Debug log
+
+@socketio.on("participant_banned")
+def handle_participant_ban(data):
+    print("Received participant ban:", data)  # Debug log
+    pair_id = data.get("pair_id")
+    role = data.get("role")
+    emit("participant_banned", {"role": role}, room=pair_id)
+    print(f"Sent ban notification to room {pair_id}")  # Debug log
+
+
 # Update the socket connection event handler
 @socketio.on("connect")
 def on_connect():
@@ -232,6 +249,7 @@ def register_user(data):
     Register the user with a unique ID upon connection.
     """
     unique_id = get_unique_user_id()
+    print("unique_id", unique_id)
     username = f"user_{unique_id}"
     if username and username in user_sockets:
         logging.warning(f"User {username} is already connected.")
@@ -431,6 +449,7 @@ def save_feedback():
         real_identity_b = "bot"
 
     feedback = {
+        "username": data.get("username"),
         "userId": data.get("userId"),
         "pairId": data.get("pairId"),
         "experience": data.get("experience"),
@@ -449,13 +468,10 @@ def save_feedback():
         # Save to MongoDB
         feedback_collection.insert_one(feedback)
 
-        # Extract the numeric part of userId and convert it to an integer
-        user_id_str = data.get("userId")
-        user_id = saasd(user_id_str.split('_')[-1])  # Extract the number part and convert to int
-
+        print("user_id string: ", data.get("username"))
         # Add pair_id to demographic collection
         demographic_collection.update_one(
-            {"user_id": user_id},
+            {"user_id": data.get("username")},
             {"$set": {"pair_id": data.get("pairId")}}
         )
 
@@ -566,6 +582,6 @@ def on_disconnect(data):
 if __name__ == "__main__":
     socketio.run(app,
                  debug=True,
-                 host='0.0.0.0',  # Disable for testing locally
+                 # host='0.0.0.0',  # Disable for testing locally
                  port=5000,
                  allow_unsafe_werkzeug=True)

@@ -36,6 +36,9 @@ function HomePage() {
   const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
+    // Clear any previous disconnection state when starting fresh
+    sessionStorage.removeItem('wasDisconnected');
+
     const handleConnect = () => {
       console.log('Socket connected');
       setSocketConnected(true);
@@ -75,6 +78,7 @@ function HomePage() {
             pairId: data.pair_id,
             role: data.role,
             userId: data.user_id,
+            username: data.username,
           },
         });
       }
@@ -154,7 +158,7 @@ function HomePage() {
       await fetch(server_url + '/api/save_demographics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userID, ...formData }),
+        body: JSON.stringify({ user_id: username, ...formData }),
       });
 
       const response = await fetch(server_url + '/api/submit_name', {

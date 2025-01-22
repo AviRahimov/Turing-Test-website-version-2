@@ -4,7 +4,7 @@ import config from "./config";
 
 const FeedbackPage = () => {
   const location = useLocation();
-  const {realIdentityA, realIdentityB, guessCandidateA, guessCandidateB, userId, code, role, pairId } = location.state || {};
+  const {realIdentityA, realIdentityB, guessCandidateA, guessCandidateB, userId, code, role, pairId, username } = location.state || {};
   console.log("The user id in the feedback page is", userId);
 
   const navigate = useNavigate();
@@ -28,6 +28,7 @@ const FeedbackPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          username,
           userId,
           pairId,
           realIdentityA,

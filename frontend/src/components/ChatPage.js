@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 import io from 'socket.io-client';
 import './ChatPage.css';
@@ -12,7 +12,7 @@ const socket = io(config.SERVER_URL); // Adjust the port if needed
 function ChatPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { pairId, role, userId } = location.state || {};
+  const { pairId, role, userId, username } = location.state || {};
 
   const [currentPersona, setCurrentPersona] = useState(null);
   const [messageQueue, setMessageQueue] = useState([]); // Queue for tester messages
@@ -48,6 +48,79 @@ function ChatPage() {
   const [isAnonymousMode, setIsAnonymousMode] = useState(false);
   const [shuffleEnabled] = useState(config.SHUFFLE_ENABLED);
 
+  // Track the last message time for the ban mechanism
+  const lastActivityTimestampRef = useRef(Date.now());
+  const [warningShown, setWarningShown] = useState(false);
+  const [inactivityCheckerActive, setInactivityCheckerActive] = useState(false);
+
+  // useEffect for handling the start of inactivity checking
+useEffect(() => {
+    // Start the inactivity checker only when both conditions are met:
+    // 1. Test timer is running (> 0)
+    // 2. Timer is not paused (notifications dismissed)
+    // 3. Checker hasn't been started yet
+    if (realTestTimer > 0 && !timerPaused && !inactivityCheckerActive) {
+        console.log(`${role} - Starting inactivity monitoring system`);
+        lastActivityTimestampRef.current = Date.now(); // Initialize the ref
+        setInactivityCheckerActive(true);
+    }
+}, [realTestTimer, timerPaused, inactivityCheckerActive, role]);
+
+// useEffect for the actual inactivity checking
+useEffect(() => {
+    if (inactivityCheckerActive) {
+        console.log(`${role} - Inactivity checker is now running`);
+
+        const inactivityInterval = setInterval(() => {
+            const currentTime = Date.now();
+            const timeSinceLastActivity = currentTime - lastActivityTimestampRef.current;
+
+            console.log(`${role} - Last activity: ${Math.floor(timeSinceLastActivity / 1000)} seconds ago`);
+
+            if (timeSinceLastActivity >= 60000) { // 60 seconds
+                console.log(`${role} - Inactivity limit reached - disconnecting user`);
+
+                const banMessage = "You have been disconnected due to inactivity. You will not receive payment for this session.";
+                alert(banMessage);
+
+                socket.emit('participant_banned', {
+                    pair_id: pairId,
+                    role: role
+                });
+
+                // Clear the interval before navigating
+                clearInterval(inactivityInterval);
+                setInactivityCheckerActive(false);
+
+                sessionStorage.setItem('wasDisconnected', 'true');
+                navigate('/disconnected', {
+                    state: { message: banMessage }, replace: true
+                });
+            } else if (timeSinceLastActivity >= 30000 && !warningShown) { // 30 seconds
+                console.log(`${role} - Warning threshold reached - showing warning`);
+
+                const warningMessage = role === 'tester'
+                    ? "⚠️ Warning: If you don't send a message in the next 30 seconds, you will be disconnected and won't receive payment."
+                    : "⚠️ Warning: If you don't send a message in the next 30 seconds, you will be disconnected from the experiment.";
+
+                alert(warningMessage);
+                setWarningShown(true);
+
+                socket.emit('participant_inactivity_warning', {
+                    pair_id: pairId,
+                    role: role
+                });
+            }
+        }, 5000); // Check every 5 seconds
+
+        return () => {
+            if (inactivityCheckerActive) {
+                console.log(`${role} - Cleaning up inactivity checker`);
+                clearInterval(inactivityInterval);
+            }
+        };
+    }
+}, [inactivityCheckerActive, role, pairId, warningShown, navigate]);
 
 
   // Handlers to send messages on Enter key press
@@ -56,19 +129,31 @@ function ChatPage() {
       sendMessageToExperimenter();
     }
   };
+
+  const handleKeyPressBot = (e) => {
+      if (e.key === 'Enter') {
+          sendMessageToBot()
+      }
+  };
   
   const addToMessageQueue = (message) => {
       setMessageQueue((prevQueue) => [...prevQueue, message]);
   };
-  
-  const handleKeyPressBot = (e) => {
-    if (e.key === 'Enter') {
-        const newMessage = { sender: role, content: messageToBot };
-        setBotMessages((prevBotMessages) => [...prevBotMessages, newMessage]); // Display each tester message
-        addToMessageQueue(messageToBot);
-        setMessageToBot('');
-    }
+
+  const sendMessageToBot = () => {
+      if (!messageToBot.trim()) return;
+
+      // Reset activity timestamp and warning state
+        lastActivityTimestampRef.current = Date.now(); // Use ref instead of state
+        setWarningShown(false);
+        console.log(`${role} - Activity timestamp reset - message to bot`);
+
+      const newMessage = { sender: role, content: messageToBot };
+      setBotMessages((prevBotMessages) => [...prevBotMessages, newMessage]);
+      addToMessageQueue(messageToBot);
+      setMessageToBot('');
   };
+
 
   // Helper to save chat logs
   const saveChatLogs = async (title) => {
@@ -349,21 +434,23 @@ useEffect(() => {
 
   // Send a message to the experimenter
   const sendMessageToExperimenter = () => {
-    if (!messageToExperimenter.trim()) return;
+      if (!messageToExperimenter.trim()) return;
 
-    const newMessage = { sender: role, content: messageToExperimenter };
+      // Reset activity timestamp and warning state
+      lastActivityTimestampRef.current = Date.now(); // Use ref instead of state
+      setWarningShown(false);
+      console.log(`${role} - Activity timestamp reset - message to experimenter`);
 
-    // Add locally first (to avoid UI lag)
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
+      const newMessage = { sender: role, content: messageToExperimenter };
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
 
-    // Emit to the server
-    socket.emit('message', {
-      pair_id: pairId,
-      sender: role,
-      message: messageToExperimenter,
-    });
+      socket.emit('message', {
+        pair_id: pairId,
+        sender: role,
+        message: messageToExperimenter,
+      });
 
-    setMessageToExperimenter('');
+      setMessageToExperimenter('');
   };
 
   // Message queue for bot messages
@@ -509,6 +596,7 @@ useEffect(() => {
                     code: response.data.code,
                     role: 'tester',
                     pairId,
+                    username
                 }
             });
         } else {
@@ -562,6 +650,21 @@ useEffect(() => {
     if (roomType === 'experimenter') {
       return (
         <div className="chat-window">
+            {inactivityCheckerActive && (
+                <div style={{
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    padding: '5px',
+                    backgroundColor: warningShown ? '#ff9800' : '#4CAF50',
+                    color: 'white',
+                    borderRadius: '3px',
+                    fontSize: '12px',
+                    zIndex: 1000
+                }}>
+                    Inactive: {Math.floor((Date.now() - lastActivityTimestampRef.current) / 1000)}s
+                </div>
+            )}
           <div className="chat-header">
           {isAnonymousMode
                     ? `Candidate ${roomInfo.candidate}`
@@ -623,7 +726,7 @@ useEffect(() => {
               placeholder="Type your message here..."
               className="input-box"
             />
-            <button onClick={sendMessageToBotQueue} className="send-button">
+            <button onClick={sendMessageToBot} className="send-button">
               Send
             </button>
           </div>
@@ -676,6 +779,21 @@ useEffect(() => {
         {role === 'tester' && roomOrder.map((roomType) => renderChatWindow(roomType))}
         {role === 'experimenter' && (
             <div className="chat-window chat-experimenter">
+                {inactivityCheckerActive && (
+                <div style={{
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    padding: '5px',
+                    backgroundColor: warningShown ? '#ff9800' : '#4CAF50',
+                    color: 'white',
+                    borderRadius: '3px',
+                    fontSize: '12px',
+                    zIndex: 1000
+                }}>
+                    Inactive: {Math.floor((Date.now() - lastActivityTimestampRef.current) / 1000)}s
+                </div>
+            )}
               {showOverlay && role === 'experimenter' && (
                 <div className="overlay">
                   <h2>Waiting for the tester to submit their guesses...</h2>
