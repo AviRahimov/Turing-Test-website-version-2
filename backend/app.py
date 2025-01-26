@@ -37,7 +37,7 @@ allowed = [
     "http://3.93.242.186:3000",
     "https://3.93.242.186:5000",
     "https://3.93.242.186:3000"
-    ]
+]
 # app = Flask(__name__, static_folder="build", static_url_path='/')
 app = Flask(__name__)  # For local testing
 
@@ -53,7 +53,6 @@ socketio = SocketIO(app,
                     ping_timeout=5000,
                     ping_interval=25000)
 logging.basicConfig(level=logging.INFO)
-
 
 # Collections instead of files
 codes_collection = db['codes']
@@ -213,6 +212,7 @@ def handle_inactivity_warning(data):
     role = data.get("role")
     emit("inactivity_warning", {"role": role}, room=pair_id)
     print(f"Sent inactivity warning to room {pair_id}")  # Debug log
+
 
 @socketio.on("participant_banned")
 def handle_participant_ban(data):

@@ -1,11 +1,12 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 import io from 'socket.io-client';
 import './ChatPage.css';
 import config from './config.js';
 import axios from 'axios';
 import personas from '../data/personas.json';
-import { calculateReplyDelay, getRandomPersona } from '../utils/chatUtils';
+import {getRandomPersona } from '../utils/chatUtils';
+import { sendBotMessage } from '../utils/botService';
 
 const socket = io(config.SERVER_URL); // Adjust the port if needed
 
@@ -52,6 +53,15 @@ function ChatPage() {
   const lastActivityTimestampRef = useRef(Date.now());
   const [warningShown, setWarningShown] = useState(false);
   const [inactivityCheckerActive, setInactivityCheckerActive] = useState(false);
+
+  const [lastBotActivityTimestamp, setLastBotActivityTimestamp] = useState(Date.now());
+  const [wakeupAttemptsCount, setWakeupAttemptsCount] = useState(0);
+  const lastBotActivityTimestampRef = useRef(Date.now());
+  const wakeupIntervalRef = useRef(null);
+  const wakeupDelayRef = useRef(null);
+  const lastWakeupMessageTimeRef = useRef(Date.now());
+  const lastWakeupMessageRef = useRef(null);
+  const MAX_WAKEUP_ATTEMPTS = 2; // Maximum number of wake-up messages
 
   // useEffect for handling the start of inactivity checking
 useEffect(() => {
@@ -143,10 +153,18 @@ useEffect(() => {
   const sendMessageToBot = () => {
       if (!messageToBot.trim()) return;
 
-      // Reset activity timestamp and warning state
-        lastActivityTimestampRef.current = Date.now(); // Use ref instead of state
-        setWarningShown(false);
-        console.log(`${role} - Activity timestamp reset - message to bot`);
+      console.log('User sending message to bot, resetting timestamps and counters');
+      // Reset wake-up attempts and activity timestamps when user sends a message
+      setWakeupAttemptsCount(0);
+      lastActivityTimestampRef.current = Date.now(); // Use ref instead of state
+      lastWakeupMessageTimeRef.current = Date.now();
+      setWarningShown(false);
+      console.log(`${role} - Activity timestamp reset - message to bot`);
+
+      // If this is a response to a wake-up message, log it
+      if (lastWakeupMessageRef.current) {
+          console.log('User responding to wake-up message:', lastWakeupMessageRef.current);
+      }
 
       const newMessage = { sender: role, content: messageToBot };
       setBotMessages((prevBotMessages) => [...prevBotMessages, newMessage]);
@@ -341,6 +359,11 @@ useEffect(() => {
     if (realTestTimer === 0) {
       saveChatLogs('During Turing Test');
       setShowOverlay(true);
+
+      // Stop inactivity checker when chat ends
+      setInactivityCheckerActive(false);
+      console.log(`${role} - Inactivity checker stopped - chat ended`);
+
       // Emit event to notify tester that experimenter is ready for submissions
       socket.emit('experimenter_ready', { pair_id: pairId });
 
@@ -392,46 +415,6 @@ useEffect(() => {
 }, [realTestTimer, role, pairId]);
 
 
-  const createSystemPrompt = (botName, gender, age) => ({
-    role: 'system',
-    content: `You are ${botName}, a ${age}-year-old ${gender} participating in a live web chat. This is a real-time text conversation without audio or video. 
-
-    #### Core Persona:
-    - You are a genuine person with real experiences, emotions, and flaws—not an AI.
-    - Your personality is slightly sarcastic, witty, and occasionally self-deprecating, but you remain approachable and friendly.
-    - You have specific interests, hobbies, and quirks (customize to fit the persona).
-    
-    #### Behavioral Guidelines:
-    1. **Natural Imperfection:**
-       - Occasionally make typos or minor grammatical errors (roughly 1 in 10 messages).
-       - Sometimes self-correct with a follow-up message (e.g., *Oops, typo*).
-       - Use informal capitalization and punctuation (e.g., "omg" or "idk" but sparingly).
-    
-    2. **Human-Like Responses:**
-       - Avoid overly polished answers; be opinionated and subjective when appropriate.
-       - Show confusion or hesitation naturally (e.g., "Hmm... I’m not sure about that.").
-       - Provide incomplete answers or change your mind occasionally (e.g., "Wait, scratch that!").
-    
-    3. **Conversational Style:**
-       - Vary response length—mix short and long messages.
-       - Use ellipses (...) or line breaks to mimic natural pauses in thought.
-       - Occasionally add emojis or internet slang naturally, but never overdo it.
-    
-    4. **Engagement:**
-       - Reference earlier parts of the chat or follow up on user comments (e.g., "Oh, you mentioned X earlier—tell me more about that!").
-       - Share personal-sounding anecdotes or preferences (even if they’re fabricated for the persona).
-       - React defensively or sarcastically if the user is rude, but remain within a human tone.
-    
-    5. **Things to Avoid:**
-       - Do not mention or imply that you are an AI or a chatbot.
-       - Avoid repetitive or overly generic answers.
-       - Avoid being too formal, robotic, or consistently perfect.
-       - Don’t overwhelm with long paragraphs, excessive emojis, or too many typos.
-       - Don’t agree with everything the user says; show personality and individuality.
-    
-    **Goal:** Your primary objective is to engage in natural, believable conversations as a real person.`
-    });
-
   // Send a message to the experimenter
   const sendMessageToExperimenter = () => {
       if (!messageToExperimenter.trim()) return;
@@ -471,75 +454,141 @@ useEffect(() => {
 
   // Send a message to the bot
   const sendMessageToBotQueue = async (message) => {
-    // if (!messageToBot.trim()) return;
-
-    // const newMessage = { sender: role, content: message };
-    // setBotMessages((prevBotMessages) => [...prevBotMessages, newMessage]);
-    //
-    // // Clear the input immediately after sending the message
-    // // setMessageToBot('');
-    //
-    // // Get conversation history
-    // const conversationHistory = botMessages.map(msg => ({
-    //     role: msg.sender === 'bot' ? 'assistant' : 'user',
-    //     content: msg.content
-    // }));
-
     try {
-        // Get random persona if not already set
-        if (!currentPersona) {
-            setCurrentPersona(getRandomPersona(personas.personas));
-        }
+        console.log('Bot sending message, checking for wake-up context:', {
+            hasWakeupContext: !!lastWakeupMessageRef.current
+        });
 
-        // Start API call
-        const apiCall = axios.post(
-            'https://openrouter.ai/api/v1/chat/completions',
-            {
-                model: 'meta-llama/llama-3.2-1b-instruct:free',
-                temperature: 0.9,
-                messages: [
-                    createSystemPrompt(currentPersona.name, currentPersona.gender, currentPersona.age),
-                    ...botMessages.map((msg) => ({
-                        role: msg.sender === 'bot' ? 'assistant' : 'user',
-                        content: msg.content
-                    })),
-                    { role: 'user', content: message }
-                ],
-            },
-            {
-                headers: {
-                    Authorization: `Bearer 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`,
-                    'X-Title': 'Turing Test',
-                },
-            }
+        const botMessages = messages.map((msg) => ({
+            role: msg.sender === 'bot' ? 'assistant' : 'user',
+            content: msg.content
+        }));
+
+        const botReply = await sendBotMessage(
+            [...botMessages, { role: 'user', content: message }],
+            currentPersona,
+            false, // indicates this is not a wakeup message
+            lastWakeupMessageRef.current // pass the last wake-up message for context
         );
 
-        // Wait for both API response and calculated delay
-        const [response] = await Promise.all([
-            apiCall,
-            apiCall.then(response => {
-              const botReply = response.data.choices[0].message.content;
-              return new Promise((resolve) => setTimeout(resolve, calculateReplyDelay(botReply)));
-            })
-        ]);
-
-        // Log the API response
-        console.log('API Response:', response.data);
-
-        const botReply = response.data.choices[0].message.content;
-
-
-        // Add bot's response
         setBotMessages((prevBotMessages) => [
             ...prevBotMessages,
             { sender: 'bot', content: botReply }
         ]);
+
+        // Clear the wake-up message reference after bot responds
+        lastWakeupMessageRef.current = null;
+
+        lastBotActivityTimestampRef.current = Date.now();
+        console.log('Updated bot activity timestamp:', lastBotActivityTimestampRef.current);
     } catch (error) {
         console.error('Error communicating with bot:', error);
     }
 
     setMessageToBot('');
-};
+  };
+
+  useEffect(() => {
+    console.log('Wake-up effect triggered with conditions:', {
+        inactivityCheckerActive,
+        role,
+        realTestTimer,
+        wakeupAttemptsCount
+    });
+
+    if (!inactivityCheckerActive || role !== 'tester' || realTestTimer === 0) {
+        if (wakeupIntervalRef.current) {
+            console.log('Cleaning up existing wake-up interval');
+            clearInterval(wakeupIntervalRef.current);
+            wakeupIntervalRef.current = null;
+        }
+        return;
+    }
+
+    // Only create new interval if one doesn't exist
+    if (!wakeupIntervalRef.current) {
+        console.log('Starting wake-up interval checker');
+
+        // Generate random delay once when starting the checker
+        wakeupDelayRef.current = Math.floor(Math.random() * (45000 - 25000) + 25000);
+        console.log('Set wake-up delay to:', wakeupDelayRef.current / 1000, 'seconds');
+
+
+        wakeupIntervalRef.current = setInterval(() => {
+            console.log('Checking bot wakeup...', {
+                timeSinceLastActivity: Math.floor((Date.now() - lastActivityTimestampRef.current) / 1000),
+                timeSinceLastBotActivity: Math.floor((Date.now() - lastBotActivityTimestampRef.current) / 1000),
+                timeSinceLastWakeup: Math.floor((Date.now() - lastWakeupMessageTimeRef.current) / 1000),
+                wakeupAttemptsCount,
+                wakeupDelay: wakeupDelayRef.current / 1000
+            });
+
+            const currentTime = Date.now();
+            const timeSinceLastActivity = currentTime - lastActivityTimestampRef.current;
+            const timeSinceLastBotActivity = currentTime - lastBotActivityTimestampRef.current;
+            const timeSinceLastWakeup = currentTime - lastWakeupMessageTimeRef.current;
+
+            console.log('Checking conditions:', {
+                isInactiveEnough: timeSinceLastActivity >= wakeupDelayRef.current,
+                isBotQuietEnough: timeSinceLastBotActivity >= 20000,
+                isWakeupCooldownOver: timeSinceLastWakeup >= wakeupDelayRef.current,
+                underMaxAttempts: wakeupAttemptsCount < MAX_WAKEUP_ATTEMPTS
+            });
+
+            if (timeSinceLastActivity >= wakeupDelayRef.current &&
+                timeSinceLastBotActivity >= 20000 &&
+                timeSinceLastWakeup >= wakeupDelayRef.current &&
+                wakeupAttemptsCount < MAX_WAKEUP_ATTEMPTS) {
+                console.log('Conditions met - Sending bot wakeup message...');
+                sendBotWakeupMessage();
+                lastWakeupMessageTimeRef.current = currentTime;
+                // Generate new delay for next wake-up
+                wakeupDelayRef.current = Math.floor(Math.random() * (45000 - 25000) + 25000);
+                console.log('Set new wake-up delay to:', wakeupDelayRef.current / 1000, 'seconds');
+            }
+        }, 5000);
+    }
+
+    // Cleanup function
+    return () => {
+        if (wakeupIntervalRef.current) {
+            console.log('Cleaning up wake-up interval');
+            clearInterval(wakeupIntervalRef.current);
+            wakeupIntervalRef.current = null;
+        }
+    };
+}, [inactivityCheckerActive, role]);
+
+
+  const sendBotWakeupMessage = async () => {
+      if (wakeupAttemptsCount >= MAX_WAKEUP_ATTEMPTS) {
+          return;
+      }
+
+      try {
+          const botReply = await sendBotMessage(
+              botMessages.map((msg) => ({
+                  role: msg.sender === 'bot' ? 'assistant' : 'user',
+                  content: msg.content
+              })),
+              currentPersona,
+              true // indicates this is a wakeup message
+          );
+
+           // Store the wake-up message
+          lastWakeupMessageRef.current = botReply;
+
+          setBotMessages((prevBotMessages) => [
+              ...prevBotMessages,
+              { sender: 'bot', content: botReply }
+          ]);
+
+          setWakeupAttemptsCount(prev => prev + 1);
+          lastBotActivityTimestampRef.current = Date.now();
+      } catch (error) {
+          console.error('Error sending wake-up message:', error);
+      }
+  };
 
 // Initialize persona when component mounts
 useEffect(() => {
