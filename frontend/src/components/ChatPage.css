@@ -303,3 +303,206 @@ body {
   color: #666;
   font-size: 16px;
 }
+
+/* Add to ChatPage.css */
+.popup {
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.warning-text {
+    color: #dc3545;
+    font-weight: bold;
+    margin: 1rem 0;
+}
+
+.quiz-question {
+    margin: 1.5rem 0;
+}
+
+.question-text {
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.option-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    cursor: pointer;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.option-label:hover {
+    background: #e9ecef;
+}
+
+.submit-quiz-button {
+    width: 100%;
+    padding: 0.75rem;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+
+.confirmation-container {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.confirmation-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.confirmation-buttons button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.confirmation-buttons button:first-child {
+    background: #28a745;
+    color: white;
+}
+
+.confirmation-buttons button:last-child {
+    background: #dc3545;
+    color: white;
+}
+
+.popup-continue-button {
+    width: 100%;
+    padding: 0.75rem;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+
+/* Add to ChatPage.css */
+.quiz-status {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.quiz-status.waiting {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.quiz-status.completed {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.quiz-status.failed {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.timer-status {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #f8f9fa;
+    padding: 10px 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+    text-align: center;
+}
+
+.timer-status p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+/* Add to ChatPage.css */
+.review-instructions-button {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    width: auto;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.review-instructions-button:hover {
+    background-color: #5a6268;
+}
+
+.instructions-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.instructions-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    position: relative;
+}
+
+.instructions-content h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #2c3e50;
+}
+
+.close-instructions-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.close-instructions-button:hover {
+    background-color: #c82333;
+}

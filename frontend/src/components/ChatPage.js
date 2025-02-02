@@ -17,6 +17,7 @@ function ChatPage() {
 
   const [currentPersona, setCurrentPersona] = useState(null);
   const [messageQueue, setMessageQueue] = useState([]); // Queue for tester messages
+  const messageQueueEnabled = config.ENABLE_MESSAGE_QUEUE;
 
   const [messages, setMessages] = useState([]); // Chat with experimenter
   const [botMessages, setBotMessages] = useState([]); // Chat with bot
@@ -54,14 +55,23 @@ function ChatPage() {
   const [warningShown, setWarningShown] = useState(false);
   const [inactivityCheckerActive, setInactivityCheckerActive] = useState(false);
 
-  const [lastBotActivityTimestamp, setLastBotActivityTimestamp] = useState(Date.now());
   const [wakeupAttemptsCount, setWakeupAttemptsCount] = useState(0);
   const lastBotActivityTimestampRef = useRef(Date.now());
   const wakeupIntervalRef = useRef(null);
   const wakeupDelayRef = useRef(null);
   const lastWakeupMessageTimeRef = useRef(Date.now());
   const lastWakeupMessageRef = useRef(null);
+  const botWakeupEnabled = config.ENABLE_BOT_WAKEUP;
   const MAX_WAKEUP_ATTEMPTS = 2; // Maximum number of wake-up messages
+
+  const [partnerQuizStatus, setPartnerQuizStatus] = useState(null); // 'completed', 'failed', or null
+  const [quizStep, setQuizStep] = useState('instructions'); // 'instructions', 'quiz', 'completed'
+  const [quizAnswers, setQuizAnswers] = useState(Array(2).fill(null));
+  const [showQuizConfirmation, setShowQuizConfirmation] = useState(false);
+  const [chatTimerStarted, setChatTimerStarted] = useState(false);
+
+  // state for the instructions modal
+  const [showInstructions, setShowInstructions] = useState(false);
 
   // useEffect for handling the start of inactivity checking
 useEffect(() => {
@@ -87,7 +97,7 @@ useEffect(() => {
 
             console.log(`${role} - Last activity: ${Math.floor(timeSinceLastActivity / 1000)} seconds ago`);
 
-            if (timeSinceLastActivity >= 60000) { // 60 seconds
+            if (timeSinceLastActivity >= 90000) { // 90 seconds
                 console.log(`${role} - Inactivity limit reached - disconnecting user`);
 
                 const banMessage = "You have been disconnected due to inactivity. You will not receive payment for this session.";
@@ -110,8 +120,8 @@ useEffect(() => {
                 console.log(`${role} - Warning threshold reached - showing warning`);
 
                 const warningMessage = role === 'tester'
-                    ? "⚠️ Warning: If you don't send a message in the next 30 seconds, you will be disconnected and won't receive payment."
-                    : "⚠️ Warning: If you don't send a message in the next 30 seconds, you will be disconnected from the experiment.";
+                    ? "⚠️ Warning: If you don't send a message soon, you will be disconnected and won't receive payment."
+                    : "⚠️ Warning: If you don't send a message soon, you will be disconnected from the experiment, and won't receive payment.";
 
                 alert(warningMessage);
                 setWarningShown(true);
@@ -168,7 +178,14 @@ useEffect(() => {
 
       const newMessage = { sender: role, content: messageToBot };
       setBotMessages((prevBotMessages) => [...prevBotMessages, newMessage]);
-      addToMessageQueue(messageToBot);
+
+      // If message queue is disabled, send directly to bot. Otherwise, add to queue
+      if (!config.ENABLE_MESSAGE_QUEUE) {
+          sendMessageToBotQueue(messageToBot);
+      } else {
+          addToMessageQueue(messageToBot);
+      }
+
       setMessageToBot('');
   };
 
@@ -287,8 +304,8 @@ const setupAnonymousRooms = () => {
 
 // Modify the timer effect
 useEffect(() => {
-    if (timerPaused || !shuffleEnabled) {
-      return; // Don't run timer if paused or shuffling disabled
+    if (!chatTimerStarted || timerPaused || !shuffleEnabled) {
+        return; // Don't run timer if paused or shuffling disabled
     }
 
     const countdownInterval = setInterval(() => {
@@ -303,7 +320,7 @@ useEffect(() => {
     }, 1000);
 
     return () => clearInterval(countdownInterval);
-}, [timerPaused, shuffleEnabled]);
+}, [chatTimerStarted, timerPaused, shuffleEnabled]);
 
   const handleDismissNotification = () => {
     if (role === 'tester') {
@@ -338,7 +355,33 @@ useEffect(() => {
 
   // Countdown for the real Turing Test
   useEffect(() => {
+    console.log('Real test timer effect triggered with conditions:', {
+        realTestTimer,
+        chatTimerStarted,
+        quizStep,
+        partnerQuizStatus,
+        showNotifications: { tester: showNotificationForTester, experimenter: showNotificationForExperimenter }
+    });
+
+    // Don't start if timer is null
     if (realTestTimer === null) return;
+
+    // Don't start if quiz isn't completed by both participants
+    if (!chatTimerStarted) return;
+
+    // Don't start if notifications aren't dismissed
+    if (showNotificationForTester || showNotificationForExperimenter) return;
+
+    // Don't start if either participant hasn't completed the quiz
+    if (quizStep !== 'completed' || partnerQuizStatus !== 'completed') return;
+
+    console.log('Starting real test timer with conditions:', {
+        realTestTimer,
+        chatTimerStarted,
+        quizStep,
+        partnerQuizStatus,
+        showNotifications: { tester: showNotificationForTester, experimenter: showNotificationForExperimenter }
+    });
 
     const realTestInterval = setInterval(() => {
       setRealTestTimer((prev) => {
@@ -351,8 +394,18 @@ useEffect(() => {
       });
     }, 1000);
 
-    return () => clearInterval(realTestInterval);
-  }, [realTestTimer]);
+   return () => {
+        console.log('Cleaning up real test timer');
+        clearInterval(realTestInterval);
+   };
+}, [
+    realTestTimer,
+    chatTimerStarted,
+    quizStep,
+    partnerQuizStatus,
+    showNotificationForTester,
+    showNotificationForExperimenter
+]);
 
   // Navigate to appropriate pages when the Turing Test ends
   useEffect(() => {
@@ -438,6 +491,11 @@ useEffect(() => {
 
   // Message queue for bot messages
   useEffect(() => {
+    // If message queue is disabled, don't set up the interval at all
+    if (!config.ENABLE_MESSAGE_QUEUE) {
+        return;
+    }
+
     const processQueue = () => {
         if (messageQueue.length > 0) {
             const combinedMessage = messageQueue.join(' ');
@@ -489,6 +547,12 @@ useEffect(() => {
   };
 
   useEffect(() => {
+    // If wake-up system is disabled, don't proceed
+    if (!botWakeupEnabled) {
+        console.log('Bot wake-up system is disabled in config');
+        return;
+    }
+
     console.log('Wake-up effect triggered with conditions:', {
         inactivityCheckerActive,
         role,
@@ -656,6 +720,132 @@ useEffect(() => {
     }
 };
 
+  const quizConfig = {
+    experimenter: {
+        questions: [
+            {
+                question: "Is it true that when the tester correctly identifies you as human and the bot as bot, both of you will receive a bonus payment?",
+                options: [
+                    "Yes, I will receive a $0.50 bonus",
+                    "No, I won't receive any bonus",
+                    "I will receive a bonus regardless of the tester's choice"
+                ],
+                correctAnswer: 0
+            },
+            {
+                question: "What is your main task in this experiment?",
+                options: [
+                    "To guess who is the bot",
+                    "To convince the tester that I am human through natural conversation",
+                    "To pretend to be a bot"
+                ],
+                correctAnswer: 1
+            }
+        ]
+    },
+    tester: {
+        questions: [
+            {
+                question: "What happens if you correctly identify which candidate is human and which is bot?",
+                options: [
+                    "Nothing special happens",
+                    "Both you and the human experimenter will receive a $0.50 bonus each",
+                    "Only you will receive a bonus"
+                ],
+                correctAnswer: 1
+            },
+            {
+                question: "What is your main task in this experiment?",
+                options: [
+                    "To chat casually with both candidates",
+                    "To identify which candidate is human and which is a bot",
+                    "To pretend to be a bot"
+                ],
+                correctAnswer: 1
+            }
+        ]
+    }
+  };
+
+  const generateAndNavigateToBonusCode = async () => {
+    try {
+        const response = await axios.post(`${config.SERVER_URL}/api/generate_code`, {
+            pairId,
+            role
+        });
+
+        if (response.data.status === 'success') {
+            navigate('/thank_you', {
+                state: {
+                    bonusCode: response.data.code,
+                    userId,
+                    role,
+                    message: "Your partner failed the quiz, but you passed. Here's your bonus code."
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error generating bonus code:', error);
+    }
+};
+
+    // Modify the socket event listeners
+    useEffect(() => {
+        socket.on('quiz_completed', (data) => {
+            if (data.role !== role) {
+                setPartnerQuizStatus('completed');
+
+                // If we've already completed our quiz, start the chat timer
+                if (quizStep === 'completed') {
+                    setChatTimerStarted(true);
+                }
+            }
+        });
+
+        socket.on('quiz_failed', (data) => {
+            if (data.role !== role) {
+                setPartnerQuizStatus('failed');
+                if (quizStep === 'completed') {
+                    // If we passed but partner failed, generate bonus code and redirect
+                    generateAndNavigateToBonusCode();
+                }
+            }
+        });
+
+        return () => {
+            socket.off('quiz_completed');
+            socket.off('quiz_failed');
+        };
+    }, [role, quizStep]);
+
+    // Modify the quiz submission logic in both notification components
+    const handleQuizSubmission = (isCorrect) => {
+        if (isCorrect) {
+            setQuizStep('completed');
+            socket.emit('quiz_completed', { pair_id: pairId, role });
+
+            // Only start chat timer if both have completed the quiz
+            if (partnerQuizStatus === 'completed') {
+                setChatTimerStarted(true);
+            }
+            handleDismissNotification();
+        } else {
+            socket.emit('quiz_failed', { pair_id: pairId, role });
+            navigate('/disconnected', {
+                state: {
+                    message: "You were disconnected because you failed the understanding check. You will not receive payment for this session."
+                }
+            });
+        }
+    };
+
+    const getRoleInstructions = (role) => {
+        if (role === 'tester') {
+            return "You will chat with both a human and a bot. Identify who is human. If you guess correctly, you and the human will receive $0.50 bonus each.";
+        }
+        return "A human tester will chat with you and a bot. Help them understand that you are human too. If they pick you as human, you and the human tester will receive $0.50 bonus each.";
+    };
+
   const renderChatWindow = (roomType) => {
     if (!finalRoomConfig) return null;
 
@@ -699,21 +889,6 @@ useEffect(() => {
     if (roomType === 'experimenter') {
       return (
         <div className="chat-window">
-            {inactivityCheckerActive && (
-                <div style={{
-                    position: 'absolute',
-                    top: '10px',
-                    right: '10px',
-                    padding: '5px',
-                    backgroundColor: warningShown ? '#ff9800' : '#4CAF50',
-                    color: 'white',
-                    borderRadius: '3px',
-                    fontSize: '12px',
-                    zIndex: 1000
-                }}>
-                    Inactive: {Math.floor((Date.now() - lastActivityTimestampRef.current) / 1000)}s
-                </div>
-            )}
           <div className="chat-header">
           {isAnonymousMode
                     ? `Candidate ${roomInfo.candidate}`
@@ -789,60 +964,256 @@ useEffect(() => {
     <div className={`chat-container ${shuffling ? 'shuffling' : ''}`}>
       { showNotificationForTester && role === 'tester' && (
         <div className="popup-overlay">
-          <div className="popup">
-            <h3>Important Information</h3>
-            <p>You will chat with both a human and a bot. Identify who is human. If you guess correctly, you and the human will receive $0.50
-              bonus each.</p>
-            <p className="waiting-text">
-              {!experimenterDismissed && "Waiting for experimenter to acknowledge..."}
-            </p>
-            <button
-                onClick={handleDismissNotification}
-                className="popup-dismiss-button"
-            >
-              Dismiss
-            </button>
-          </div>
+            <div className="popup">
+                {quizStep === 'instructions' && (
+                    <>
+                        <h3>Important Information</h3>
+                        <p>You will chat with both a human and a bot. Identify who is human. If you guess correctly, you and the human will receive $0.50 bonus each.</p>
+                        <p className="warning-text">
+                            You must pass a short quiz about these instructions to continue. Failing the quiz will result in immediate disconnection without payment.
+                        </p>
+                        <p className="waiting-text">
+                            {!experimenterDismissed && "Waiting for experimenter to acknowledge..."}
+                        </p>
+                        <button
+                            onClick={() => setQuizStep('quiz')}
+                            className="popup-continue-button"
+                        >
+                            Continue to Quiz
+                        </button>
+                    </>
+                )}
+
+                {(quizStep === 'completed' && !chatTimerStarted) && (
+                    <div className="timer-status">
+                        <p>Waiting for both participants to complete the quiz before starting...</p>
+                        <p>Your status: Quiz completed</p>
+                        <p>Partner status: {partnerQuizStatus === 'completed' ? 'Quiz completed' : 'Still taking quiz...'}</p>
+                    </div>
+                )}
+
+                {quizStep === 'quiz' && (
+                    <>
+                        <h3>Understanding Check</h3>
+
+                        <button
+                            onClick={() => setShowInstructions(true)}
+                            className="review-instructions-button"
+                        >
+                            Review Instructions
+                        </button>
+
+                        <p className="warning-text">⚠️ Incorrect answers will result in disconnection without
+                            payment</p>
+
+                        {showInstructions && (
+                            <div className="instructions-modal">
+                                <div className="instructions-content">
+                                    <h4>Instructions</h4>
+                                    <p>{getRoleInstructions(role)}</p>
+                                    <button
+                                        onClick={() => setShowInstructions(false)}
+                                        className="close-instructions-button"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {quizConfig.tester.questions.map((q, qIndex) => (
+                            <div key={qIndex} className="quiz-question">
+                                <p className="question-text">{q.question}</p>
+                                <div className="options-container">
+                                    {q.options.map((option, oIndex) => (
+                                        <label key={oIndex} className="option-label">
+                                            <input
+                                                type="radio"
+                                                name={`question-${qIndex}`}
+                                                checked={quizAnswers[qIndex] === oIndex}
+                                                onChange={() => {
+                                                    const newAnswers = [...quizAnswers];
+                                                    newAnswers[qIndex] = oIndex;
+                                                    setQuizAnswers(newAnswers);
+                                                }}
+                                                disabled={showQuizConfirmation}
+                                            />
+                                            {option}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+
+                        {!showQuizConfirmation ? (
+                            <button
+                                onClick={() => {
+                                    if (quizAnswers.includes(null)) {
+                                        alert("Please answer all questions before submitting.");
+                                        return;
+                                    }
+                                    setShowQuizConfirmation(true);
+                                }}
+                                className="submit-quiz-button"
+                            >
+                                Submit Answers
+                            </button>
+                        ) : (
+                            <div className="confirmation-container">
+                                <p>Are you sure you want to submit these answers?</p>
+                                <div className="confirmation-buttons">
+                                    <button
+                                        onClick={() => {
+                                            const allCorrect = quizAnswers.every(
+                                                (answer, index) => answer === quizConfig[role].questions[index].correctAnswer
+                                            );
+                                            handleQuizSubmission(allCorrect);
+                                        }}
+                                    >
+                                        Yes, Submit
+                                    </button>
+                                    <button
+                                        onClick={() => setShowQuizConfirmation(false)}
+                                    >
+                                        No, Let me check again
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
         </div>
       )}
 
-      {showNotificationForExperimenter && role === 'experimenter' && (
-          <div className="popup-overlay">
+        {showNotificationForExperimenter && role === 'experimenter' && (
+            <div className="popup-overlay">
             <div className="popup">
-              <h3>Important Information</h3>
-              <p>A human tester will chat with you and a bot. Help them understand that you are human too. If they pick you as human, you and the human tester will receive $0.50 bonus each.</p>
-              <p className="waiting-text">
-                {!testerDismissed && "Waiting for tester to acknowledge..."}
-              </p>
-              <button
-                  onClick={handleDismissNotification}
-                  className="popup-dismiss-button"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-      )}
+                {quizStep === 'instructions' && (
+                    <>
+                        <h3>Important Information</h3>
+                        <p>A human tester will chat with you and a bot. Help them understand that you are human too. If they pick you as human, you and the human tester will receive $0.50 bonus each.</p>
+                        <p className="warning-text">
+                            You must pass a short quiz about these instructions to continue. Failing the quiz will result in immediate disconnection without payment.
+                        </p>
+                        <p className="waiting-text">
+                            {!testerDismissed && "Waiting for tester to acknowledge..."}
+                        </p>
+                        <button
+                            onClick={() => setQuizStep('quiz')}
+                            className="popup-continue-button"
+                        >
+                            Continue to Quiz
+                        </button>
+                    </>
+                )}
 
-      <div className="chat-boxes">
-        {role === 'tester' && roomOrder.map((roomType) => renderChatWindow(roomType))}
+                {(quizStep === 'completed' && !chatTimerStarted) && (
+                    <div className="timer-status">
+                        <p>Waiting for both participants to complete the quiz before starting...</p>
+                        <p>Your status: Quiz completed</p>
+                        <p>Partner status: {partnerQuizStatus === 'completed' ? 'Quiz completed' : 'Still taking quiz...'}</p>
+                    </div>
+                )}
+
+                {quizStep === 'quiz' && (
+                    <>
+                        <h3>Understanding Check</h3>
+
+                        <button
+                            onClick={() => setShowInstructions(true)}
+                            className="review-instructions-button"
+                        >
+                            Review Instructions
+                        </button>
+
+                        <p className="warning-text">⚠️ Incorrect answers will result in disconnection without
+                            payment</p>
+
+                        {showInstructions && (
+                           <div className="instructions-modal">
+                               <div className="instructions-content">
+                                   <h4>Instructions</h4>
+                                   <p>{getRoleInstructions(role)}</p>
+                                   <button
+                                       onClick={() => setShowInstructions(false)}
+                                       className="close-instructions-button"
+                                   >
+                                       Close
+                                   </button>
+                               </div>
+                           </div>
+                        )}
+
+                        {quizConfig.experimenter.questions.map((q, qIndex) => (
+                            <div key={qIndex} className="quiz-question">
+                                <p className="question-text">{q.question}</p>
+                                <div className="options-container">
+                                    {q.options.map((option, oIndex) => (
+                                        <label key={oIndex} className="option-label">
+                                            <input
+                                                type="radio"
+                                                name={`question-${qIndex}`}
+                                                checked={quizAnswers[qIndex] === oIndex}
+                                                onChange={() => {
+                                                    const newAnswers = [...quizAnswers];
+                                                    newAnswers[qIndex] = oIndex;
+                                                    setQuizAnswers(newAnswers);
+                                                }}
+                                                disabled={showQuizConfirmation}
+                                            />
+                                            {option}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+
+                        {!showQuizConfirmation ? (
+                            <button
+                                onClick={() => {
+                                    if (quizAnswers.includes(null)) {
+                                        alert("Please answer all questions before submitting.");
+                                        return;
+                                    }
+                                    setShowQuizConfirmation(true);
+                                }}
+                                className="submit-quiz-button"
+                            >
+                                Submit Answers
+                            </button>
+                        ) : (
+                            <div className="confirmation-container">
+                                <p>Are you sure you want to submit these answers?</p>
+                                <div className="confirmation-buttons">
+                                    <button
+                                        onClick={() => {
+                                            const allCorrect = quizAnswers.every(
+                                                (answer, index) => answer === quizConfig[role].questions[index].correctAnswer
+                                            );
+                                            handleQuizSubmission(allCorrect);
+                                        }}
+                                    >
+                                        Yes, Submit
+                                    </button>
+                                    <button
+                                        onClick={() => setShowQuizConfirmation(false)}
+                                    >
+                                        No, Let me check again
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+            </div>
+        )}
+
+        <div className="chat-boxes">
+            {role === 'tester' && roomOrder.map((roomType) => renderChatWindow(roomType))}
         {role === 'experimenter' && (
             <div className="chat-window chat-experimenter">
-                {inactivityCheckerActive && (
-                <div style={{
-                    position: 'absolute',
-                    top: '10px',
-                    right: '10px',
-                    padding: '5px',
-                    backgroundColor: warningShown ? '#ff9800' : '#4CAF50',
-                    color: 'white',
-                    borderRadius: '3px',
-                    fontSize: '12px',
-                    zIndex: 1000
-                }}>
-                    Inactive: {Math.floor((Date.now() - lastActivityTimestampRef.current) / 1000)}s
-                </div>
-            )}
               {showOverlay && role === 'experimenter' && (
                 <div className="overlay">
                   <h2>Waiting for the tester to submit their guesses...</h2>

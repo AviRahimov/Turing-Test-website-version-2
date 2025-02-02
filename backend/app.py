@@ -205,6 +205,20 @@ def handle_notification_dismissed(data):
     emit('notification_dismissed', {'role': role}, room=pair_id)
 
 
+@socketio.on('quiz_completed')
+def handle_quiz_completed(data):
+    pair_id = data.get('pair_id')
+    role = data.get('role')
+    emit('quiz_completed', {'role': role}, room=pair_id)
+
+
+@socketio.on('quiz_failed')
+def handle_quiz_failed(data):
+    pair_id = data.get('pair_id')
+    role = data.get('role')
+    emit('quiz_failed', {'role': role}, room=pair_id)
+
+
 @socketio.on("participant_inactivity_warning")
 def handle_inactivity_warning(data):
     print("Received inactivity warning:", data)  # Debug log
