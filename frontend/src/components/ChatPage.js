@@ -734,11 +734,11 @@ useEffect(() => {
     experimenter: {
         questions: [
             {
-                question: "Is it true that when the tester correctly identifies you as human and the bot as bot, both of you will receive a bonus payment?",
+                question: "Is it true that when the tester correctly identifies you as human, both of you will receive a bonus payment?",
                 options: [
                     "Yes, we will both receive a $0.50 bonus",
                     "No, I won't receive any bonus",
-                    "I will receive a bonus regardless of the tester's choice"
+                    "I will receive a bonus regardless of the tester's guess"
                 ],
                 correctAnswer: 0
             },
@@ -756,18 +756,18 @@ useEffect(() => {
     tester: {
         questions: [
             {
-                question: "What happens if you correctly identify which candidate is human and which is bot?",
+                question: "What happens if you correctly identify which candidate is human and which is a bot?",
                 options: [
-                    "Nothing special happens",
-                    "Both you and the human experimenter will receive a $0.50 bonus each",
-                    "Only you will receive a bonus"
+                    "I will get disconnected",
+                    "Both I and the human experimenter will receive a $0.50 bonus each",
+                    "I will lose money"
                 ],
                 correctAnswer: 1
             },
             {
                 question: "What is your main task in this experiment?",
                 options: [
-                    "To chat casually with both candidates",
+                    "To not write anything",
                     "To identify which candidate is human and which is a bot",
                     "To pretend to be a bot"
                 ],
@@ -1016,7 +1016,7 @@ useEffect(() => {
 
                 {quizStep === 'quiz' && (
                     <>
-                        <h3>Understanding Check</h3>
+                        <h3>Instruction Understanding Quiz</h3>
 
                         <button
                             onClick={() => setShowInstructions(true)}
@@ -1145,7 +1145,7 @@ useEffect(() => {
 
                 {quizStep === 'quiz' && (
                     <>
-                        <h3>Understanding Check</h3>
+                        <h3>Instruction Understanding Quiz</h3>
 
                         <button
                             onClick={() => setShowInstructions(true)}

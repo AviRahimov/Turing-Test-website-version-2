@@ -18,6 +18,7 @@
       <change afterPath="$PROJECT_DIR$/frontend/src/data/personas.json" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/utils/botService.js" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/frontend/src/utils/chatUtils.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/README.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
@@ -256,7 +257,7 @@
       <workItem from="1737662755552" duration="283000" />
       <workItem from="1737889719628" duration="9554000" />
       <workItem from="1738487099949" duration="12225000" />
-      <workItem from="1738663518298" duration="11479000" />
+      <workItem from="1738663518298" duration="12613000" />
     </task>
     <servers />
   </component>
