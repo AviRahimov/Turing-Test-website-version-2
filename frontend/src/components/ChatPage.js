@@ -743,19 +743,10 @@ useEffect(() => {
                 correctAnswer: 0
             },
             {
-                question: "What happens if you remain inactive during the chat?",
-                options: [
-                    "Nothing happens",
-                    "I will be disconnected without payment",
-                    "I will get a warning only"
-                ],
-                correctAnswer: 1
-            },
-            {
                 question: "What is your main task in this experiment?",
                 options: [
                     "To guess who is the bot",
-                    "To convince the tester that I am human through natural conversation",
+                    "To convince the tester that I am human",
                     "To pretend to be a bot"
                 ],
                 correctAnswer: 1
@@ -770,15 +761,6 @@ useEffect(() => {
                     "Nothing special happens",
                     "Both you and the human experimenter will receive a $0.50 bonus each",
                     "Only you will receive a bonus"
-                ],
-                correctAnswer: 1
-            },
-            {
-                question: "What happens if you remain inactive during the chat?",
-                options: [
-                    "Nothing happens",
-                    "I will be disconnected without payment",
-                    "I will get a warning only"
                 ],
                 correctAnswer: 1
             },
@@ -876,9 +858,9 @@ useEffect(() => {
 
     const getRoleInstructions = (role) => {
         if (role === 'tester') {
-            return "You will chat with both a human and a bot. Identify who is human. If you guess correctly, you and the human will receive $0.50 bonus each. ⚠️ Important: If you remain inactive for too long, you will be disconnected without payment.";
+            return "You will chat with both a human and a bot. Identify who is human. If you guess correctly, you and the human will receive $0.50 bonus each.";
         }
-        return "A human tester will chat with you and a bot. Help them understand that you are human too. If they pick you as human, you and the human tester will receive $0.50 bonus each. ⚠️ Important: If you remain inactive for too long, you will be disconnected without payment.";
+        return "A human tester will chat with you and a bot. Help them understand that you are human too. If they pick you as human, you and the human tester will receive $0.50 bonus each.";
     };
 
   const renderChatWindow = (roomType) => {
