@@ -69,6 +69,7 @@ function ChatPage() {
   const [quizAnswers, setQuizAnswers] = useState(Array(2).fill(null));
   const [showQuizConfirmation, setShowQuizConfirmation] = useState(false);
   const [chatTimerStarted, setChatTimerStarted] = useState(false);
+  const [partnerHasFailed, setPartnerHasFailed] = useState(false);
 
   // state for the instructions modal
   const [showInstructions, setShowInstructions] = useState(false);
@@ -334,6 +335,15 @@ useEffect(() => {
     }
   };
 
+  useEffect(() => {
+    if (quizStep === 'completed' && partnerQuizStatus === 'completed' &&
+        testerDismissed && experimenterDismissed) {
+        setTimerPaused(false);
+        setChatTimerStarted(true);
+        console.log('Both participants completed quiz and dismissed notifications, starting timer');
+    }
+  }, [quizStep, partnerQuizStatus, testerDismissed, experimenterDismissed]);
+
   // Handle shuffle logic when pre-shuffle timer reaches 0
   useEffect(() => {
     if (!shuffleEnabled) return; // Skip this effect if shuffling is disabled
@@ -367,20 +377,21 @@ useEffect(() => {
     if (realTestTimer === null) return;
 
     // Don't start if quiz isn't completed by both participants
-    if (!chatTimerStarted) return;
-
-    // Don't start if notifications aren't dismissed
-    if (showNotificationForTester || showNotificationForExperimenter) return;
+    if (!chatTimerStarted) {
+        console.log('Timer not started - waiting for quiz completion');
+        return;
+    }
 
     // Don't start if either participant hasn't completed the quiz
-    if (quizStep !== 'completed' || partnerQuizStatus !== 'completed') return;
+    if (quizStep !== 'completed' || partnerQuizStatus !== 'completed') {
+        console.log('Timer not started - quiz not completed by both participants');
+        return;
+    }
 
-    console.log('Starting real test timer with conditions:', {
-        realTestTimer,
+    console.log('Starting real test timer', {
         chatTimerStarted,
         quizStep,
-        partnerQuizStatus,
-        showNotifications: { tester: showNotificationForTester, experimenter: showNotificationForExperimenter }
+        partnerQuizStatus
     });
 
     const realTestInterval = setInterval(() => {
@@ -403,8 +414,6 @@ useEffect(() => {
     chatTimerStarted,
     quizStep,
     partnerQuizStatus,
-    showNotificationForTester,
-    showNotificationForExperimenter
 ]);
 
   // Navigate to appropriate pages when the Turing Test ends
@@ -517,13 +526,14 @@ useEffect(() => {
             hasWakeupContext: !!lastWakeupMessageRef.current
         });
 
-        const botMessages = messages.map((msg) => ({
+        // Only use bot messages for context, not the experimenter chat messages
+        const botConversationHistory = botMessages.map((msg) => ({
             role: msg.sender === 'bot' ? 'assistant' : 'user',
             content: msg.content
         }));
 
         const botReply = await sendBotMessage(
-            [...botMessages, { role: 'user', content: message }],
+            [...botConversationHistory, { role: 'user', content: message }],
             currentPersona,
             false, // indicates this is not a wakeup message
             lastWakeupMessageRef.current // pass the last wake-up message for context
@@ -726,11 +736,20 @@ useEffect(() => {
             {
                 question: "Is it true that when the tester correctly identifies you as human and the bot as bot, both of you will receive a bonus payment?",
                 options: [
-                    "Yes, I will receive a $0.50 bonus",
+                    "Yes, we will both receive a $0.50 bonus",
                     "No, I won't receive any bonus",
                     "I will receive a bonus regardless of the tester's choice"
                 ],
                 correctAnswer: 0
+            },
+            {
+                question: "What happens if you remain inactive during the chat?",
+                options: [
+                    "Nothing happens",
+                    "I will be disconnected without payment",
+                    "I will get a warning only"
+                ],
+                correctAnswer: 1
             },
             {
                 question: "What is your main task in this experiment?",
@@ -755,6 +774,15 @@ useEffect(() => {
                 correctAnswer: 1
             },
             {
+                question: "What happens if you remain inactive during the chat?",
+                options: [
+                    "Nothing happens",
+                    "I will be disconnected without payment",
+                    "I will get a warning only"
+                ],
+                correctAnswer: 1
+            },
+            {
                 question: "What is your main task in this experiment?",
                 options: [
                     "To chat casually with both candidates",
@@ -771,7 +799,8 @@ useEffect(() => {
     try {
         const response = await axios.post(`${config.SERVER_URL}/api/generate_code`, {
             pairId,
-            role
+            role,
+            userId
         });
 
         if (response.data.status === 'success') {
@@ -781,7 +810,8 @@ useEffect(() => {
                     userId,
                     role,
                     message: "Your partner failed the quiz, but you passed. Here's your bonus code."
-                }
+                },
+                replace: true // Use replace to prevent going back
             });
         }
     } catch (error) {
@@ -789,7 +819,7 @@ useEffect(() => {
     }
 };
 
-    // Modify the socket event listeners
+
     useEffect(() => {
         socket.on('quiz_completed', (data) => {
             if (data.role !== role) {
@@ -803,47 +833,52 @@ useEffect(() => {
         });
 
         socket.on('quiz_failed', (data) => {
-            if (data.role !== role) {
-                setPartnerQuizStatus('failed');
-                if (quizStep === 'completed') {
-                    // If we passed but partner failed, generate bonus code and redirect
-                    generateAndNavigateToBonusCode();
-                }
-            }
-        });
+        if (data.role !== role) {
+            setPartnerQuizStatus('failed');
+            setPartnerHasFailed(true); // Set the flag when partner fails
 
-        return () => {
-            socket.off('quiz_completed');
-            socket.off('quiz_failed');
-        };
-    }, [role, quizStep]);
+            // If we've already completed our quiz, generate bonus code
+            if (quizStep === 'completed') {
+                generateAndNavigateToBonusCode();
+            }
+        }
+    });
+
+    return () => {
+        socket.off('quiz_completed');
+        socket.off('quiz_failed');
+    };
+  }, [role, quizStep]);
 
     // Modify the quiz submission logic in both notification components
-    const handleQuizSubmission = (isCorrect) => {
-        if (isCorrect) {
-            setQuizStep('completed');
-            socket.emit('quiz_completed', { pair_id: pairId, role });
+    const handleQuizSubmission = async (isCorrect) => {
+    if (isCorrect) {
+        setQuizStep('completed');
+        socket.emit('quiz_completed', { pair_id: pairId, role });
 
-            // Only start chat timer if both have completed the quiz
-            if (partnerQuizStatus === 'completed') {
-                setChatTimerStarted(true);
-            }
-            handleDismissNotification();
-        } else {
-            socket.emit('quiz_failed', { pair_id: pairId, role });
-            navigate('/disconnected', {
-                state: {
-                    message: "You were disconnected because you failed the understanding check. You will not receive payment for this session."
-                }
-            });
+        // Check if partner has already failed when we complete our quiz
+        if (partnerHasFailed) {
+            await generateAndNavigateToBonusCode();
+        } else if (partnerQuizStatus === 'completed') {
+            // Only start chat if partner has completed and not failed
+            setChatTimerStarted(true);
         }
-    };
+        handleDismissNotification();
+    } else {
+        socket.emit('quiz_failed', { pair_id: pairId, role });
+        navigate('/disconnected', {
+            state: {
+                message: "You were disconnected because you failed the Quiz. You will not receive payment for this session."
+            }
+        });
+    }
+  };
 
     const getRoleInstructions = (role) => {
         if (role === 'tester') {
-            return "You will chat with both a human and a bot. Identify who is human. If you guess correctly, you and the human will receive $0.50 bonus each.";
+            return "You will chat with both a human and a bot. Identify who is human. If you guess correctly, you and the human will receive $0.50 bonus each. ⚠️ Important: If you remain inactive for too long, you will be disconnected without payment.";
         }
-        return "A human tester will chat with you and a bot. Help them understand that you are human too. If they pick you as human, you and the human tester will receive $0.50 bonus each.";
+        return "A human tester will chat with you and a bot. Help them understand that you are human too. If they pick you as human, you and the human tester will receive $0.50 bonus each. ⚠️ Important: If you remain inactive for too long, you will be disconnected without payment.";
     };
 
   const renderChatWindow = (roomType) => {
@@ -968,13 +1003,18 @@ useEffect(() => {
                 {quizStep === 'instructions' && (
                     <>
                         <h3>Important Information</h3>
-                        <p>You will chat with both a human and a bot. Identify who is human. If you guess correctly, you and the human will receive $0.50 bonus each.</p>
+                        <p>You will chat with both a human and a bot. Identify who is human. If you guess correctly, you
+                            and the human will receive $0.50 bonus each.</p>
                         <p className="warning-text">
-                            You must pass a short quiz about these instructions to continue. Failing the quiz will result in immediate disconnection without payment.
+                            ⚠️ If you remain inactive for too long, you will be disconnected without payment.
                         </p>
-                        <p className="waiting-text">
-                            {!experimenterDismissed && "Waiting for experimenter to acknowledge..."}
+                        <p className="warning-text">
+                            You must pass a short quiz about these instructions to continue. Failing the quiz will
+                            result in immediate disconnection without payment.
                         </p>
+                        {/*<p className="waiting-text">*/}
+                        {/*    {!experimenterDismissed && "Waiting for experimenter to acknowledge..."}*/}
+                        {/*</p>*/}
                         <button
                             onClick={() => setQuizStep('quiz')}
                             className="popup-continue-button"
@@ -1092,13 +1132,18 @@ useEffect(() => {
                 {quizStep === 'instructions' && (
                     <>
                         <h3>Important Information</h3>
-                        <p>A human tester will chat with you and a bot. Help them understand that you are human too. If they pick you as human, you and the human tester will receive $0.50 bonus each.</p>
+                        <p>A human tester will chat with you and a bot. Help them understand that you are human too. If
+                            they pick you as human, you and the human tester will receive $0.50 bonus each.</p>
                         <p className="warning-text">
-                            You must pass a short quiz about these instructions to continue. Failing the quiz will result in immediate disconnection without payment.
+                            ⚠️ If you remain inactive for too long, you will be disconnected without payment.
                         </p>
-                        <p className="waiting-text">
-                            {!testerDismissed && "Waiting for tester to acknowledge..."}
+                        <p className="warning-text">
+                            You must pass a short quiz about these instructions to continue. Failing the quiz will
+                            result in immediate disconnection without payment.
                         </p>
+                        {/*<p className="waiting-text">*/}
+                        {/*    {!testerDismissed && "Waiting for tester to acknowledge..."}*/}
+                        {/*</p>*/}
                         <button
                             onClick={() => setQuizStep('quiz')}
                             className="popup-continue-button"

@@ -426,7 +426,7 @@ body {
     color: #fff;
 }
 
-.timer-status {
+.popup-overlay.popup.timer-status {
     position: fixed;
     top: 20px;
     left: 50%;
@@ -505,4 +505,46 @@ body {
 
 .close-instructions-button:hover {
     background-color: #c82333;
+}
+
+/* Add to ChatPage.css */
+.quiz-and-timer-status {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.quiz-and-timer-status p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.status-indicator.waiting {
+    background-color: #ffc107;
+}
+
+.status-indicator.completed {
+    background-color: #28a745;
+}
+
+.status-indicator.failed {
+    background-color: #dc3545;
 }
