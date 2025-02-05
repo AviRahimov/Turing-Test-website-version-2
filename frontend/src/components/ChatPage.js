@@ -779,31 +779,53 @@ useEffect(() => {
 
   const generateAndNavigateToBonusCode = async () => {
     try {
+        console.log('[QUIZ-FAIL] Attempting to generate bonus code for passing user');
+        // Get the user's IP first
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        const userIp = ipData.ip;
+        console.log('[QUIZ-FAIL] Got user IP:', userIp);
+
         const response = await axios.post(`${config.SERVER_URL}/api/generate_code`, {
             pairId,
             role,
-            userId
+            userId,
+            userIp // Add the user's IP to the request
         });
+        console.log('[QUIZ-FAIL] Generate code response:', response.data);
 
         if (response.data.status === 'success') {
+            // Call the unblock endpoint
+            try {
+                const unblockResponse = await axios.post(`${config.SERVER_URL}/api/unblock_ip`, {
+                    ip: userIp
+                });
+                console.log('[QUIZ-FAIL] Unblock IP response:', unblockResponse.data);
+            } catch (unblockError) {
+                console.error('[QUIZ-FAIL] Error unblocking IP:', unblockError);
+            }
+
+            console.log('[QUIZ-FAIL] Navigating to thank you page');
             navigate('/thank_you', {
                 state: {
                     bonusCode: response.data.code,
                     userId,
                     role,
-                    message: "Your partner failed the quiz, but you passed. Here's your bonus code."
+                    message: "Your partner failed the quiz, but you passed. Here's your bonus code. You can now participate in the experiment again with a different partner.",
+                    canParticipateAgain: true // Add this flag
                 },
-                replace: true // Use replace to prevent going back
+                replace: true
             });
         }
     } catch (error) {
         console.error('Error generating bonus code:', error);
     }
-};
+  };
 
 
     useEffect(() => {
         socket.on('quiz_completed', (data) => {
+
             if (data.role !== role) {
                 setPartnerQuizStatus('completed');
 
@@ -815,16 +837,29 @@ useEffect(() => {
         });
 
         socket.on('quiz_failed', (data) => {
-        if (data.role !== role) {
-            setPartnerQuizStatus('failed');
-            setPartnerHasFailed(true); // Set the flag when partner fails
+            console.log('[QUIZ-FAIL] Received quiz_failed event:', {
+                data,
+                currentRole: role,
+                currentQuizStep: quizStep,
+                partnerQuizStatus: partnerQuizStatus
+            });
 
-            // If we've already completed our quiz, generate bonus code
-            if (quizStep === 'completed') {
-                generateAndNavigateToBonusCode();
+            if (data.role !== role) {
+                setPartnerQuizStatus('failed');
+                console.log('[QUIZ-FAIL] Partner failed quiz, current user status:', {
+                    role,
+                    quizStep,
+                    willGenerateBonus: quizStep === 'completed'
+                });
+
+                setPartnerHasFailed(true); // Set the flag when partner fails
+
+                // If we've already completed our quiz, generate bonus code
+                if (quizStep === 'completed') {
+                    generateAndNavigateToBonusCode();
+                }
             }
-        }
-    });
+        });
 
     return () => {
         socket.off('quiz_completed');
@@ -834,27 +869,37 @@ useEffect(() => {
 
     // Modify the quiz submission logic in both notification components
     const handleQuizSubmission = async (isCorrect) => {
-    if (isCorrect) {
-        setQuizStep('completed');
-        socket.emit('quiz_completed', { pair_id: pairId, role });
-
-        // Check if partner has already failed when we complete our quiz
-        if (partnerHasFailed) {
-            await generateAndNavigateToBonusCode();
-        } else if (partnerQuizStatus === 'completed') {
-            // Only start chat if partner has completed and not failed
-            setChatTimerStarted(true);
-        }
-        handleDismissNotification();
-    } else {
-        socket.emit('quiz_failed', { pair_id: pairId, role });
-        navigate('/disconnected', {
-            state: {
-                message: "You were disconnected because you failed the Quiz. You will not receive payment for this session."
-            }
+        console.log('[QUIZ-SUBMIT] Quiz submission:', {
+            isCorrect,
+            role,
+            currentQuizStep: quizStep,
+            partnerStatus: partnerQuizStatus
         });
-    }
-  };
+
+        if (isCorrect) {
+            setQuizStep('completed');
+            socket.emit('quiz_completed', { pair_id: pairId, role });
+            console.log('[QUIZ-SUBMIT] Emitted quiz_completed event');
+
+            // Check if partner has already failed when we complete our quiz
+            if (partnerHasFailed) {
+                console.log('[QUIZ-SUBMIT] Partner already failed, generating bonus code');
+                await generateAndNavigateToBonusCode();
+            } else if (partnerQuizStatus === 'completed') {
+                // Only start chat if partner has completed and not failed
+                setChatTimerStarted(true);
+            }
+            handleDismissNotification();
+        } else {
+            console.log('[QUIZ-SUBMIT] Quiz failed, emitting quiz_failed event');
+            socket.emit('quiz_failed', { pair_id: pairId, role });
+            navigate('/disconnected', {
+                state: {
+                    message: "You were disconnected because you failed the Quiz. You will not receive payment for this session."
+                }
+            });
+        }
+    };
 
     const getRoleInstructions = (role) => {
         if (role === 'tester') {

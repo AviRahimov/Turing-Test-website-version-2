@@ -38,8 +38,8 @@ allowed = [
     "https://3.93.242.186:5000",
     "https://3.93.242.186:3000"
 ]
-# app = Flask(__name__, static_folder="build", static_url_path='/')
-app = Flask(__name__)  # For local testing
+app = Flask(__name__, static_folder="build", static_url_path='/')
+# app = Flask(__name__)  # For local testing
 
 CORS(app, resources={
     r"/*": {
@@ -106,6 +106,30 @@ def handle_check_ip(data):
         {"$set": {"blocked_at": datetime.now()}},
         upsert=True
     )
+
+
+@app.route('/api/unblock_ip', methods=['POST'])
+def unblock_ip():
+    data = request.json
+    ip = data.get('ip')
+
+    if not ip:
+        return jsonify({'status': 'error', 'message': 'No IP provided'}), 400
+
+    try:
+        # Remove the IP from the blocked IPs collection
+        blocked_ips_collection = db['blocked_ips']
+        blocked_ips_collection.delete_one({'ip': ip})
+
+        return jsonify({
+            'status': 'success',
+            'message': 'IP unblocked successfully'
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 # --- Serve React App ---
@@ -207,6 +231,7 @@ def handle_notification_dismissed(data):
 
 @socketio.on('quiz_completed')
 def handle_quiz_completed(data):
+    logging.info(f"Quiz completed: {data}")
     pair_id = data.get('pair_id')
     role = data.get('role')
     emit('quiz_completed', {'role': role}, room=pair_id)
@@ -214,6 +239,7 @@ def handle_quiz_completed(data):
 
 @socketio.on('quiz_failed')
 def handle_quiz_failed(data):
+    logging.info(f"Quiz failed: {data}")
     pair_id = data.get('pair_id')
     role = data.get('role')
     emit('quiz_failed', {'role': role}, room=pair_id)
@@ -596,6 +622,6 @@ def on_disconnect(data):
 if __name__ == "__main__":
     socketio.run(app,
                  debug=True,
-                 # host='0.0.0.0',  # Disable for testing locally
+                 host='0.0.0.0',  # Disable for testing locally
                  port=5000,
                  allow_unsafe_werkzeug=True)

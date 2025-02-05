@@ -96,7 +96,7 @@ export const sendBotMessage = async (messages, currentPersona, isWakeupMessage =
         const apiCall = axios.post(
             BOT_API_URL,
             {
-                model: 'meta-llama/llama-3.1-8b-instruct:free',
+                model: 'meta-llama/llama-3.2-1b-instruct:free',
                 temperature: 0.9,
                 messages: [
                     ...systemMessages,
