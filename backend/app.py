@@ -50,6 +50,7 @@ CORS(app, resources={
 
 socketio = SocketIO(app,
                     cors_allowed_origins=allowed,
+                    logging=True,
                     ping_timeout=5000,
                     ping_interval=25000)
 logging.basicConfig(level=logging.INFO)
@@ -542,24 +543,24 @@ def on_join(data):
     """
     Handle user joining a room.
     """
-    logging.info(f"Joining room with data: {data}")
+    logging.info(f"[JOIN] Joining room with data: {data}")
     pair_id = data.get("pair_id")
-    user_id = data.get("user_id")
+    role = data.get("role")
 
     if not pair_id:
-        logging.error("Invalid join request: Missing pair_id.")
+        logging.error("[JOIN] Invalid join request: Missing pair_id")
         return
 
     try:
         join_room(pair_id)
         emit(
             "joined_room",
-            {"pair_id": pair_id, "user_id": user_id},
+            {"pair_id": pair_id, "role": role},
             to=pair_id,
         )
-        logging.info(f"User {username} (ID: {user_id}) joined room {pair_id}")
+        logging.info(f"[JOIN] User with role {role} joined room {pair_id}")
     except Exception as e:
-        logging.error(f"Error joining room {pair_id}: {e}")
+        logging.error(f"[JOIN] Error joining room {pair_id}: {str(e)}")
 
 
 @socketio.on("experimenter_ready")

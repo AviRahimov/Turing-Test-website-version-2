@@ -259,7 +259,7 @@
       <workItem from="1737889719628" duration="9554000" />
       <workItem from="1738487099949" duration="12225000" />
       <workItem from="1738663518298" duration="13010000" />
-      <workItem from="1738744159210" duration="12622000" />
+      <workItem from="1738744159210" duration="23963000" />
     </task>
     <servers />
   </component>
@@ -279,6 +279,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$app.coverage" NAME="app Coverage Results" MODIFIED="1733154028030" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
-    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1738760465672" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
+    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1738779486620" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
   </component>
 </project>

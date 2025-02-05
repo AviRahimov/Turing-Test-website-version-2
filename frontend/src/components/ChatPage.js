@@ -8,7 +8,8 @@ import personas from '../data/personas.json';
 import {getRandomPersona } from '../utils/chatUtils';
 import { sendBotMessage } from '../utils/botService';
 
-const socket = io(config.SERVER_URL); // Adjust the port if needed
+let server_url = config.SERVER_URL;
+const socket = io(config.SERVER_URL)
 
 function ChatPage() {
   const location = useLocation();
@@ -74,6 +75,7 @@ function ChatPage() {
   // state for the instructions modal
   const [showInstructions, setShowInstructions] = useState(false);
 
+
   // useEffect for handling the start of inactivity checking
 useEffect(() => {
     // Start the inactivity checker only when both conditions are met:
@@ -81,7 +83,7 @@ useEffect(() => {
     // 2. Timer is not paused (notifications dismissed)
     // 3. Checker hasn't been started yet
     if (realTestTimer > 0 && !timerPaused && !inactivityCheckerActive) {
-        console.log(`${role} - Starting inactivity monitoring system`);
+        // console.log(`${role} - Starting inactivity monitoring system`);
         lastActivityTimestampRef.current = Date.now(); // Initialize the ref
         setInactivityCheckerActive(true);
     }
@@ -90,16 +92,16 @@ useEffect(() => {
 // useEffect for the actual inactivity checking
 useEffect(() => {
     if (inactivityCheckerActive) {
-        console.log(`${role} - Inactivity checker is now running`);
+        // console.log(`${role} - Inactivity checker is now running`);
 
         const inactivityInterval = setInterval(() => {
             const currentTime = Date.now();
             const timeSinceLastActivity = currentTime - lastActivityTimestampRef.current;
 
-            console.log(`${role} - Last activity: ${Math.floor(timeSinceLastActivity / 1000)} seconds ago`);
+            // console.log(`${role} - Last activity: ${Math.floor(timeSinceLastActivity / 1000)} seconds ago`);
 
             if (timeSinceLastActivity >= 90000) { // 90 seconds
-                console.log(`${role} - Inactivity limit reached - disconnecting user`);
+                // console.log(`${role} - Inactivity limit reached - disconnecting user`);
 
                 const banMessage = "You have been disconnected due to inactivity. You will not receive payment for this session.";
                 alert(banMessage);
@@ -118,7 +120,7 @@ useEffect(() => {
                     state: { message: banMessage }, replace: true
                 });
             } else if (timeSinceLastActivity >= 30000 && !warningShown) { // 30 seconds
-                console.log(`${role} - Warning threshold reached - showing warning`);
+                // console.log(`${role} - Warning threshold reached - showing warning`);
 
                 const warningMessage = role === 'tester'
                     ? "⚠️ Warning: If you don't send a message soon, you will be disconnected and won't receive payment."
@@ -136,7 +138,7 @@ useEffect(() => {
 
         return () => {
             if (inactivityCheckerActive) {
-                console.log(`${role} - Cleaning up inactivity checker`);
+                // console.log(`${role} - Cleaning up inactivity checker`);
                 clearInterval(inactivityInterval);
             }
         };
@@ -164,17 +166,17 @@ useEffect(() => {
   const sendMessageToBot = () => {
       if (!messageToBot.trim()) return;
 
-      console.log('User sending message to bot, resetting timestamps and counters');
+      // console.log('User sending message to bot, resetting timestamps and counters');
       // Reset wake-up attempts and activity timestamps when user sends a message
       setWakeupAttemptsCount(0);
       lastActivityTimestampRef.current = Date.now(); // Use ref instead of state
       lastWakeupMessageTimeRef.current = Date.now();
       setWarningShown(false);
-      console.log(`${role} - Activity timestamp reset - message to bot`);
+      // console.log(`${role} - Activity timestamp reset - message to bot`);
 
       // If this is a response to a wake-up message, log it
       if (lastWakeupMessageRef.current) {
-          console.log('User responding to wake-up message:', lastWakeupMessageRef.current);
+          // console.log('User responding to wake-up message:', lastWakeupMessageRef.current);
       }
 
       const newMessage = { sender: role, content: messageToBot };
@@ -199,11 +201,11 @@ useEffect(() => {
       testerChatWithExperimenter: messages,
       testerChatWithBot: botMessages,
     };
-    console.log('Chat data being sent:', chatData); // Debug log
+    // console.log('Chat data being sent:', chatData); // Debug log
 
     try {
-      const response = await axios.post(config.SERVER_URL + '/api/save_chat', chatData);
-      console.log('Response from server:', response.data); // Debug log
+      const response = await axios.post(server_url + '/api/save_chat', chatData);
+      // console.log('Response from server:', response.data); // Debug log
     } catch (error) {
       console.error('Error saving chat logs:', error);
     }
@@ -211,7 +213,7 @@ useEffect(() => {
 
   // Initial setup: Socket connection and listeners
   useEffect(() => {
-    socket.emit('join', { pair_id: pairId, username: role });
+    socket.emit('join', { pair_id: pairId, role: role });
 
     // If shuffle is disabled, set up rooms immediately
     if (!shuffleEnabled) {
@@ -224,7 +226,7 @@ useEffect(() => {
 
     if (role === 'tester') {
       socket.on('experimenter_ready', (data) => {
-        console.log('Received experimenter_ready event', data);
+        // console.log('Received experimenter_ready event', data);
         setExperimenterReady(true);
       });
     }
@@ -274,7 +276,7 @@ useEffect(() => {
   useEffect(() => {
     if (testerDismissed && experimenterDismissed) {
       setTimerPaused(false);
-      console.log('Both participants dismissed notifications, timer starting');
+      // console.log('Both participants dismissed notifications, timer starting');
     }
   }, [testerDismissed, experimenterDismissed]);
 
@@ -340,7 +342,7 @@ useEffect(() => {
         testerDismissed && experimenterDismissed) {
         setTimerPaused(false);
         setChatTimerStarted(true);
-        console.log('Both participants completed quiz and dismissed notifications, starting timer');
+        // console.log('Both participants completed quiz and dismissed notifications, starting timer');
     }
   }, [quizStep, partnerQuizStatus, testerDismissed, experimenterDismissed]);
 
@@ -365,34 +367,34 @@ useEffect(() => {
 
   // Countdown for the real Turing Test
   useEffect(() => {
-    console.log('Real test timer effect triggered with conditions:', {
-        realTestTimer,
-        chatTimerStarted,
-        quizStep,
-        partnerQuizStatus,
-        showNotifications: { tester: showNotificationForTester, experimenter: showNotificationForExperimenter }
-    });
+    // console.log('Real test timer effect triggered with conditions:', {
+    //     realTestTimer,
+    //     chatTimerStarted,
+    //     quizStep,
+    //     partnerQuizStatus,
+    //     showNotifications: { tester: showNotificationForTester, experimenter: showNotificationForExperimenter }
+    // });
 
     // Don't start if timer is null
     if (realTestTimer === null) return;
 
     // Don't start if quiz isn't completed by both participants
     if (!chatTimerStarted) {
-        console.log('Timer not started - waiting for quiz completion');
+        // console.log('Timer not started - waiting for quiz completion');
         return;
     }
 
     // Don't start if either participant hasn't completed the quiz
     if (quizStep !== 'completed' || partnerQuizStatus !== 'completed') {
-        console.log('Timer not started - quiz not completed by both participants');
+        // console.log('Timer not started - quiz not completed by both participants');
         return;
     }
 
-    console.log('Starting real test timer', {
-        chatTimerStarted,
-        quizStep,
-        partnerQuizStatus
-    });
+    // console.log('Starting real test timer', {
+    //     chatTimerStarted,
+    //     quizStep,
+    //     partnerQuizStatus
+    // });
 
     const realTestInterval = setInterval(() => {
       setRealTestTimer((prev) => {
@@ -406,7 +408,7 @@ useEffect(() => {
     }, 1000);
 
    return () => {
-        console.log('Cleaning up real test timer');
+        // console.log('Cleaning up real test timer');
         clearInterval(realTestInterval);
    };
 }, [
@@ -424,19 +426,19 @@ useEffect(() => {
 
       // Stop inactivity checker when chat ends
       setInactivityCheckerActive(false);
-      console.log(`${role} - Inactivity checker stopped - chat ended`);
+      // console.log(`${role} - Inactivity checker stopped - chat ended`);
 
       // Emit event to notify tester that experimenter is ready for submissions
       socket.emit('experimenter_ready', { pair_id: pairId });
 
       if (role === 'experimenter') {
         // Immediately emit the ready event when experimenter sees overlay
-        console.log('Experimenter ready - emitting event');
+        // console.log('Experimenter ready - emitting event');
 
         // Set a timeout for 30 seconds
       const timeoutId = setTimeout(async () => {
         try {
-          const response = await axios.post(config.SERVER_URL + '/api/generate_code', {
+          const response = await axios.post(server_url + '/api/generate_code', {
             role: 'experimenter',
             name,
             pairId,
@@ -484,7 +486,7 @@ useEffect(() => {
       // Reset activity timestamp and warning state
       lastActivityTimestampRef.current = Date.now(); // Use ref instead of state
       setWarningShown(false);
-      console.log(`${role} - Activity timestamp reset - message to experimenter`);
+      // console.log(`${role} - Activity timestamp reset - message to experimenter`);
 
       const newMessage = { sender: role, content: messageToExperimenter };
       setMessages((prevMessages) => [...prevMessages, newMessage]);
@@ -522,9 +524,9 @@ useEffect(() => {
   // Send a message to the bot
   const sendMessageToBotQueue = async (message) => {
     try {
-        console.log('Bot sending message, checking for wake-up context:', {
-            hasWakeupContext: !!lastWakeupMessageRef.current
-        });
+        // console.log('Bot sending message, checking for wake-up context:', {
+        //     hasWakeupContext: !!lastWakeupMessageRef.current
+        // });
 
         // Only use bot messages for context, not the experimenter chat messages
         const botConversationHistory = botMessages.map((msg) => ({
@@ -548,7 +550,7 @@ useEffect(() => {
         lastWakeupMessageRef.current = null;
 
         lastBotActivityTimestampRef.current = Date.now();
-        console.log('Updated bot activity timestamp:', lastBotActivityTimestampRef.current);
+        // console.log('Updated bot activity timestamp:', lastBotActivityTimestampRef.current);
     } catch (error) {
         console.error('Error communicating with bot:', error);
     }
@@ -559,20 +561,20 @@ useEffect(() => {
   useEffect(() => {
     // If wake-up system is disabled, don't proceed
     if (!botWakeupEnabled) {
-        console.log('Bot wake-up system is disabled in config');
+        // console.log('Bot wake-up system is disabled in config');
         return;
     }
 
-    console.log('Wake-up effect triggered with conditions:', {
-        inactivityCheckerActive,
-        role,
-        realTestTimer,
-        wakeupAttemptsCount
-    });
+    // console.log('Wake-up effect triggered with conditions:', {
+    //     inactivityCheckerActive,
+    //     role,
+    //     realTestTimer,
+    //     wakeupAttemptsCount
+    // });
 
     if (!inactivityCheckerActive || role !== 'tester' || realTestTimer === 0) {
         if (wakeupIntervalRef.current) {
-            console.log('Cleaning up existing wake-up interval');
+            // console.log('Cleaning up existing wake-up interval');
             clearInterval(wakeupIntervalRef.current);
             wakeupIntervalRef.current = null;
         }
@@ -581,44 +583,44 @@ useEffect(() => {
 
     // Only create new interval if one doesn't exist
     if (!wakeupIntervalRef.current) {
-        console.log('Starting wake-up interval checker');
+        // console.log('Starting wake-up interval checker');
 
         // Generate random delay once when starting the checker
         wakeupDelayRef.current = Math.floor(Math.random() * (45000 - 25000) + 25000);
-        console.log('Set wake-up delay to:', wakeupDelayRef.current / 1000, 'seconds');
+        // console.log('Set wake-up delay to:', wakeupDelayRef.current / 1000, 'seconds');
 
 
         wakeupIntervalRef.current = setInterval(() => {
-            console.log('Checking bot wakeup...', {
-                timeSinceLastActivity: Math.floor((Date.now() - lastActivityTimestampRef.current) / 1000),
-                timeSinceLastBotActivity: Math.floor((Date.now() - lastBotActivityTimestampRef.current) / 1000),
-                timeSinceLastWakeup: Math.floor((Date.now() - lastWakeupMessageTimeRef.current) / 1000),
-                wakeupAttemptsCount,
-                wakeupDelay: wakeupDelayRef.current / 1000
-            });
+            // console.log('Checking bot wakeup...', {
+            //     timeSinceLastActivity: Math.floor((Date.now() - lastActivityTimestampRef.current) / 1000),
+            //     timeSinceLastBotActivity: Math.floor((Date.now() - lastBotActivityTimestampRef.current) / 1000),
+            //     timeSinceLastWakeup: Math.floor((Date.now() - lastWakeupMessageTimeRef.current) / 1000),
+            //     wakeupAttemptsCount,
+            //     wakeupDelay: wakeupDelayRef.current / 1000
+            // });
 
             const currentTime = Date.now();
             const timeSinceLastActivity = currentTime - lastActivityTimestampRef.current;
             const timeSinceLastBotActivity = currentTime - lastBotActivityTimestampRef.current;
             const timeSinceLastWakeup = currentTime - lastWakeupMessageTimeRef.current;
 
-            console.log('Checking conditions:', {
-                isInactiveEnough: timeSinceLastActivity >= wakeupDelayRef.current,
-                isBotQuietEnough: timeSinceLastBotActivity >= 20000,
-                isWakeupCooldownOver: timeSinceLastWakeup >= wakeupDelayRef.current,
-                underMaxAttempts: wakeupAttemptsCount < MAX_WAKEUP_ATTEMPTS
-            });
+            // console.log('Checking conditions:', {
+            //     isInactiveEnough: timeSinceLastActivity >= wakeupDelayRef.current,
+            //     isBotQuietEnough: timeSinceLastBotActivity >= 20000,
+            //     isWakeupCooldownOver: timeSinceLastWakeup >= wakeupDelayRef.current,
+            //     underMaxAttempts: wakeupAttemptsCount < MAX_WAKEUP_ATTEMPTS
+            // });
 
             if (timeSinceLastActivity >= wakeupDelayRef.current &&
                 timeSinceLastBotActivity >= 20000 &&
                 timeSinceLastWakeup >= wakeupDelayRef.current &&
                 wakeupAttemptsCount < MAX_WAKEUP_ATTEMPTS) {
-                console.log('Conditions met - Sending bot wakeup message...');
+                // console.log('Conditions met - Sending bot wakeup message...');
                 sendBotWakeupMessage();
                 lastWakeupMessageTimeRef.current = currentTime;
                 // Generate new delay for next wake-up
                 wakeupDelayRef.current = Math.floor(Math.random() * (45000 - 25000) + 25000);
-                console.log('Set new wake-up delay to:', wakeupDelayRef.current / 1000, 'seconds');
+                // console.log('Set new wake-up delay to:', wakeupDelayRef.current / 1000, 'seconds');
             }
         }, 5000);
     }
@@ -626,7 +628,7 @@ useEffect(() => {
     // Cleanup function
     return () => {
         if (wakeupIntervalRef.current) {
-            console.log('Cleaning up wake-up interval');
+            // console.log('Cleaning up wake-up interval');
             clearInterval(wakeupIntervalRef.current);
             wakeupIntervalRef.current = null;
         }
@@ -695,7 +697,7 @@ useEffect(() => {
     const realIdentityB = finalRoomConfig.rightRoom.role;
 
     try {
-        const response = await axios.post(config.SERVER_URL + '/api/generate_code', {
+        const response = await axios.post(server_url + '/api/generate_code', {
             role: 'tester',
             userId,
             pairId,
@@ -705,7 +707,7 @@ useEffect(() => {
             realIdentityB
         });
 
-        console.log("The user ID in the chat page is: ", userId);
+        // console.log("The user ID in the chat page is: ", userId);
         if (response.data.status === 'success') {
             socket.emit('tester_guessed', { pairId });
 
@@ -779,33 +781,33 @@ useEffect(() => {
 
   const generateAndNavigateToBonusCode = async () => {
     try {
-        console.log('[QUIZ-FAIL] Attempting to generate bonus code for passing user');
+        // console.log('[QUIZ-FAIL] Attempting to generate bonus code for passing user');
         // Get the user's IP first
         const ipResponse = await fetch('https://api.ipify.org?format=json');
         const ipData = await ipResponse.json();
         const userIp = ipData.ip;
-        console.log('[QUIZ-FAIL] Got user IP:', userIp);
+        // console.log('[QUIZ-FAIL] Got user IP:', userIp);
 
-        const response = await axios.post(`${config.SERVER_URL}/api/generate_code`, {
+        const response = await axios.post(server_url + '/api/generate_code', {
             pairId,
             role,
             userId,
             userIp // Add the user's IP to the request
         });
-        console.log('[QUIZ-FAIL] Generate code response:', response.data);
+        // console.log('[QUIZ-FAIL] Generate code response:', response.data);
 
         if (response.data.status === 'success') {
             // Call the unblock endpoint
             try {
-                const unblockResponse = await axios.post(`${config.SERVER_URL}/api/unblock_ip`, {
+                const unblockResponse = await axios.post(server_url + '/api/unblock_ip', {
                     ip: userIp
                 });
-                console.log('[QUIZ-FAIL] Unblock IP response:', unblockResponse.data);
+                // console.log('[QUIZ-FAIL] Unblock IP response:', unblockResponse.data);
             } catch (unblockError) {
                 console.error('[QUIZ-FAIL] Error unblocking IP:', unblockError);
             }
 
-            console.log('[QUIZ-FAIL] Navigating to thank you page');
+            // console.log('[QUIZ-FAIL] Navigating to thank you page');
             navigate('/thank_you', {
                 state: {
                     bonusCode: response.data.code,
@@ -824,9 +826,14 @@ useEffect(() => {
 
 
     useEffect(() => {
+        // Log when socket events are registered
+        // console.log('[SOCKET] Registering quiz events');
+
         socket.on('quiz_completed', (data) => {
+            // console.log('[QUIZ-COMPLETED] Event received with data:', data);
 
             if (data.role !== role) {
+                // console.log('[QUIZ-COMPLETED] Both quizzes complete, starting chat timer');
                 setPartnerQuizStatus('completed');
 
                 // If we've already completed our quiz, start the chat timer
@@ -837,20 +844,20 @@ useEffect(() => {
         });
 
         socket.on('quiz_failed', (data) => {
-            console.log('[QUIZ-FAIL] Received quiz_failed event:', {
-                data,
-                currentRole: role,
-                currentQuizStep: quizStep,
-                partnerQuizStatus: partnerQuizStatus
-            });
+            // console.log('[QUIZ-FAIL] Received quiz_failed event:', {
+            //     data,
+            //     currentRole: role,
+            //     currentQuizStep: quizStep,
+            //     partnerQuizStatus: partnerQuizStatus
+            // });
 
             if (data.role !== role) {
                 setPartnerQuizStatus('failed');
-                console.log('[QUIZ-FAIL] Partner failed quiz, current user status:', {
-                    role,
-                    quizStep,
-                    willGenerateBonus: quizStep === 'completed'
-                });
+                // console.log('[QUIZ-FAIL] Partner failed quiz, current user status:', {
+                //     role,
+                //     quizStep,
+                //     willGenerateBonus: quizStep === 'completed'
+                // });
 
                 setPartnerHasFailed(true); // Set the flag when partner fails
 
@@ -869,21 +876,21 @@ useEffect(() => {
 
     // Modify the quiz submission logic in both notification components
     const handleQuizSubmission = async (isCorrect) => {
-        console.log('[QUIZ-SUBMIT] Quiz submission:', {
-            isCorrect,
-            role,
-            currentQuizStep: quizStep,
-            partnerStatus: partnerQuizStatus
-        });
+        // console.log('[QUIZ-SUBMIT] Quiz submission:', {
+        //     isCorrect,
+        //     role,
+        //     currentQuizStep: quizStep,
+        //     partnerStatus: partnerQuizStatus
+        // });
 
         if (isCorrect) {
             setQuizStep('completed');
             socket.emit('quiz_completed', { pair_id: pairId, role });
-            console.log('[QUIZ-SUBMIT] Emitted quiz_completed event');
+            // console.log('[QUIZ-SUBMIT] Emitted quiz_completed event');
 
             // Check if partner has already failed when we complete our quiz
             if (partnerHasFailed) {
-                console.log('[QUIZ-SUBMIT] Partner already failed, generating bonus code');
+                // console.log('[QUIZ-SUBMIT] Partner already failed, generating bonus code');
                 await generateAndNavigateToBonusCode();
             } else if (partnerQuizStatus === 'completed') {
                 // Only start chat if partner has completed and not failed
@@ -891,7 +898,7 @@ useEffect(() => {
             }
             handleDismissNotification();
         } else {
-            console.log('[QUIZ-SUBMIT] Quiz failed, emitting quiz_failed event');
+            // console.log('[QUIZ-SUBMIT] Quiz failed, emitting quiz_failed event');
             socket.emit('quiz_failed', { pair_id: pairId, role });
             navigate('/disconnected', {
                 state: {
