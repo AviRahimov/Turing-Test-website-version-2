@@ -78,6 +78,7 @@ function ChatPage() {
   const [showInstructions, setShowInstructions] = useState(false);
 
   const chatMessagesRef = useRef(null);  // Ref for scrolling to bottom of chat
+  const botChatMessagesRef = useRef(null);  // Ref for scrolling to bottom of bot chat
 
 
   // useEffect for handling the start of inactivity checking
@@ -921,9 +922,12 @@ useEffect(() => {
     };
 
   useEffect(() => {
-    if (chatMessagesRef.current) {
-      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
-    }
+      if (chatMessagesRef.current) {
+          chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+      }
+      if (botChatMessagesRef.current) {
+          botChatMessagesRef.current.scrollTop = botChatMessagesRef.current.scrollHeight;
+      }
   }, [messages, botMessages]);
 
   const renderChatWindow = (roomType) => {
@@ -938,7 +942,7 @@ useEffect(() => {
           <div className="chat-header">
             {`Candidate ${roomInfo.candidate}`}
           </div>
-        <div className="chat-messages" ref={chatMessagesRef}>
+        <div className="chat-messages" ref={roomType === 'experimenter' ? chatMessagesRef : botChatMessagesRef}>
           {roomType === 'experimenter' ? messages.map((msg, index) => (
             <p className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`} key={index}>
               {msg.content}
@@ -1011,7 +1015,7 @@ useEffect(() => {
                     : `Chat with ${roomType === 'experimenter' ? 'Human' : 'Bot'}`
               }
           </div>
-          <div className="chat-messages" ref={chatMessagesRef}>
+          <div className="chat-messages" ref={botChatMessagesRef}>
             {botMessages.map((msg, index) => (
               <p
                 className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`}
