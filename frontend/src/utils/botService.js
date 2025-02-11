@@ -76,11 +76,13 @@ Your response must ONLY be the wake-up message, nothing else.`;
 
 // And update the sendBotMessage function to ensure the wake-up context is properly combined:
 
-export const sendBotMessage = async (messages, currentPersona, isWakeupMessage = false, lastWakeupMessage = null) => {
+export const sendBotMessage = async (messages, currentPersona, isWakeupMessage = false, lastWakeupMessage = null, custom_prompt) => {
     try {
-        const systemMessages = [createSystemPrompt(currentPersona.name, currentPersona.gender, currentPersona.age)];
+        const systemMessages = custom_prompt
+            ? [createSystemPrompt(currentPersona.name, currentPersona.gender, currentPersona.age)]
+            : [];
 
-         if (lastWakeupMessage) {
+        if (lastWakeupMessage) {
             // Add context about the previous wake-up message
             systemMessages.push({
                 role: 'system',

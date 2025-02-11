@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
+import usePreventBackNavigation from './usePreventBackNavigation';
 import io from 'socket.io-client';
 import './ChatPage.css';
 import config from './config.js';
@@ -12,6 +13,7 @@ let server_url = config.SERVER_URL;
 const socket = io(config.SERVER_URL)
 
 function ChatPage() {
+  usePreventBackNavigation();
   const location = useLocation();
   const navigate = useNavigate();
   const { pairId, role, userId, username } = location.state || {};
@@ -74,6 +76,8 @@ function ChatPage() {
 
   // state for the instructions modal
   const [showInstructions, setShowInstructions] = useState(false);
+
+  const chatMessagesRef = useRef(null);  // Ref for scrolling to bottom of chat
 
 
   // useEffect for handling the start of inactivity checking
@@ -183,7 +187,7 @@ useEffect(() => {
       setBotMessages((prevBotMessages) => [...prevBotMessages, newMessage]);
 
       // If message queue is disabled, send directly to bot. Otherwise, add to queue
-      if (!config.ENABLE_MESSAGE_QUEUE) {
+      if (!messageQueueEnabled) {
           sendMessageToBotQueue(messageToBot);
       } else {
           addToMessageQueue(messageToBot);
@@ -503,7 +507,7 @@ useEffect(() => {
   // Message queue for bot messages
   useEffect(() => {
     // If message queue is disabled, don't set up the interval at all
-    if (!config.ENABLE_MESSAGE_QUEUE) {
+    if (!messageQueueEnabled) {
         return;
     }
 
@@ -538,7 +542,8 @@ useEffect(() => {
             [...botConversationHistory, { role: 'user', content: message }],
             currentPersona,
             false, // indicates this is not a wakeup message
-            lastWakeupMessageRef.current // pass the last wake-up message for context
+            lastWakeupMessageRef.current, // pass the last wake-up message for context,
+            config.ENABLE_PROMPT  // enable/disable prompt system
         );
 
         setBotMessages((prevBotMessages) => [
@@ -915,6 +920,12 @@ useEffect(() => {
         return "A human tester will chat with you and a bot. Help them understand that you are human too. If they pick you as human, you and the human tester will receive $0.50 bonus each.";
     };
 
+  useEffect(() => {
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+    }
+  }, [messages, botMessages]);
+
   const renderChatWindow = (roomType) => {
     if (!finalRoomConfig) return null;
 
@@ -927,7 +938,7 @@ useEffect(() => {
           <div className="chat-header">
             {`Candidate ${roomInfo.candidate}`}
           </div>
-        <div className="chat-messages">
+        <div className="chat-messages" ref={chatMessagesRef}>
           {roomType === 'experimenter' ? messages.map((msg, index) => (
             <p className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`} key={index}>
               {msg.content}
@@ -964,7 +975,7 @@ useEffect(() => {
                     : `Chat with ${roomType === 'experimenter' ? 'Human' : 'Bot'}`
                 }
           </div>
-          <div className="chat-messages">
+          <div className="chat-messages" ref={chatMessagesRef}>
             {messages.map((msg, index) => (
               <p
                 className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`}
@@ -1000,7 +1011,7 @@ useEffect(() => {
                     : `Chat with ${roomType === 'experimenter' ? 'Human' : 'Bot'}`
               }
           </div>
-          <div className="chat-messages">
+          <div className="chat-messages" ref={chatMessagesRef}>
             {botMessages.map((msg, index) => (
               <p
                 className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`}
@@ -1302,7 +1313,7 @@ useEffect(() => {
                 <h3>Chat with Tester</h3>
                 <p className="subtitle">Prove that you are a human by chatting with the tester.</p>
               </div>
-              <div className="chat-messages">
+              <div className="chat-messages" ref={chatMessagesRef}>
                 {messages.map((msg, index) => (
                     <p
                         className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`}

@@ -1,7 +1,9 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import usePreventBackNavigation from './usePreventBackNavigation';
 
 const ThankYouPage = () => {
+  usePreventBackNavigation();
   const location = useLocation();
   const { bonusCode, name, user_id, role, message, canParticipateAgain } = location.state || {};
   const isSevenDigitCode = bonusCode && bonusCode.length === 7;

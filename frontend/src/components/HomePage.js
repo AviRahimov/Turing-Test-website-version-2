@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import usePreventBackNavigation from './usePreventBackNavigation';
 import io from 'socket.io-client';
 import config from './config';
 import './HomePage.css';
@@ -18,7 +19,10 @@ const socket = io(server_url, {
 });
 
 function HomePage() {
+  usePreventBackNavigation();
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [formData, setFormData] = useState({
     gender: '',
     age: '',

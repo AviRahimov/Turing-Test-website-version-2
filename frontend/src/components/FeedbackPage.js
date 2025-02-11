@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import usePreventBackNavigation from './usePreventBackNavigation';
 import config from "./config";
 
 const FeedbackPage = () => {
+  usePreventBackNavigation();
   const location = useLocation();
   const {realIdentityA, realIdentityB, guessCandidateA, guessCandidateB, userId, code, role, pairId, username } = location.state || {};
   console.log("The user id in the feedback page is", userId);
