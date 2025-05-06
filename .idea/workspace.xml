@@ -5,32 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fbcb205b-a937-474d-88ad-dfaffcbe4bbe" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/ChatPage.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/ChatPage.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/Disconnect.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/Disconnect.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/FeedbackPage.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/HomePage.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/HomePage.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/NotFoundPage.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/ThankYouPage.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/config.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/usePreventBackNavigation.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/data/personas.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/utils/botService.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/utils/chatUtils.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Turing Test Project (Version 2).iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Turing Test Project (Version 2).iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/public/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/public/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/public/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/public/manifest.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.test.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/reportWebVitals.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/setupTests.js" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -66,7 +43,7 @@
       </map>
     </option>
     <option name="RECENT_COMMON_BRANCH" value="master" />
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/frontend" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="ROOT_SYNC" value="SYNC" />
     <option name="UPDATE_TYPE" value="REBASE" />
   </component>
@@ -76,17 +53,16 @@
     &quot;assignee&quot;: &quot;AviRahimov&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/AviRahimov/Turing-Test-website-version-2.git&quot;,
-    &quot;accountId&quot;: &quot;433b61e9-ca5a-469a-aea5-68936dcf5dd6&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/AviRahimov/Turing-Test-website-version-2.git",
+    "accountId": "16220781-b5be-447e-b3ec-8c1ef021e7b5"
   }
-}</component>
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 2
 }</component>
   <component name="ProjectId" id="2pfOPFtDBiJbw4zucWu8eOnTxdE" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -98,7 +74,9 @@
     "Python.app.executor": "Run",
     "Python.main.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "Local__No__Vercel__Settings",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "Work__On__Avi__PC__Local__Changes",
+    "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "C:/Users/rahim/PycharmProjects/Local working on the Turing Test project",
     "list.type.of.created.stylesheet": "CSS",
     "node.js.detected.package.eslint": "true",
@@ -106,12 +84,12 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs.jest.jest_package": "C:/Users/rahim/PycharmProjects/Turing Test Project (Version 2)/frontend/node_modules/react-scripts",
-    "nodejs_interpreter_path": "C:/Program Files/nodejs/node",
+    "nodejs_interpreter_path": "node",
     "nodejs_package_manager_path": "C:\\Program Files\\nodejs\\npm",
     "npm.React Dev Server.executor": "Run",
     "npm.start.executor": "Run",
     "npm.test.executor": "Run",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
     "ts.external.directory.path": "C:\\Program Files\\JetBrains\\PyCharm 2023.3.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
     "vue.rearranger.settings.migration": "true"
   }
@@ -149,7 +127,6 @@
         <env name="OPENROUTER_API_KEY" value="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" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="SDK_NAME" value="Python 3.9 (Turing Test Project (Version 2))" />
       <option name="WORKING_DIRECTORY" value="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
@@ -214,8 +191,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-PY-243.22562.180" />
-        <option value="bundled-python-sdk-85c76a3b01b3-9a18a617cbe4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.22562.180" />
+        <option value="bundled-js-predefined-d6986cc7102b-f27c65a3e318-JavaScript-PY-251.23774.444" />
+        <option value="bundled-python-sdk-890ed5b35930-d9c5bdb153f4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.23774.444" />
       </set>
     </attachedChunks>
   </component>
