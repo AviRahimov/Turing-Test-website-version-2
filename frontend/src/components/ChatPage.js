@@ -445,7 +445,7 @@ useEffect(() => {
         try {
           const response = await axios.post(server_url + '/api/generate_code', {
             role: 'experimenter',
-            name,
+            // name,
             pairId,
           });
           if (response.data.status === 'success') {
@@ -507,7 +507,7 @@ useEffect(() => {
 
   // Message queue for bot messages
   useEffect(() => {
-    // If message queue is disabled, don't set up the interval at all
+    // If the message queue is disabled, don't set up the interval at all
     if (!messageQueueEnabled) {
         return;
     }
@@ -529,7 +529,7 @@ useEffect(() => {
   // Send a message to the bot
   const sendMessageToBotQueue = async (message) => {
     try {
-        // console.log('Bot sending message, checking for wake-up context:', {
+        // console.log('Bot sending a message, checking for wake-up context:', {
         //     hasWakeupContext: !!lastWakeupMessageRef.current
         // });
 

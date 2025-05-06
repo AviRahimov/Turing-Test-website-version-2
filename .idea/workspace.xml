@@ -5,9 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fbcb205b-a937-474d-88ad-dfaffcbe4bbe" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/Turing Test Project (Version 2).iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Turing Test Project (Version 2).iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,12 +52,12 @@
     &quot;assignee&quot;: &quot;AviRahimov&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/AviRahimov/Turing-Test-website-version-2.git",
-    "accountId": "16220781-b5be-447e-b3ec-8c1ef021e7b5"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/AviRahimov/Turing-Test-website-version-2.git&quot;,
+    &quot;accountId&quot;: &quot;16220781-b5be-447e-b3ec-8c1ef021e7b5&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 2
 }</component>
@@ -75,21 +74,23 @@
     "Python.main.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "Work__On__Avi__PC__Local__Changes",
+    "disable.download.node.interpreter.editor.notification": "true",
+    "git-widget-placeholder": "Enhanced__Test",
     "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
     "last_opened_file_path": "C:/Users/rahim/PycharmProjects/Local working on the Turing Test project",
     "list.type.of.created.stylesheet": "CSS",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs.jest.jest_package": "C:/Users/rahim/PycharmProjects/Turing Test Project (Version 2)/frontend/node_modules/react-scripts",
+    "nodejs.jest.jest_package": "C:/Users/rahim/PycharmProjects/Turing-Test-website-version-2/frontend/node_modules/react-scripts",
     "nodejs_interpreter_path": "node",
     "nodejs_package_manager_path": "C:\\Program Files\\nodejs\\npm",
     "npm.React Dev Server.executor": "Run",
     "npm.start.executor": "Run",
     "npm.test.executor": "Run",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
     "ts.external.directory.path": "C:\\Program Files\\JetBrains\\PyCharm 2023.3.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
     "vue.rearranger.settings.migration": "true"
   }
@@ -99,23 +100,12 @@
       <recent name="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\rahim\PycharmProjects\Turing-Test-website-version-2\backend" />
       <recent name="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)\backend" />
       <recent name="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)\frontend\src\components" />
     </key>
   </component>
   <component name="RunManager" selected="npm.React Dev Server">
-    <configuration name="renders learn react link" type="JavaScriptTestRunnerJest" temporary="true" nameIsGenerated="true">
-      <node-interpreter value="project" />
-      <jest-package value="$PROJECT_DIR$/frontend/node_modules/react-scripts" />
-      <working-dir value="$PROJECT_DIR$/frontend" />
-      <envs />
-      <scope-kind value="TEST" />
-      <test-file value="$PROJECT_DIR$/frontend/src/App.test.js" />
-      <test-names>
-        <test-name value="renders learn react link" />
-      </test-names>
-      <method v="2" />
-    </configuration>
     <configuration name="main" type="PythonConfigurationType" factoryName="Python">
       <module name="Turing Test Project (Version 2)" />
       <option name="ENV_FILES" value="" />
@@ -127,8 +117,8 @@
         <env name="OPENROUTER_API_KEY" value="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" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
-      <option name="IS_MODULE_SDK" value="false" />
+      <option name="WORKING_DIRECTORY" value="C:\Users\rahim\PycharmProjects\Turing-Test-website-version-2" />
+      <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
@@ -144,49 +134,19 @@
     <configuration name="React Dev Server" type="js.build_tools.npm">
       <package-json value="$PROJECT_DIR$/frontend/package.json" />
       <command value="start" />
-      <node-interpreter value="project" />
-      <package-manager value="C:\Program Files\nodejs\npm.cmd" />
+      <node-interpreter value="$PROJECT_DIR$/../../../../Program Files/nodejs/node" />
+      <package-manager value="npm" />
       <envs>
-        <env name="OPENROUTER_API_KEY" value="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" />
         <env name="REACT_APP_BACKEND_SOCKET_URL" value="http://127.0.0.1:5000" />
         <env name="REACT_APP_BACKEND_URL" value="http://127.0.0.1:5000" />
+        <env name="REACT_APP_OPENROUTER_API_KEY" value="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" />
       </envs>
       <method v="2" />
     </configuration>
-    <configuration name="start" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
-      <package-json value="$PROJECT_DIR$/frontend/package.json" />
-      <command value="run" />
-      <scripts>
-        <script value="start" />
-      </scripts>
-      <node-interpreter value="project" />
-      <envs />
-      <method v="2" />
-    </configuration>
-    <configuration name="test" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
-      <package-json value="$PROJECT_DIR$/package.json" />
-      <command value="run" />
-      <scripts>
-        <script value="test" />
-      </scripts>
-      <node-interpreter value="project" />
-      <envs />
-      <method v="2" />
-    </configuration>
     <list>
-      <item itemvalue="Jest.renders learn react link" />
       <item itemvalue="npm.React Dev Server" />
-      <item itemvalue="npm.start" />
-      <item itemvalue="npm.test" />
       <item itemvalue="Python.main" />
     </list>
-    <recent_temporary>
-      <list>
-        <item itemvalue="npm.start" />
-        <item itemvalue="Jest.renders learn react link" />
-        <item itemvalue="npm.test" />
-      </list>
-    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -238,6 +198,7 @@
       <workItem from="1738663518298" duration="13010000" />
       <workItem from="1738744159210" duration="23963000" />
       <workItem from="1739261904217" duration="7579000" />
+      <workItem from="1746542706122" duration="10056000" />
     </task>
     <servers />
   </component>
@@ -256,7 +217,8 @@
     </option>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$app.coverage" NAME="app Coverage Results" MODIFIED="1733154028030" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
     <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$main.coverage" NAME="main Coverage Results" MODIFIED="1739262285028" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing Test Project (Version 2)" />
+    <SUITE FILE_PATH="coverage/Turing_Test_website_version_2$main.coverage" NAME="main Coverage Results" MODIFIED="1746548308042" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\rahim\PycharmProjects\Turing-Test-website-version-2" />
+    <SUITE FILE_PATH="coverage/Turing_Test_Project__Version_2_$app.coverage" NAME="app Coverage Results" MODIFIED="1733154028030" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
   </component>
 </project>
