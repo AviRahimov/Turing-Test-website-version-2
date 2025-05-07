@@ -623,6 +623,6 @@ def on_disconnect(data):
 if __name__ == "__main__":
     socketio.run(app,
                  debug=True,
-                 host='0.0.0.0',  # Disable for testing locally
+                 # host='0.0.0.0',  # Disable for testing locally
                  port=5000,
                  allow_unsafe_werkzeug=True)

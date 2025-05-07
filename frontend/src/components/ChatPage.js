@@ -352,23 +352,56 @@ useEffect(() => {
   }, [quizStep, partnerQuizStatus, testerDismissed, experimenterDismissed]);
 
   // Handle shuffle logic when pre-shuffle timer reaches 0
-  useEffect(() => {
-    if (!shuffleEnabled) return; // Skip this effect if shuffling is disabled
+useEffect(() => {
+  if (!shuffleEnabled) return; // Skip this effect if shuffling is disabled
 
-    if (role === 'tester' && timer === 0) {
-      setShuffling(true);
-      setTimeout(() => {
-        setupAnonymousRooms();
-        saveChatLogs('Before Turing Test');
-        setMessages([]);
-        setBotMessages([]);
-        setRealTestTimer(realTestTimer);
-        setIsAnonymousMode(true); // Enable anonymous mode after shuffle
-      }, 3000);
-    } else if (role === 'experimenter' && timer === 0) {
-      setRealTestTimer(realTestTimer);
-    }
-}, [timer, role, shuffleEnabled]);
+  // Ensure this runs only once when the initial timer hits 0 for the tester
+  // and anonymous mode hasn't started yet.
+  if (role === 'tester' && timer === 0 && !isAnonymousMode) {
+    setShuffling(true);
+    console.log('[SHUFFLE DEBUG] Timer reached 0. Starting shuffle process.');
+    console.log('[SHUFFLE DEBUG] Current "messages" (human chat) state:', JSON.stringify(messages));
+    console.log('[SHUFFLE DEBUG] Current "botMessages" (bot chat) state:', JSON.stringify(botMessages));
+
+    // Capture the human conversation history (from the 'messages' state)
+    const preShuffleHumanChatHistory = [...messages];
+    console.log('[SHUFFLE DEBUG] Captured "preShuffleHumanChatHistory":', JSON.stringify(preShuffleHumanChatHistory));
+
+    setTimeout(() => {
+      console.log('[SHUFFLE DEBUG] Inside setTimeout: Shuffle animation ended.');
+
+      setupAnonymousRooms(); // This determines finalRoomConfig and roomOrder
+      console.log('[SHUFFLE DEBUG] setupAnonymousRooms() called.');
+
+      // saveChatLogs uses the state *before* the upcoming setMessages/setBotMessages
+      // to log the original distinct conversations. This is correct.
+      saveChatLogs('Before Turing Test');
+      console.log('[SHUFFLE DEBUG] saveChatLogs("Before Turing Test") called.');
+
+      // **** CRITICAL SECTION TO ENSURE BOTH WINDOWS GET HUMAN CHAT ****
+      console.log('[SHUFFLE DEBUG] Attempting to set BOTH "messages" and "botMessages" states to preShuffleHumanChatHistory.');
+
+      // Create truly new array references for state updates to be certain
+      const humanHistoryForDisplay = [...preShuffleHumanChatHistory];
+
+      setMessages(humanHistoryForDisplay);
+      setBotMessages(humanHistoryForDisplay); // <<<< THIS IS KEY
+      // After these calls, both 'messages' and 'botMessages' states should hold the humanHistoryForDisplay.
+      // A re-render will follow, and renderChatWindow will use these updated states.
+      // console.log('[SHUFFLE DEBUG] setMessages and setBotMessages have been called.'); // This log might be tricky due to async nature of setState
+
+      setRealTestTimer(config.REAL_TEST_TIMER);
+      setIsAnonymousMode(true);
+      setShuffling(false);
+      console.log('[SHUFFLE DEBUG] Anonymous mode enabled, timers reset, shuffling ended.');
+
+    }, 3000); // Shuffle animation duration
+  } else if (role === 'experimenter' && timer === 0 && !isAnonymousMode) {
+    // For experimenter, just ensure the real test timer is set and sync anonymous mode state
+    setRealTestTimer(config.REAL_TEST_TIMER);
+    setIsAnonymousMode(true);
+  }
+}, [timer, role, shuffleEnabled, isAnonymousMode, messages, realTestTimer, botMessages]); // Added botMessages to dependencies just in case, though messages is the primary source for preShuffleHumanChatHistory.
 
   // Countdown for the real Turing Test
   useEffect(() => {
