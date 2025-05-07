@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import usePreventBackNavigation from './usePreventBackNavigation';
 import io from 'socket.io-client';
 import config from './config';
@@ -21,13 +21,12 @@ const socket = io(server_url, {
 function HomePage() {
   usePreventBackNavigation();
   const navigate = useNavigate();
-  const location = useLocation();
 
+  // Updated formData state
   const [formData, setFormData] = useState({
     gender: '',
     age: '',
-    education: '',
-    employment: '',
+    occupation: '', // Changed from employment, removed education
     country: '',
     aiExperience: ''
   });
@@ -35,9 +34,10 @@ function HomePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [socketConnected, setSocketConnected] = useState(socket.connected);
   const [status, setStatus] = useState('');
-  const [userID, setUserID] = useState(null);
-  const [username, setUsername] = useState('');
+  const [userID, setUserID] = useState(null); // This is the numerical ID
+  const [username, setUsername] = useState(''); // This is the "user_X" string
   const [isBlocked, setIsBlocked] = useState(false);
+
 
   useEffect(() => {
     // Clear any previous disconnection state when starting fresh
@@ -77,12 +77,15 @@ function HomePage() {
     socket.on('paired', (data) => {
       if (!isBlocked) {
         console.log('Paired event received:', data);
+        // Pass necessary data to ChatPage, including own username for demographics
         navigate(`/chat/${data.pair_id}`, {
           state: {
             pairId: data.pair_id,
             role: data.role,
-            userId: data.user_id,
-            username: data.username,
+            userId: userID, // Numerical ID of self
+            username: username, // String username of self (user_X)
+            // partner_username will be added by backend for fetching partner's demographics
+            partner_username: data.partner_username // EXPECTING THIS FROM BACKEND
           },
         });
       }
@@ -125,7 +128,7 @@ function HomePage() {
       socket.off('paired');
       socket.off('ip_blocked');
     };
-  }, [navigate, isBlocked]);
+  }, [navigate, isBlocked, userID, username]);
 
   const handleCheckboxChange = (e) => {
       if (!agreedToParticipate) {
@@ -139,14 +142,22 @@ function HomePage() {
   };
 
   const handleStart = async () => {
-    if (Object.values(formData).some(value => value === '')) {
+    // Validate form data
+    const { gender, age, occupation, country, aiExperience } = formData;
+    if (!gender || !age || !occupation || !country || !aiExperience) {
       alert('Please fill in all demographic fields to start the experiment.');
       return;
     }
 
+    const ageNum = parseInt(age, 10);
+    if (isNaN(ageNum) || ageNum <= 0) {
+      alert('Please enter a valid age greater than 0.');
+      return;
+    }
+
     if (!agreedToParticipate) {
-            alert('You must agree to participate in the experiment.');
-            return;
+      alert('You must agree to participate in the experiment.');
+      return;
     }
 
     setIsSubmitting(true);
@@ -159,26 +170,31 @@ function HomePage() {
         return;
       }
 
+      const payloadToSave = { user_id: username, ...formData, age: ageNum };
+      console.log("Saving demographics payload:", payloadToSave); // DEBUG LINE
       await fetch(server_url + '/api/save_demographics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: username, ...formData }),
+        body: JSON.stringify(payloadToSave),
       });
 
       const response = await fetch(server_url + '/api/submit_name', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, username, user_id: userID }),
+        body: JSON.stringify({ username: username, user_id: userID, ...formData, age: ageNum }),
       });
 
       const result = await response.json();
       console.log('Server response:', result);
 
       if (result.status === 'waiting') {
-          setStatus('Waiting for another user to connect...');
+        setStatus('Waiting for another user to connect...');
+      } else if (result.status === 'paired') {
+          // Navigation is now handled by the 'paired' socket event listener
+          setStatus(`Paired! Joining chat room...`);
       } else if (result.status === 'error') {
-          setStatus(result.message);
-          setIsSubmitting(false);
+        setStatus(result.message);
+        setIsSubmitting(false);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -214,38 +230,26 @@ function HomePage() {
                 </label>
                 <label>
                   Age:
-                  <select name="age" value={formData.age} onChange={handleChange} required>
-                    <option value="">Select</option>
-                    <option value="10-20">10-20</option>
-                    <option value="20-30">20-30</option>
-                    <option value="30-40">30-40</option>
-                    <option value="40-50">40-50</option>
-                    <option value="50-60">50-60</option>
-                    <option value="60-70">60-70</option>
-                    <option value="70+">70+</option>
-                  </select>
+                  <input
+                      type="number" // Changed to number input
+                      name="age"
+                      value={formData.age}
+                      onChange={handleChange}
+                      placeholder="Enter your age"
+                      min="1" // Basic HTML5 validation
+                      required
+                  />
                 </label>
                 <label>
-                  Educational Degree:
-                  <select name="education" value={formData.education} onChange={handleChange} required>
-                    <option value="">Select</option>
-                    <option value="High School">High School</option>
-                    <option value="Bachelor's Degree">Bachelor's Degree</option>
-                    <option value="Master's Degree">Master's Degree</option>
-                    <option value="Doctorate">Doctorate</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </label>
-                <label>
-                  Employment Status:
-                  <select name="employment" value={formData.employment} onChange={handleChange} required>
-                    <option value="">Select</option>
-                    <option value="Employed">Employed</option>
-                    <option value="Unemployed">Unemployed</option>
-                    <option value="Student">Student</option>
-                    <option value="Retired">Retired</option>
-                    <option value="Other">Other</option>
-                  </select>
+                  Occupation: {/* Changed from Employment Status */}
+                  <input
+                      type="text"
+                      name="occupation" // Changed name
+                      value={formData.occupation}
+                      onChange={handleChange}
+                      placeholder="Enter your occupation"
+                      required
+                  />
                 </label>
                 <label>
                   Country of Residence:
@@ -281,7 +285,7 @@ function HomePage() {
               <button
                   className="start-button"
                   onClick={handleStart}
-                  disabled={isSubmitting || !agreedToParticipate}
+                  disabled={isSubmitting || !agreedToParticipate || !formData.gender || !formData.age || !formData.occupation || !formData.country || !formData.aiExperience}
               >
                 Start
               </button>
@@ -291,9 +295,6 @@ function HomePage() {
         <p className={`status-message ${socketConnected ? 'status-connected' : 'status-connecting'}`}>
           {socketConnected ? 'Connected to server' : 'Connecting to server...'}
         </p>
-        {/*{socketConnected && Object.values(formData).some(value => value === '') && (*/}
-        {/*    <p className="status-warning"></p>*/}
-        {/*)}*/}
       </div>
   );
 }

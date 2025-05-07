@@ -12,6 +12,16 @@ import { sendBotMessage } from '../utils/botService';
 let server_url = config.SERVER_URL;
 const socket = io(config.SERVER_URL)
 
+// Define fixed bot demographics globally or as a const within ChatPage
+const FIXED_BOT_DEMOGRAPHICS = {
+  gender: 'Female',
+  age: 28,
+  occupation: 'Teacher',
+  country: 'Australia',
+  aiExperience: 'Beginner',
+  source: 'fixed-bot-profile' // Identifier
+};
+
 function ChatPage() {
   usePreventBackNavigation();
   const location = useLocation();
@@ -80,6 +90,61 @@ function ChatPage() {
   const chatMessagesRef = useRef(null);  // Ref for scrolling to bottom of chat
   const botChatMessagesRef = useRef(null);  // Ref for scrolling to bottom of bot chat
 
+  const { partner_username } = location.state || {}; // Get partner's string username
+
+  const [humanParticipantDemographics, setHumanParticipantDemographics] = useState(null);
+  const [isLoadingHumanDemographics, setIsLoadingHumanDemographics] = useState(false);
+
+  // This state will hold what the bot *displays* post-shuffle (which is the human's demographics)
+  const [botDisplayedDemographicsPostShuffle, setBotDisplayedDemographicsPostShuffle] = useState(null);
+
+
+  // Fetch Human Participant's Demographics
+  useEffect(() => {
+    const fetchHumanDems = async (usernameToFetch) => {
+      if (!usernameToFetch) return;
+      setIsLoadingHumanDemographics(true);
+      try {
+        const response = await fetch(`${config.SERVER_URL}/api/get_demographics/${usernameToFetch}`);
+        if (!response.ok) throw new Error(`Failed to fetch demographics: ${response.status}`);
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+        setHumanParticipantDemographics(data);
+      } catch (error) {
+        console.error("Error fetching human demographics:", error.message);
+        setHumanParticipantDemographics({ error: 'Could not load data' });
+      } finally {
+        setIsLoadingHumanDemographics(false);
+      }
+    };
+
+    // Determine whose demographics to fetch for the "human" side
+    if (role === 'tester' && partner_username) {
+      fetchHumanDems(partner_username); // Tester sees experimenter's demographics
+    } else if (role === 'experimenter' && username) {
+      fetchHumanDems(username); // Experimenter sees their own demographics
+    }
+  }, [role, username, partner_username]);
+
+  // Helper to render demographics display
+  const DemographicsDisplayComponent = ({ demData, isLoading, titlePrefix = "" }) => {
+    if (isLoading) {
+      return <div className="demographics-info"><p>Loading demographics...</p></div>;
+    }
+    if (!demData || demData.error) {
+      return <div className="demographics-info"><p>{titlePrefix} Demographics not available.</p></div>;
+    }
+    return (
+      <div className="demographics-info">
+        {titlePrefix && <h4>{titlePrefix}</h4>}
+        {demData.gender && <p><span>Gender:</span> {demData.gender}</p>}
+        {demData.age && <p><span>Age:</span> {demData.age}</p>}
+        {demData.occupation && <p><span>Occupation:</span> {demData.occupation}</p>}
+        {demData.country && <p><span>Country:</span> {demData.country}</p>}
+        {demData.aiExperience && <p><span>AI Exp:</span> {demData.aiExperience}</p>}
+      </div>
+    );
+  };
 
   // useEffect for handling the start of inactivity checking
 useEffect(() => {
@@ -353,55 +418,40 @@ useEffect(() => {
 
   // Handle shuffle logic when pre-shuffle timer reaches 0
 useEffect(() => {
-  if (!shuffleEnabled) return; // Skip this effect if shuffling is disabled
+    if (!shuffleEnabled) return; // From your config
+    if (role === 'tester' && timer === 0 && !isAnonymousMode) { // Assuming timer is your pre-shuffle timer
+      setShuffling(true);
+      const preShuffleHumanChatHistory = [...messages]; // Capture human chat
 
-  // Ensure this runs only once when the initial timer hits 0 for the tester
-  // and anonymous mode hasn't started yet.
-  if (role === 'tester' && timer === 0 && !isAnonymousMode) {
-    setShuffling(true);
-    console.log('[SHUFFLE DEBUG] Timer reached 0. Starting shuffle process.');
-    console.log('[SHUFFLE DEBUG] Current "messages" (human chat) state:', JSON.stringify(messages));
-    console.log('[SHUFFLE DEBUG] Current "botMessages" (bot chat) state:', JSON.stringify(botMessages));
+      setTimeout(() => {
+        setupAnonymousRooms(); // Your existing function
+        saveChatLogs('Before Turing Test'); // Your existing function
 
-    // Capture the human conversation history (from the 'messages' state)
-    const preShuffleHumanChatHistory = [...messages];
-    console.log('[SHUFFLE DEBUG] Captured "preShuffleHumanChatHistory":', JSON.stringify(preShuffleHumanChatHistory));
+        setMessages([...preShuffleHumanChatHistory]);
+        setBotMessages([...preShuffleHumanChatHistory]);
 
-    setTimeout(() => {
-      console.log('[SHUFFLE DEBUG] Inside setTimeout: Shuffle animation ended.');
+        // Bot "adopts" human's demographics for display and conversational context
+        if (humanParticipantDemographics && !humanParticipantDemographics.error) {
+          setBotDisplayedDemographicsPostShuffle({
+            ...humanParticipantDemographics,
+            source: 'adopted-human-post-shuffle' // Mark the source
+          });
+        } else {
+          // Fallback if human demos failed to load, bot might display its fixed ones or nothing
+          console.warn("Human demographics not available for bot to adopt post-shuffle.");
+          setBotDisplayedDemographicsPostShuffle(FIXED_BOT_DEMOGRAPHICS); // Or null/error state
+        }
 
-      setupAnonymousRooms(); // This determines finalRoomConfig and roomOrder
-      console.log('[SHUFFLE DEBUG] setupAnonymousRooms() called.');
-
-      // saveChatLogs uses the state *before* the upcoming setMessages/setBotMessages
-      // to log the original distinct conversations. This is correct.
-      saveChatLogs('Before Turing Test');
-      console.log('[SHUFFLE DEBUG] saveChatLogs("Before Turing Test") called.');
-
-      // **** CRITICAL SECTION TO ENSURE BOTH WINDOWS GET HUMAN CHAT ****
-      console.log('[SHUFFLE DEBUG] Attempting to set BOTH "messages" and "botMessages" states to preShuffleHumanChatHistory.');
-
-      // Create truly new array references for state updates to be certain
-      const humanHistoryForDisplay = [...preShuffleHumanChatHistory];
-
-      setMessages(humanHistoryForDisplay);
-      setBotMessages(humanHistoryForDisplay); // <<<< THIS IS KEY
-      // After these calls, both 'messages' and 'botMessages' states should hold the humanHistoryForDisplay.
-      // A re-render will follow, and renderChatWindow will use these updated states.
-      // console.log('[SHUFFLE DEBUG] setMessages and setBotMessages have been called.'); // This log might be tricky due to async nature of setState
-
-      setRealTestTimer(config.REAL_TEST_TIMER);
-      setIsAnonymousMode(true);
-      setShuffling(false);
-      console.log('[SHUFFLE DEBUG] Anonymous mode enabled, timers reset, shuffling ended.');
-
-    }, 3000); // Shuffle animation duration
+        setIsAnonymousMode(true);
+        setRealTestTimer(config.REAL_TEST_TIMER); // Assuming this state exists
+        setShuffling(false);
+      }, 3000); // Shuffle animation duration
   } else if (role === 'experimenter' && timer === 0 && !isAnonymousMode) {
     // For experimenter, just ensure the real test timer is set and sync anonymous mode state
     setRealTestTimer(config.REAL_TEST_TIMER);
     setIsAnonymousMode(true);
   }
-}, [timer, role, shuffleEnabled, isAnonymousMode, messages, realTestTimer, botMessages]); // Added botMessages to dependencies just in case, though messages is the primary source for preShuffleHumanChatHistory.
+}, [timer, role, shuffleEnabled, isAnonymousMode, messages, humanParticipantDemographics]); // Added botMessages to dependencies just in case, though messages is the primary source for preShuffleHumanChatHistory.
 
   // Countdown for the real Turing Test
   useEffect(() => {
@@ -478,7 +528,7 @@ useEffect(() => {
         try {
           const response = await axios.post(server_url + '/api/generate_code', {
             role: 'experimenter',
-            name,
+            // name,
             pairId,
           });
           if (response.data.status === 'success') {
@@ -560,42 +610,74 @@ useEffect(() => {
 
 
   // Send a message to the bot
-  const sendMessageToBotQueue = async (message) => {
-    try {
-        // console.log('Bot sending message, checking for wake-up context:', {
-        //     hasWakeupContext: !!lastWakeupMessageRef.current
-        // });
+  const sendMessageToBotQueue = async (messageContent) => { // Renamed 'message' to 'messageContent' for clarity
+    let activeDemographicsForBotContext;
+    let isFirstInteractionForBotPostShuffle = false;
+    let botConversationHistoryForAPI;
 
-        // Only use bot messages for context, not the experimenter chat messages
-        const botConversationHistory = botMessages.map((msg) => ({
-            role: msg.sender === 'bot' ? 'assistant' : 'user',
+    if (isAnonymousMode) {
+        // POST-SHUFFLE: Bot uses the adopted human demographics for context
+        // botMessages now contains the human's pre-shuffle chat history
+        botConversationHistoryForAPI = botMessages.map((msg) => ({
+            // Map sender based on the original human chat context
+            // Assuming 'experimenter' was the human partner, 'role' was the tester
+            role: msg.sender === 'experimenter' ? 'assistant' : (msg.sender === role ? 'user' : 'assistant'),
             content: msg.content
         }));
 
+        // Determine if this is the first message the bot is "seeing" from the user in this adopted context
+        const userMessagesInAdoptedHistory = botConversationHistoryForAPI.filter(m => m.role === 'user').length;
+        if (userMessagesInAdoptedHistory === 0 && messageContent.trim() !== '') { // Check if the current messageContent is the first user input
+            isFirstInteractionForBotPostShuffle = true;
+        }
+
+        // Use the human demographics that the bot is supposed to be displaying/adopting
+        activeDemographicsForBotContext = botDisplayedDemographicsPostShuffle || FIXED_BOT_DEMOGRAPHICS; // Fallback to fixed if adoption somehow failed
+        if (activeDemographicsForBotContext && !activeDemographicsForBotContext.source) {
+             // Ensure a source if it's coming from botDisplayedDemographicsPostShuffle which should have it
+            activeDemographicsForBotContext = {...activeDemographicsForBotContext, source: 'adopted-human-post-shuffle'};
+        }
+
+
+    } else {
+        // PRE-SHUFFLE: Bot uses its own fixed demographics
+        botConversationHistoryForAPI = botMessages.map((msg) => ({
+            role: msg.sender === 'bot' ? 'assistant' : 'user', // 'user' is the tester
+            content: msg.content
+        }));
+        activeDemographicsForBotContext = FIXED_BOT_DEMOGRAPHICS;
+    }
+
+    try {
         const botReply = await sendBotMessage(
-            [...botConversationHistory, { role: 'user', content: message }],
-            currentPersona,
-            false, // indicates this is not a wakeup message
-            lastWakeupMessageRef.current, // pass the last wake-up message for context,
-            config.ENABLE_PROMPT  // enable/disable prompt system
+            [...botConversationHistoryForAPI, { role: 'user', content: messageContent }],
+            currentPersona, // Bot's base persona
+            false, // isWakeupMessage
+            lastWakeupMessageRef.current,
+            config.ENABLE_PROMPT, // Use your renamed config import
+            isFirstInteractionForBotPostShuffle,
+            activeDemographicsForBotContext // Pass the determined demographics for context
         );
 
         setBotMessages((prevBotMessages) => [
             ...prevBotMessages,
-            { sender: 'bot', content: botReply }
+            { sender: 'bot', content: botReply, timestamp: Date.now() } // Ensure timestamp is added
         ]);
 
-        // Clear the wake-up message reference after bot responds
         lastWakeupMessageRef.current = null;
-
         lastBotActivityTimestampRef.current = Date.now();
-        // console.log('Updated bot activity timestamp:', lastBotActivityTimestampRef.current);
+        setMessageToBot(''); // Clear input after successful send
+
     } catch (error) {
         console.error('Error communicating with bot:', error);
+        // Optionally add an error message to chat or handle differently
+        setBotMessages((prevBotMessages) => [
+            ...prevBotMessages,
+            { sender: 'bot', content: "Sorry, I couldn't respond right now.", timestamp: Date.now() }
+        ]);
+        // Do not clear messageToBot on error, so user can retry
     }
-
-    setMessageToBot('');
-  };
+};
 
   useEffect(() => {
     // If wake-up system is disabled, don't proceed
@@ -963,35 +1045,78 @@ useEffect(() => {
       }
   }, [messages, botMessages]);
 
-  const renderChatWindow = (roomType) => {
-    if (!finalRoomConfig) return null;
 
-    const currentRoom = roomType === roomOrder[0] ? 'leftRoom' : 'rightRoom';
-    const roomInfo = finalRoomConfig[currentRoom];
+const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
+    // Initial guard: In anonymous mode, finalRoomConfig must be ready.
+    // Your original code had `if (!finalRoomConfig) return null;`
+    // This should ideally be `if (isAnonymousMode && !finalRoomConfig) return null;`
+    // because finalRoomConfig is specific to anonymous mode.
+    if (isAnonymousMode && !finalRoomConfig) {
+        // console.warn("renderChatWindow: finalRoomConfig not ready for anonymous mode.");
+        return null;
+    }
 
-    if (realTestTimer === 0) {
+    let demDataForDisplay;
+    let isLoadingDemographics;
+
+    // Determine which demographics to display for THIS specific window
+    if (isAnonymousMode) {
+        // POST-SHUFFLE: Both windows display the original human participant's demographics
+        demDataForDisplay = humanParticipantDemographics;
+        isLoadingDemographics = isLoadingHumanDemographics;
+        console.log("Human Demographics for Display (Post-Shuffle):", humanParticipantDemographics); // DEBUG LINE
+    } else {
+        // PRE-SHUFFLE:
+        if (roomTypeArgument === 'experimenter') {
+            demDataForDisplay = humanParticipantDemographics;
+            isLoadingDemographics = isLoadingHumanDemographics;
+            console.log("Human Demographics for Display (Pre-Shuffle, Experimenter Window):", humanParticipantDemographics); // DEBUG LINE
+        } else { // roomTypeArgument === 'bot'
+            demDataForDisplay = FIXED_BOT_DEMOGRAPHICS;
+            isLoadingDemographics = false; // Fixed, so not "loading"
+        }
+    }
+
+    // This part is from your original code, determining which room's info to use in anonymous mode
+    // It's needed for candidate labels and potentially for other logic if you extend it.
+    // If not in anonymous mode, roomInfo might be undefined, handle gracefully.
+    const roomInfo = isAnonymousMode ?
+        (finalRoomConfig[roomTypeArgument === roomOrder[0] ? 'leftRoom' : 'rightRoom'])
+        : null;
+
+    // GUESSING PHASE (realTestTimer === 0 and role is 'tester')
+    if (role === 'tester' && realTestTimer === 0) {
+      // Ensure roomInfo is available for candidate identification in anonymous mode
+      if (isAnonymousMode && !roomInfo) return null; // Should not happen if finalRoomConfig guard is effective
+
+      const candidateForGuess = roomInfo ? roomInfo.candidate : (roomTypeArgument === 'experimenter' ? 'A' : 'B'); // Fallback for safety
+
       return (
         <div className="chat-window">
           <div className="chat-header">
-            {`Candidate ${roomInfo.candidate}`}
+            {/* In anonymous mode, title is always "Candidate X" */}
+            {isAnonymousMode ? `Candidate ${roomInfo.candidate}` : (roomTypeArgument === 'experimenter' ? 'Chat with Human' : 'Chat with Bot')}
           </div>
-        <div className="chat-messages" ref={roomType === 'experimenter' ? chatMessagesRef : botChatMessagesRef}>
-          {roomType === 'experimenter' ? messages.map((msg, index) => (
-            <p className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`} key={index}>
-              {msg.content}
-            </p>
-          )) : botMessages.map((msg, index) => (
-            <p className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`} key={index}>
-              {msg.content}
-            </p>
-          ))}
-        </div>
-        <div className="chat-input">
+          <DemographicsDisplayComponent demData={demDataForDisplay} isLoading={isLoadingDemographics} />
+          <div className="chat-messages" ref={roomTypeArgument === 'experimenter' ? chatMessagesRef : botChatMessagesRef}>
+            {/*
+              In anonymous mode post-shuffle, `messages` and `botMessages` initially hold the same human chat history.
+              So, the choice here determines which *state variable* to map, but the content is the same initially.
+              This distinction becomes important if their conversations diverge *after* the shuffle.
+            */}
+            {(isAnonymousMode ? (roomInfo.role === 'experimenter' ? messages : botMessages) : (roomTypeArgument === 'experimenter' ? messages : botMessages))
+            .map((msg, index) => (
+              <p className={`message ${msg.sender === username || msg.sender === role ? 'message-left' : 'message-right'}`} key={index}>
+                {msg.content}
+              </p>
+            ))}
+          </div>
+          <div className="chat-input">
             <div className="cover">
               <p>Who was in this chat?</p>
               <select
-                value={roomInfo.candidate === 'A' ? guessCandidateA : guessCandidateB}
-                            onChange={(e) => handleGuess(roomInfo.candidate, e.target.value)}
+                value={candidateForGuess === 'A' ? guessCandidateA : guessCandidateB}
+                onChange={(e) => handleGuess(candidateForGuess, e.target.value)}
               >
                 <option value="">Select</option>
                 <option value="bot">Bot</option>
@@ -1003,21 +1128,23 @@ useEffect(() => {
       );
     }
 
-    if (roomType === 'experimenter') {
+    // ACTIVE CHAT PHASE
+    // Your original structure had separate blocks for 'experimenter' and 'bot'.
+    // We'll inject the demographic display into those.
+
+    if (roomTypeArgument === 'experimenter') { // This usually means the HUMAN's window (pre-shuffle) or the window designated for HUMAN (post-shuffle)
       return (
         <div className="chat-window">
           <div className="chat-header">
-          {isAnonymousMode
-                    ? `Candidate ${roomInfo.candidate}`
-                    : `Chat with ${roomType === 'experimenter' ? 'Human' : 'Bot'}`
-                }
+            {isAnonymousMode
+                ? (roomInfo ? `Candidate ${roomInfo.candidate}` : "Loading...") // Candidate label if anonymous
+                : "Chat with Human" // Pre-shuffle title
+            }
           </div>
+          <DemographicsDisplayComponent demData={demDataForDisplay} isLoading={isLoadingDemographics} />
           <div className="chat-messages" ref={chatMessagesRef}>
             {messages.map((msg, index) => (
-              <p
-                className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`}
-                key={index}
-              >
+              <p className={`message ${msg.sender === username || msg.sender === role ? 'message-left' : 'message-right'}`} key={index}>
                 {msg.content}
               </p>
             ))}
@@ -1027,7 +1154,7 @@ useEffect(() => {
               type="text"
               value={messageToExperimenter}
               onChange={(e) => setMessageToExperimenter(e.target.value)}
-              onKeyDown={handleKeyPressExperimenter}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey ? (e.preventDefault(), sendMessageToExperimenter()) : null}
               placeholder="Type your message here..."
               className="input-box"
             />
@@ -1039,21 +1166,19 @@ useEffect(() => {
       );
     }
 
-    if (roomType === 'bot') {
+    if (roomTypeArgument === 'bot') { // This usually means the BOT's window (pre-shuffle) or the window designated for BOT (post-shuffle)
       return (
         <div className="chat-window">
           <div className="chat-header">
-              {isAnonymousMode
-                    ? `Candidate ${roomInfo.candidate}`
-                    : `Chat with ${roomType === 'experimenter' ? 'Human' : 'Bot'}`
-              }
+            {isAnonymousMode
+                ? (roomInfo ? `Candidate ${roomInfo.candidate}` : "Loading...") // Candidate label if anonymous
+                : "Chat with Bot" // Pre-shuffle title
+            }
           </div>
+          <DemographicsDisplayComponent demData={demDataForDisplay} isLoading={isLoadingDemographics} />
           <div className="chat-messages" ref={botChatMessagesRef}>
             {botMessages.map((msg, index) => (
-              <p
-                className={`message ${msg.sender === role ? 'message-left' : 'message-right'}`}
-                key={index}
-              >
+              <p className={`message ${msg.sender === username || msg.sender === role ? 'message-left' : 'message-right'}`} key={index}>
                 {msg.content}
               </p>
             ))}
@@ -1063,7 +1188,7 @@ useEffect(() => {
               type="text"
               value={messageToBot}
               onChange={(e) => setMessageToBot(e.target.value)}
-              onKeyDown={handleKeyPressBot}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey ? (e.preventDefault(), sendMessageToBot()) : null} // Ensure sendMessageToBot calls your sendMessageToBotQueue
               placeholder="Type your message here..."
               className="input-box"
             />
@@ -1074,6 +1199,10 @@ useEffect(() => {
         </div>
       );
     }
+
+    // Fallback if roomTypeArgument is somehow not 'experimenter' or 'bot'
+    // Or if role is 'experimenter' (they only see one window, handled outside this mapping)
+    return null;
   };
 
 

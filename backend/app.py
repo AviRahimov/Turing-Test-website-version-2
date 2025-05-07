@@ -305,20 +305,27 @@ def register_user(data):
 @app.route("/api/save_demographics", methods=["POST"])
 def save_demographics():
     data = request.json
-    user_id = data.get("user_id")
+    print(f"Received demographics data to save: {data}")  # DEBUG LINE
+    user_id_from_frontend = data.get("user_id") # This is the "user_X" string
     gender = data.get("gender")
     age = data.get("age")
-    education = data.get("education")
-    employment = data.get("employment")
+    occupation = data.get("occupation")
     country = data.get("country")
     ai_experience = data.get("aiExperience")
 
+    # Validate age server-side as well
+    try:
+        age_num = int(age)
+        if age_num <= 0:
+            return jsonify({"status": "error", "message": "Invalid age"}), 400
+    except ValueError:
+        return jsonify({"status": "error", "message": "Age must be a number"}), 400
+
     demographic_data = {
-        "user_id": user_id,
+        "user_id": user_id_from_frontend, # Storing "user_X" as user_id
         "gender": gender,
-        "age": age,
-        "education": education,
-        "employment": employment,
+        "age": age_num, # Storing numerical age
+        "occupation": occupation, # Storing occupation
         "country": country,
         "ai_experience": ai_experience,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -330,6 +337,26 @@ def save_demographics():
     except Exception as e:
         logging.error(f"Error saving demographic data: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route('/api/get_demographics/<target_username>', methods=['GET'])
+def get_user_demographics(target_username):
+    try:
+        user_data_doc = demographic_collection.find_one({"user_id": target_username})  # Query by "user_X"
+
+        if user_data_doc:
+            demographics_to_return = {
+                "gender": user_data_doc.get("gender"),
+                "age": user_data_doc.get("age"),
+                "occupation": user_data_doc.get("occupation"),  # Return occupation
+                "country": user_data_doc.get("country"),
+                "aiExperience": user_data_doc.get("ai_experience")
+            }
+            return jsonify(demographics_to_return), 200
+        else:
+            return jsonify({"error": "Demographics not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 def generate_unique_room_number():
@@ -385,43 +412,33 @@ def submit_name():
 
         # Attempt to pair users if both queues are filled
         if tester_queue and experimenter_queue:
-            tester = tester_queue[0]  # Don't pop yet
-            experimenter = experimenter_queue[0]  # Don't pop yet
+            tester_username_str = tester_queue[0]
+            experimenter_username_str = experimenter_queue[0]
 
-            # Get socket IDs for both users
-            tester_id = user_sockets.get(tester)
-            experimenter_id = user_sockets.get(experimenter)
+            tester_socket_id = user_sockets.get(tester_username_str)
+            experimenter_socket_id = user_sockets.get(experimenter_username_str)
 
-            # Only proceed if both users have valid socket connections
-            if tester_id and experimenter_id:
-                # Now it's safe to remove from queues
+            if tester_socket_id and experimenter_socket_id:
                 tester_queue.popleft()
                 experimenter_queue.popleft()
-
                 pair_id = generate_unique_room_number()
-                pairs[pair_id] = {"tester": tester, "experimenter": experimenter}
+                pairs[pair_id] = {"tester": tester_username_str, "experimenter": experimenter_username_str}
 
-                # Emit to both users
-                socketio.emit(
-                    "paired",
-                    {
-                        "pair_id": pair_id,
-                        "role": "tester",
-                        "user_id": tester_id,
-                        "username": tester,
-                    },
-                    to=tester_id,
-                )
-                socketio.emit(
-                    "paired",
-                    {
-                        "pair_id": pair_id,
-                        "role": "experimenter",
-                        "user_id": experimenter_id,
-                        "username": experimenter,
-                    },
-                    to=experimenter_id,
-                )
+                # Tester payload
+                socketio.emit("paired", {
+                    "pair_id": pair_id, "role": "tester",
+                    "user_id": user_sockets.get(tester_username_str),  # Socket ID
+                    "username": tester_username_str,  # "user_X"
+                    "partner_username": experimenter_username_str  # Partner's "user_Y"
+                }, to=tester_socket_id)
+
+                # Experimenter payload
+                socketio.emit("paired", {
+                    "pair_id": pair_id, "role": "experimenter",
+                    "user_id": user_sockets.get(experimenter_username_str),  # Socket ID
+                    "username": experimenter_username_str,  # "user_Y"
+                    "partner_username": tester_username_str  # Partner's "user_X"
+                }, to=experimenter_socket_id)
 
                 logging.info(
                     f"Paired {tester} (ID: {tester_id}) with {experimenter} (ID: {experimenter_id}) in room {pair_id}"
