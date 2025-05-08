@@ -8,7 +8,7 @@ const config = {
   ENABLE_MESSAGE_QUEUE: false,  // Enable/disable the message queue system for bot messages
   // SERVER_URL: 'http://3.93.242.186:5000/',  // URL of the server
   SERVER_URL: 'http://localhost:5000/',  // URL of the server for local testing
-  OPENROUTER_MODEL: 'meta-llama/llama-3.2-1b-instruct:free',  // Model to use for OpenRouter
+  OPENROUTER_MODEL:  'meta-llama/llama-3.1-405b-instruct',  // Model to use for OpenRouter
 };
 
 export default config;

@@ -441,7 +441,7 @@ def submit_name():
                 }, to=experimenter_socket_id)
 
                 logging.info(
-                    f"Paired {tester} (ID: {tester_id}) with {experimenter} (ID: {experimenter_id}) in room {pair_id}"
+                    f"Paired {tester_username_str} (ID: {tester_socket_id}) with {experimenter_username_str} (ID: {experimenter_socket_id}) in room {pair_id}"
                 )
                 return jsonify(
                     {
@@ -449,14 +449,14 @@ def submit_name():
                         "pair_id": pair_id,
                         "users": [
                             {
-                                "username": tester,
+                                "username": tester_username_str,
                                 "role": "tester",
-                                "user_id": tester_id,
+                                "user_id": tester_socket_id,
                             },
                             {
-                                "username": experimenter,
+                                "username": experimenter_username_str,
                                 "role": "experimenter",
-                                "user_id": experimenter_id,
+                                "user_id": experimenter_socket_id,
                             },
                         ],
                     }

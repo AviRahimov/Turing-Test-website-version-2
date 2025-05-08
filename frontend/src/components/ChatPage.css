@@ -25,9 +25,9 @@ body {
 /* Individual chat windows */
 .chat-window {
   flex: 1;
-  min-width: 380px;
+  min-width: auto;
   max-width: 520px;
-  height: 65vh;
+  height: auto;
   min-height: 500px;
   max-height: 750px;
   border: 1px solid #dce1e6; /* Softer border color */
@@ -39,16 +39,16 @@ body {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08); /* Softer, more diffused shadow */
 }
 
-/* Chat window header */
+/* For the header of each chat window */
 .chat-header {
-  background-color: #00ff80; /* A standard, pleasant blue */
+  background-color: #4caf50; /* Changed from #2196f3 to green */
   color: white;
-  padding: 12px 18px;
+  padding: 15px; /* Increased padding for better spacing */
   text-align: center;
-  font-size: 1.1rem;
-  font-weight: 500;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05); /* Very subtle separator line */
-  /* border-top-left-radius and border-top-right-radius are effectively handled by .chat-window's overflow:hidden and border-radius */
+  font-size: 20px; /* Increased font size */
+  font-weight: bold;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
 }
 
 /* Demographics Info Area Styling */

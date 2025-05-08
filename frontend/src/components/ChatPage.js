@@ -16,9 +16,9 @@ const socket = io(config.SERVER_URL)
 const FIXED_BOT_DEMOGRAPHICS = {
   gender: 'Female',
   age: 28,
-  occupation: 'Teacher',
-  country: 'Australia',
-  aiExperience: 'Beginner',
+  occupation: 'Student',
+  country: 'USA',
+  aiExperience: 'Basic',
   source: 'fixed-bot-profile' // Identifier
 };
 
@@ -610,58 +610,87 @@ useEffect(() => {
 
 
   // Send a message to the bot
-  const sendMessageToBotQueue = async (messageContent) => { // Renamed 'message' to 'messageContent' for clarity
-    let activeDemographicsForBotContext;
-    let isFirstInteractionForBotPostShuffle = false;
-    let botConversationHistoryForAPI;
+  const sendMessageToBotQueue = async (messageContent) => {
+    let activeDemographicsForDisplay; // What the bot currently appears as
+    let botConversationHistoryForAPI;   // The chat history for the current API turn
+
+    // --- NEW: Variables for system prompt context ---
+    let preShuffleHistoryForSystemPrompt = null;
+    let displayedDemographicsForSystemPrompt = null;
 
     if (isAnonymousMode) {
-        // POST-SHUFFLE: Bot uses the adopted human demographics for context
-        // botMessages now contains the human's pre-shuffle chat history
+        // POST-SHUFFLE: Bot uses the adopted human demographics for context.
+        // `botMessages` state was set to the human's pre-shuffle chat history during the shuffle effect.
+
+        // This is the history of the current window (which is the human's pre-shuffle history)
         botConversationHistoryForAPI = botMessages.map((msg) => ({
-            // Map sender based on the original human chat context
-            // Assuming 'experimenter' was the human partner, 'role' was the tester
-            role: msg.sender === 'experimenter' ? 'assistant' : (msg.sender === role ? 'user' : 'assistant'),
+            // msg.sender in botMessages (which is preShuffleHumanChatHistory)
+            // refers to senders in the original human-tester chat.
+            // 'role' is the current user's role (e.g., 'tester').
+            role: msg.sender === role ? 'user' : 'assistant', // If sender was current user (tester), it's 'user', else it was the human ('assistant')
             content: msg.content
         }));
 
-        // Determine if this is the first message the bot is "seeing" from the user in this adopted context
-        const userMessagesInAdoptedHistory = botConversationHistoryForAPI.filter(m => m.role === 'user').length;
-        if (userMessagesInAdoptedHistory === 0 && messageContent.trim() !== '') { // Check if the current messageContent is the first user input
-            isFirstInteractionForBotPostShuffle = true;
-        }
+        // This same history is also what we need to feed into the system prompt
+        // to give the bot context about the conversation it's taking over.
+        preShuffleHistoryForSystemPrompt = [...botConversationHistoryForAPI].slice(-10); // Use a copy, take last 10 exchanges for brevity
 
-        // Use the human demographics that the bot is supposed to be displaying/adopting
-        activeDemographicsForBotContext = botDisplayedDemographicsPostShuffle || FIXED_BOT_DEMOGRAPHICS; // Fallback to fixed if adoption somehow failed
-        if (activeDemographicsForBotContext && !activeDemographicsForBotContext.source) {
-             // Ensure a source if it's coming from botDisplayedDemographicsPostShuffle which should have it
-            activeDemographicsForBotContext = {...activeDemographicsForBotContext, source: 'adopted-human-post-shuffle'};
-        }
-
+        // The demographics the bot is displayed with and should be aware of for its persona.
+        // botDisplayedDemographicsPostShuffle was set to humanParticipantDemographics.
+        activeDemographicsForDisplay = botDisplayedDemographicsPostShuffle || FIXED_BOT_DEMOGRAPHICS; // Fallback
+        displayedDemographicsForSystemPrompt = activeDemographicsForDisplay;
 
     } else {
-        // PRE-SHUFFLE: Bot uses its own fixed demographics
+        // PRE-SHUFFLE: Bot uses its own fixed demographics (Alex's base persona)
         botConversationHistoryForAPI = botMessages.map((msg) => ({
-            role: msg.sender === 'bot' ? 'assistant' : 'user', // 'user' is the tester
+            // msg.sender here is either 'bot' (Alex) or 'role' (tester)
+            role: msg.sender === 'bot' ? 'assistant' : 'user',
             content: msg.content
         }));
-        activeDemographicsForBotContext = FIXED_BOT_DEMOGRAPHICS;
+        // For pre-shuffle, activeDemographicsForDisplay would be Alex's base.
+        // currentPersona should hold Alex's base details.
+        activeDemographicsForDisplay = currentPersona ? {
+            gender: currentPersona.gender,
+            age: currentPersona.age,
+            occupation: currentPersona.occupation || 'Student', // Assuming occupation for Alex
+            country: currentPersona.country || 'USA',       // Assuming country for Alex
+            aiExperience: currentPersona.aiExperience || 'Low' // Assuming AI exp for Alex
+        } : FIXED_BOT_DEMOGRAPHICS; // Fallback to global fixed if currentPersona isn't detailed enough
+
+        // Pre-shuffle, the system prompt doesn't need injected history or different displayed demos.
+        // It will use Alex's base persona defined in createSystemPrompt.
+        preShuffleHistoryForSystemPrompt = null;
+        displayedDemographicsForSystemPrompt = null;
     }
 
     try {
+        // Ensure currentPersona is Alex's base details for the createSystemPrompt call inside sendBotMessage
+        const alexBasePersona = currentPersona || {
+            name: 'Alex', // Default if not in currentPersona
+            gender: 'Male',
+            age: 19,
+            // ... other base details Alex needs for createSystemPrompt
+        };
+
+        // Call your existing sendBotMessage function, now passing the new context parameters.
+        // You'll need to modify sendBotMessage in botService.js to accept and use these.
         const botReply = await sendBotMessage(
-            [...botConversationHistoryForAPI, { role: 'user', content: messageContent }],
-            currentPersona, // Bot's base persona
-            false, // isWakeupMessage
-            lastWakeupMessageRef.current,
-            config.ENABLE_PROMPT, // Use your renamed config import
-            isFirstInteractionForBotPostShuffle,
-            activeDemographicsForBotContext // Pass the determined demographics for context
+            [...botConversationHistoryForAPI, { role: 'user', content: messageContent }], // Full history for API turn
+            alexBasePersona, // Pass Alex's base persona details
+            false, // isWakeupMessage (assuming this is not a wakeup message context)
+            lastWakeupMessageRef.current, // Existing param
+            config.ENABLE_PROMPT,         // Existing param
+            false, // isFirstInteractionForBotPostShuffle - this logic might need refinement if still needed
+            activeDemographicsForDisplay, // Demographics for general context if sendBotMessage uses it directly
+
+            // --- NEW PARAMS for system prompt generation inside sendBotMessage ---
+            preShuffleHistoryForSystemPrompt,
+            displayedDemographicsForSystemPrompt
         );
 
         setBotMessages((prevBotMessages) => [
             ...prevBotMessages,
-            { sender: 'bot', content: botReply, timestamp: Date.now() } // Ensure timestamp is added
+            { sender: 'bot', content: botReply, timestamp: Date.now() }
         ]);
 
         lastWakeupMessageRef.current = null;
@@ -670,12 +699,10 @@ useEffect(() => {
 
     } catch (error) {
         console.error('Error communicating with bot:', error);
-        // Optionally add an error message to chat or handle differently
         setBotMessages((prevBotMessages) => [
             ...prevBotMessages,
             { sender: 'bot', content: "Sorry, I couldn't respond right now.", timestamp: Date.now() }
         ]);
-        // Do not clear messageToBot on error, so user can retry
     }
 };
 
@@ -895,6 +922,24 @@ useEffect(() => {
                     "To pretend to be a bot"
                 ],
                 correctAnswer: 1
+            },
+            {
+                question: "After the 'shuffle,' what happens to the chat messages from before the shuffle?",
+                options: [
+                    "All previous chat messages will be deleted from both windows.", // Clearly wrong
+                    "The Human's previous messages will stay in one window, and any pre-shuffle Bot messages in the other.", // Plausible but wrong
+                    "The chat history you had with the original Human participant will initially appear in *both* 'Candidate A' and 'Candidate B' windows." // Correct
+                ],
+                correctAnswer: 2
+            },
+            {
+                question: "After the 'shuffle,' what demographic details will be shown for 'Candidate A' and 'Candidate B'?",
+                options: [
+                    "No demographics will be shown to make guessing harder.", // Clearly wrong
+                    "One Candidate will show the Human's original demographics, the other will show the Bot's fixed profile.", // Plausible but wrong
+                    "Both Candidates will display the *original Human participant's* self-reported demographics." // Correct
+                ],
+                correctAnswer: 2
             }
         ]
     }
@@ -1095,7 +1140,7 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
         <div className="chat-window">
           <div className="chat-header">
             {/* In anonymous mode, title is always "Candidate X" */}
-            {isAnonymousMode ? `Candidate ${roomInfo.candidate}` : (roomTypeArgument === 'experimenter' ? 'Chat with Human' : 'Chat with Bot')}
+            {isAnonymousMode ? `Candidate ${roomInfo.candidate}` : (roomTypeArgument === 'experimenter' ? 'Chat with a Human' : 'Chat with a Bot')}
           </div>
           <DemographicsDisplayComponent demData={demDataForDisplay} isLoading={isLoadingDemographics} />
           <div className="chat-messages" ref={roomTypeArgument === 'experimenter' ? chatMessagesRef : botChatMessagesRef}>
@@ -1138,7 +1183,7 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
           <div className="chat-header">
             {isAnonymousMode
                 ? (roomInfo ? `Candidate ${roomInfo.candidate}` : "Loading...") // Candidate label if anonymous
-                : "Chat with Human" // Pre-shuffle title
+                : "Chat with a Human" // Pre-shuffle title
             }
           </div>
           <DemographicsDisplayComponent demData={demDataForDisplay} isLoading={isLoadingDemographics} />
@@ -1172,7 +1217,7 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
           <div className="chat-header">
             {isAnonymousMode
                 ? (roomInfo ? `Candidate ${roomInfo.candidate}` : "Loading...") // Candidate label if anonymous
-                : "Chat with Bot" // Pre-shuffle title
+                : "Chat with a Bot" // Pre-shuffle title
             }
           </div>
           <DemographicsDisplayComponent demData={demDataForDisplay} isLoading={isLoadingDemographics} />
@@ -1476,7 +1521,7 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
                 </div>
               )}
               <div className="chat-header">
-                <h3>Chat with Tester</h3>
+                <h3>Chat with the Tester</h3>
                 <p className="subtitle">Prove that you are a human by chatting with the tester.</p>
               </div>
               <div className="chat-messages" ref={chatMessagesRef}>
