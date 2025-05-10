@@ -25,9 +25,9 @@ body {
 /* Individual chat windows */
 .chat-window {
   flex: 1;
-  min-width: auto;
+  min-width: 400px;
   max-width: 520px;
-  height: auto;
+  height: 500px;
   min-height: 500px;
   max-height: 750px;
   border: 1px solid #dce1e6; /* Softer border color */
@@ -160,21 +160,19 @@ body {
 
 /* Styles for the "cover" during guessing phase */
 .chat-input .cover {
-  /* These styles are for the overlay that appears during the guessing phase. */
-  /* They replace the normal input field and send button. */
-  background-color: rgba(255, 255, 255, 0.97); /* Slightly more opaque */
-  /* Ensure it covers the .chat-input area if it's absolutely positioned or similar */
-  /* The original CSS had 'top, left, right, bottom: 0' and z-index, which implies */
-  /* it might be absolutely positioned within .chat-input or .chat-window. */
-  /* For this example, assuming it replaces the content of .chat-input: */
-  width: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9); /* Slight transparency */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 20px; /* Or match .chat-input padding */
+  z-index: 10; /* Ensure it covers everything */
+  padding: 20px;
   text-align: center;
-  border-radius: 0 0 10px 10px; /* If .chat-input is the direct parent and has rounded bottom */
+  width: 100%; /* Ensure it covers the entire chat window */
 }
 
 .chat-window .cover p { /* Text within the guessing cover */

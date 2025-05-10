@@ -189,7 +189,7 @@ useEffect(() => {
                 navigate('/disconnected', {
                     state: { message: banMessage }, replace: true
                 });
-            } else if (timeSinceLastActivity >= 30000 && !warningShown) { // 30 seconds
+            } else if (timeSinceLastActivity >= 60000 && !warningShown) { // 60 seconds
                 // console.log(`${role} - Warning threshold reached - showing warning`);
 
                 const warningMessage = role === 'tester'
@@ -208,7 +208,6 @@ useEffect(() => {
 
         return () => {
             if (inactivityCheckerActive) {
-                // console.log(`${role} - Cleaning up inactivity checker`);
                 clearInterval(inactivityInterval);
             }
         };
@@ -485,6 +484,7 @@ useEffect(() => {
     // });
 
     const realTestInterval = setInterval(() => {
+      // console.log("Real test timer: ", realTestTimer);
       setRealTestTimer((prev) => {
         if (prev > 0) {
           return prev - 1;
@@ -514,36 +514,30 @@ useEffect(() => {
 
       // Stop inactivity checker when chat ends
       setInactivityCheckerActive(false);
-      // console.log(`${role} - Inactivity checker stopped - chat ended`);
-
-      // Emit event to notify tester that experimenter is ready for submissions
-      socket.emit('experimenter_ready', { pair_id: pairId });
 
       if (role === 'experimenter') {
-        // Immediately emit the ready event when experimenter sees overlay
-        // console.log('Experimenter ready - emitting event');
+          console.log(`Experimenter (Pair: ${pairId}) - Overlay should be active. Emitting 'experimenter_is_waiting_for_submission'.`);
+          // EXPERIMENTER ONLY: Emit an event to notify the tester they are now waiting.
+          socket.emit('experimenter_ready', { pair_id: pairId });
 
-        // Set a timeout for 30 seconds
-      const timeoutId = setTimeout(async () => {
-        try {
-          const response = await axios.post(server_url + '/api/generate_code', {
-            role: 'experimenter',
-            // name,
-            pairId,
-          });
-          if (response.data.status === 'success') {
-            navigate('/thank_you', {
-              state: {
-                bonusCode: response.data.code,
-                userId,
-                role: 'experimenter',
-              },
-            });
-          }
-        } catch (error) {
-          console.error('Error generating code:', error);
-        }
-      }, 30000); // 30 seconds
+          // Set a timeout for 30 seconds
+          const timeoutId = setTimeout(async () => {
+              console.log(`Experimenter (Pair: ${pairId}) - 30s timeout reached. Generating code.`);
+              try {
+                const response = await axios.post(server_url + '/api/generate_code', {
+                  role: 'experimenter',
+                  pairId,
+                });
+                if (response.data.status === 'success') {
+                  navigate('/thank_you', {
+                    state: { bonusCode: response.data.code, userId, role: 'experimenter', pairId },
+                  });
+                }
+              } catch (error) {
+                console.error('Error generating code for experimenter after timeout:', error);
+                // Potentially navigate to an error page or show a message
+              }
+        }, 30000); // 30 seconds
 
       socket.on('bonus_code', (data) => {
         clearTimeout(timeoutId); // Clear the timeout if the bonus code is received
@@ -709,16 +703,8 @@ useEffect(() => {
   useEffect(() => {
     // If wake-up system is disabled, don't proceed
     if (!botWakeupEnabled) {
-        // console.log('Bot wake-up system is disabled in config');
         return;
     }
-
-    // console.log('Wake-up effect triggered with conditions:', {
-    //     inactivityCheckerActive,
-    //     role,
-    //     realTestTimer,
-    //     wakeupAttemptsCount
-    // });
 
     if (!inactivityCheckerActive || role !== 'tester' || realTestTimer === 0) {
         if (wakeupIntervalRef.current) {
@@ -739,25 +725,11 @@ useEffect(() => {
 
 
         wakeupIntervalRef.current = setInterval(() => {
-            // console.log('Checking bot wakeup...', {
-            //     timeSinceLastActivity: Math.floor((Date.now() - lastActivityTimestampRef.current) / 1000),
-            //     timeSinceLastBotActivity: Math.floor((Date.now() - lastBotActivityTimestampRef.current) / 1000),
-            //     timeSinceLastWakeup: Math.floor((Date.now() - lastWakeupMessageTimeRef.current) / 1000),
-            //     wakeupAttemptsCount,
-            //     wakeupDelay: wakeupDelayRef.current / 1000
-            // });
 
             const currentTime = Date.now();
             const timeSinceLastActivity = currentTime - lastActivityTimestampRef.current;
             const timeSinceLastBotActivity = currentTime - lastBotActivityTimestampRef.current;
             const timeSinceLastWakeup = currentTime - lastWakeupMessageTimeRef.current;
-
-            // console.log('Checking conditions:', {
-            //     isInactiveEnough: timeSinceLastActivity >= wakeupDelayRef.current,
-            //     isBotQuietEnough: timeSinceLastBotActivity >= 20000,
-            //     isWakeupCooldownOver: timeSinceLastWakeup >= wakeupDelayRef.current,
-            //     underMaxAttempts: wakeupAttemptsCount < MAX_WAKEUP_ATTEMPTS
-            // });
 
             if (timeSinceLastActivity >= wakeupDelayRef.current &&
                 timeSinceLastBotActivity >= 20000 &&
@@ -1109,13 +1081,13 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
         // POST-SHUFFLE: Both windows display the original human participant's demographics
         demDataForDisplay = humanParticipantDemographics;
         isLoadingDemographics = isLoadingHumanDemographics;
-        console.log("Human Demographics for Display (Post-Shuffle):", humanParticipantDemographics); // DEBUG LINE
+        // console.log("Human Demographics for Display (Post-Shuffle):", humanParticipantDemographics); // DEBUG LINE
     } else {
         // PRE-SHUFFLE:
         if (roomTypeArgument === 'experimenter') {
             demDataForDisplay = humanParticipantDemographics;
             isLoadingDemographics = isLoadingHumanDemographics;
-            console.log("Human Demographics for Display (Pre-Shuffle, Experimenter Window):", humanParticipantDemographics); // DEBUG LINE
+            // console.log("Human Demographics for Display (Pre-Shuffle, Experimenter Window):", humanParticipantDemographics); // DEBUG LINE
         } else { // roomTypeArgument === 'bot'
             demDataForDisplay = FIXED_BOT_DEMOGRAPHICS;
             isLoadingDemographics = false; // Fixed, so not "loading"
@@ -1130,7 +1102,7 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
         : null;
 
     // GUESSING PHASE (realTestTimer === 0 and role is 'tester')
-    if (role === 'tester' && realTestTimer === 0) {
+    if (role === 'tester' && realTestTimer === 0 && showOverlay) {
       // Ensure roomInfo is available for candidate identification in anonymous mode
       if (isAnonymousMode && !roomInfo) return null; // Should not happen if finalRoomConfig guard is effective
 
@@ -1555,7 +1527,7 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
         <div className="submission-area">
           {!experimenterReady ? (
             <div className="waiting-message">
-              Please wait for the experimenter to finish...
+              Please wait for the experimenter to finish, it will take a few seconds, don't worry...
             </div>
           ) : (
             <button onClick={handleSubmitGuesses} className="submit-button">

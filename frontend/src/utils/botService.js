@@ -131,7 +131,7 @@ export const sendBotMessage = async (
             // Optionally, create a very basic system prompt here or leave systemPromptObject as null
             // For example: systemPromptObject = { role: 'system', content: 'You are a helpful assistant.' };
         }
-        console.log('Bot API Key:', BOT_API_KEY);
+        // console.log('Bot API Key:', BOT_API_KEY);
         const apiPayloadMessages = [];
         if (systemPromptObject) {
             apiPayloadMessages.push(systemPromptObject);
@@ -177,7 +177,7 @@ export const sendBotMessage = async (
             BOT_API_URL,
             {
                 model: config.OPENROUTER_MODEL,
-                temperature: 0.9, // Use from config or fallback
+                temperature: 0.9,
                 messages: apiPayloadMessages,
             },
             {
