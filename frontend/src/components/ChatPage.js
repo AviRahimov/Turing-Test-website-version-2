@@ -431,36 +431,30 @@ useEffect(() => {
 
       // Stop inactivity checker when chat ends
       setInactivityCheckerActive(false);
-      // console.log(`${role} - Inactivity checker stopped - chat ended`);
-
-      // Emit event to notify tester that experimenter is ready for submissions
-      socket.emit('experimenter_ready', { pair_id: pairId });
 
       if (role === 'experimenter') {
-        // Immediately emit the ready event when experimenter sees overlay
-        // console.log('Experimenter ready - emitting event');
+          console.log(`Experimenter (Pair: ${pairId}) - Overlay should be active. Emitting 'experimenter_is_waiting_for_submission'.`);
+          // EXPERIMENTER ONLY: Emit an event to notify the tester they are now waiting.
+          socket.emit('experimenter_ready', { pair_id: pairId });
 
-        // Set a timeout for 30 seconds
-      const timeoutId = setTimeout(async () => {
-        try {
-          const response = await axios.post(server_url + '/api/generate_code', {
-            role: 'experimenter',
-            // name,
-            pairId,
-          });
-          if (response.data.status === 'success') {
-            navigate('/thank_you', {
-              state: {
-                bonusCode: response.data.code,
-                userId,
-                role: 'experimenter',
-              },
-            });
-          }
-        } catch (error) {
-          console.error('Error generating code:', error);
-        }
-      }, 30000); // 30 seconds
+          // Set a timeout for 30 seconds
+          const timeoutId = setTimeout(async () => {
+              console.log(`Experimenter (Pair: ${pairId}) - 30s timeout reached. Generating code.`);
+              try {
+                const response = await axios.post(server_url + '/api/generate_code', {
+                  role: 'experimenter',
+                  pairId,
+                });
+                if (response.data.status === 'success') {
+                  navigate('/thank_you', {
+                    state: { bonusCode: response.data.code, userId, role: 'experimenter', pairId },
+                  });
+                }
+              } catch (error) {
+                console.error('Error generating code for experimenter after timeout:', error);
+                // Potentially navigate to an error page or show a message
+              }
+        }, 30000); // 30 seconds
 
       socket.on('bonus_code', (data) => {
         clearTimeout(timeoutId); // Clear the timeout if the bonus code is received
@@ -936,7 +930,7 @@ useEffect(() => {
     const currentRoom = roomType === roomOrder[0] ? 'leftRoom' : 'rightRoom';
     const roomInfo = finalRoomConfig[currentRoom];
 
-    if (realTestTimer === 0) {
+    if (realTestTimer === 0 && showOverlay) {
       return (
         <div className="chat-window">
           <div className="chat-header">
@@ -1348,7 +1342,7 @@ useEffect(() => {
         <div className="submission-area">
           {!experimenterReady ? (
             <div className="waiting-message">
-              Please wait for the experimenter to finish...
+              Please wait for the experimenter to finish, it will take a few seconds, don't worry...
             </div>
           ) : (
             <button onClick={handleSubmitGuesses} className="submit-button">

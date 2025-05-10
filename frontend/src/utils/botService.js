@@ -29,7 +29,7 @@ const createSystemPrompt = (botName, gender, age) => ({
         task: {
           title: "Human or AI",
           duration: "50 minutes",
-          compensation: "$13.75 ($16.50/hr)"
+          compensation: "$1 as a basic payment and 2$ if tester guessed correctly"
         },
         participant: {
           role: "Candidate",
@@ -185,7 +185,7 @@ export const sendBotMessage = async (messages, currentPersona, isWakeupMessage =
         const apiCall = axios.post(
             BOT_API_URL,
             {
-                model: 'deepseek/deepseek-chat-v3-0324:free',
+                model: 'meta-llama/llama-3.1-405b-instruct',
                 temperature: 0.9,
                 messages: [
                     ...systemMessages,
