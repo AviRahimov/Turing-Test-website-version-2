@@ -1,4 +1,4 @@
-/* General container for the chat page */
+/* General page styling */
 body {
   background-image: url("background_image.jpg");
 }
@@ -7,35 +7,36 @@ body {
   display: flex;
   flex-direction: column;
   padding: 20px;
-  gap: 20px;
+  gap: 25px;
   width: 100%;
-  max-width: 1000px;
-  margin: 0 auto;
+  max-width: 1100px;
+  margin: 30px auto;
+  box-sizing: border-box;
 }
 
-/* Flexbox for chat windows */
 .chat-boxes {
-    display: flex;
-    justify-content: center; /* This ensures centered alignment */
-    gap: 20px; /* Consistent spacing between chat windows */
-    width: 100%;
-    max-width: 1200px; /* Set a max-width to maintain consistency */
-    margin: 0 auto;
-    position: relative; /* Add this to maintain stable positioning */
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  width: 100%;
+  position: relative; /* Retained from your original for positioning stability */
 }
 
-/* For the individual chat windows */
+/* Individual chat windows */
 .chat-window {
   flex: 1;
   min-width: 400px;
+  max-width: 520px;
   height: 500px;
-  border: 2px solid #2196f3;
-  border-radius: 10px;
+  min-height: 500px;
+  max-height: 750px;
+  border: 1px solid #dce1e6; /* Softer border color */
+  border-radius: 12px; /* More rounded corners */
   display: flex;
   flex-direction: column;
-  background-color: #f9f9f9;
-  overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff; /* Clean white background for chat area */
+  overflow: hidden; /* Important for border-radius on children and scroll */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08); /* Softer, more diffused shadow */
 }
 
 /* For the header of each chat window */
@@ -50,125 +51,114 @@ body {
   border-top-right-radius: 10px;
 }
 
+/* Demographics Info Area Styling */
+.demographics-info {
+  padding: 10px 18px;
+  background-color: #f7f8fa; /* Slightly off-white, distinct from chat messages bg */
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.8rem; /* Smaller font for secondary info */
+  color: #4b5563; /* Muted text color */
+  line-height: 1.5;
+}
 
-/* Message container inside the chat window */
+.demographics-info p {
+  margin: 5px 0; /* Consistent paragraph margin */
+}
+
+.demographics-info p span {
+  font-weight: 600;
+  color: #374151; /* Darker label color */
+  margin-right: 6px;
+}
+
+/* Message container */
 .chat-messages {
-  flex: 1;
-  padding: 10px;
-  overflow-y: auto;
+  flex: 1; /* Takes up available space */
+  padding: 15px;
+  overflow-y: auto; /* Enables scrolling for messages */
+  display: flex;
+  flex-direction: column;
 }
 
-/* Styling individual messages */
+/* Individual messages */
 .message {
-  max-width: 70%;
-  margin: 5px 0;
-  padding: 10px;
-  border-radius: 8px;
-  word-wrap: break-word;
+  max-width: 78%;
+  margin-bottom: 12px;
+  padding: 10px 15px;
+  border-radius: 18px; /* "Bubbly" look */
+  word-wrap: break-word; /* Prevent long words from overflowing */
+  line-height: 1.45;
+  font-size: 0.92rem;
 }
 
-.message-left {
-  align-self: flex-start;
-  background-color: #f1f8e9; /* Light green instead of #e1f5fe */
-  border-left: 3px solid #388e3c; /* Adds a green bar for styling */
-  padding: 12px; /* Extra padding */
+/* User's own messages (Sent) */
+.message-left { /* Typically messages sent BY THE CURRENT USER appear on the right */
+  align-self: flex-end; /* Aligns to the right */
+  background-color: #007bff; /* Primary theme color */
+  color: white;
+  margin-left: auto; /* Pushes to the right */
+  border-bottom-right-radius: 6px; /* "Tail" effect for sent messages */
 }
 
-.message-right {
-  align-self: flex-end;
-  background-color: #e3f2fd; /* Light blue instead of #dcedc8 */
-  border-right: 3px solid #1976d2; /* Adds a blue bar for styling */
-  padding: 12px; /* Extra padding */
+/* Partner's messages (Received) */
+.message-right { /* Typically messages RECEIVED by the current user appear on the left */
+  align-self: flex-start; /* Aligns to the left */
+  background-color: #e9ecef; /* Light grey for received messages */
+  color: #1c1e21; /* Dark text for readability */
+  margin-right: auto; /* Pushes to the left */
+  border-bottom-left-radius: 6px; /* "Tail" effect for received messages */
 }
 
-/* Media query for responsive design */
-@media (max-width: 768px) {
-    .chat-boxes {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .chat-window {
-        width: 100%;
-        max-width: 100%;
-        height: 50vh;
-    }
-}
-
-.chat-container.shuffling .chat-window {
-  animation: flip 7s ease-in-out forwards;
-}
-
-@keyframes flip {
-  0% {
-    transform: perspective(600px) rotateY(0deg) translateX(0);
-    opacity: 1;
-  }
-  50% {
-    transform: perspective(600px) rotateY(180deg) translateY(-50px);
-    opacity: 0; /* Make it invisible halfway through */
-  }
-  100% {
-    transform: perspective(600px) rotateY(0deg) translateX(50px);
-    opacity: 1; /* Return to visible */
-  }
-}
-
-.fade {
-  opacity: 0;
-  transition: opacity 1s ease-in-out;
-}
-
-.fade-in {
-  opacity: 1;
-  transition: opacity 1s ease-in-out;
-}
-
-/* Input field and send button */
+/* Input area */
 .chat-input {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-top: 1px solid #dce1e6; /* Separator line */
+  background-color: #f8f9fa; /* Slightly different background for input area */
+  gap: 8px;
 }
 
 .input-box {
-  flex: 1;
-  padding: 10px;
-  font-size: 16px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  flex: 1; /* Takes available width */
+  padding: 10px 15px;
+  font-size: 0.95rem;
+  border: 1px solid #ced4da;
+  border-radius: 20px; /* Pill shape */
+  background-color: #ffffff;
+  outline: none; /* Remove default focus outline */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-box:focus {
+  border-color: #86b7fe; /* Highlight color on focus */
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Bootstrap-like focus shadow */
 }
 
 .send-button {
-  padding: 10px 20px;
-  background-color: #2196f3;
+  padding: 10px 15px;
+  background-color: #007bff; /* Consistent primary color */
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 20px; /* Pill shape to match input */
   cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s, transform 0.2s;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .send-button:hover {
-  background-color: #1769aa; /* Darker blue */
-  transform: scale(1.1); /* Slight zoom-in effect */
+  background-color: #0056b3; /* Darker shade on hover */
+  transform: translateY(-1px); /* Subtle lift */
+}
+.send-button:active {
+  transform: translateY(0px); /* Reset lift on click */
 }
 
-
-.chat-window .cover p {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.chat-window .cover select {
-  /*padding: 10px;*/
-  font-size: 16px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  margin-bottom: 20px;
-}
-
+/* Styles for the "cover" during guessing phase */
 .chat-input .cover {
   top: 0;
   left: 0;
@@ -184,6 +174,75 @@ body {
   text-align: center;
   width: 100%; /* Ensure it covers the entire chat window */
 }
+
+.chat-window .cover p { /* Text within the guessing cover */
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.chat-window .cover select { /* Select element within the guessing cover */
+  padding: 10px;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #ced4da; /* Consistent border style */
+  min-width: 180px;
+  margin-bottom: 20px; /* Retained from your original */
+}
+
+
+/* Media query for responsiveness */
+@media (max-width: 768px) {
+    .chat-container {
+        padding: 10px;
+        gap: 15px;
+        margin: 15px auto;
+    }
+    .chat-boxes {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+    .chat-window {
+        width: 100%;
+        max-width: none;
+        height: auto;
+        min-height: 60vh;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+    }
+    .message {
+        max-width: 85%;
+        font-size: 0.9rem;
+    }
+    .input-box, .send-button {
+        font-size: 0.9rem;
+        padding: 9px 12px;
+    }
+    .chat-header {
+        font-size: 1rem;
+        padding: 10px 15px;
+    }
+    .demographics-info {
+        font-size: 0.75rem;
+        padding: 8px 15px;
+    }
+}
+
+/* Shuffle Animation */
+.chat-container.shuffling .chat-window {
+  animation: flip 7s ease-in-out forwards;
+}
+@keyframes flip {
+  0% { transform: perspective(600px) rotateY(0deg) translateX(0); opacity: 1; }
+  50% { transform: perspective(600px) rotateY(180deg) translateY(-50px); opacity: 0; }
+  100% { transform: perspective(600px) rotateY(0deg) translateX(50px); opacity: 1; }
+}
+
+/* Fade transitions */
+.fade { opacity: 0; transition: opacity 1s ease-in-out; }
+.fade-in { opacity: 1; transition: opacity 1s ease-in-out; }
+
 
 /* Pop-up Overlay for Tester */
 .popup-overlay {
@@ -230,8 +289,9 @@ body {
   cursor: pointer;
 }
 
-.popup-dismiss-button:hover {
-  background-color: #0056b3;
+.popup-dismiss-button:hover, .popup-continue-button:hover, .submit-quiz-button:hover,
+.confirmation-buttons button:hover {
+  transform: translateY(-1px);
 }
 
 /* Experimenter Styling */
