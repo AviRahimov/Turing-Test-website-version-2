@@ -27,6 +27,7 @@ function HomePage() {
     gender: '',
     age: '',
     occupation: '', // Changed from employment, removed education
+    education: '',
     country: '',
     aiExperience: ''
   });
@@ -143,8 +144,8 @@ function HomePage() {
 
   const handleStart = async () => {
     // Validate form data
-    const { gender, age, occupation, country, aiExperience } = formData;
-    if (!gender || !age || !occupation || !country || !aiExperience) {
+    const { gender, age, occupation, education, country, aiExperience } = formData;
+    if (!gender || !age || !occupation || education || !country || !aiExperience) {
       alert('Please fill in all demographic fields to start the experiment.');
       return;
     }
@@ -252,6 +253,17 @@ function HomePage() {
                   />
                 </label>
                 <label>
+                  Education:
+                  <input
+                      type="text"
+                      name="education"
+                      value={formData.education}
+                      onChange={handleChange}
+                      placeholder="Enter your education level"
+                      required
+                  />
+                </label>
+                <label>
                   Country of Residence:
                   <select name="country" value={formData.country} onChange={handleChange} required>
                     <option value="">Select</option>
@@ -285,7 +297,7 @@ function HomePage() {
               <button
                   className="start-button"
                   onClick={handleStart}
-                  disabled={isSubmitting || !agreedToParticipate || !formData.gender || !formData.age || !formData.occupation || !formData.country || !formData.aiExperience}
+                  disabled={isSubmitting || !agreedToParticipate || !formData.gender || !formData.age || !formData.occupation || !formData.education || !formData.country || !formData.aiExperience}
               >
                 Start
               </button>

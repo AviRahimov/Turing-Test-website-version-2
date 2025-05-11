@@ -310,6 +310,7 @@ def save_demographics():
     gender = data.get("gender")
     age = data.get("age")
     occupation = data.get("occupation")
+    education = data.get("education")
     country = data.get("country")
     ai_experience = data.get("aiExperience")
 
@@ -326,6 +327,7 @@ def save_demographics():
         "gender": gender,
         "age": age_num, # Storing numerical age
         "occupation": occupation, # Storing occupation
+        "education": education,
         "country": country,
         "ai_experience": ai_experience,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -349,6 +351,7 @@ def get_user_demographics(target_username):
                 "gender": user_data_doc.get("gender"),
                 "age": user_data_doc.get("age"),
                 "occupation": user_data_doc.get("occupation"),  # Return occupation
+                "education": user_data_doc.get("education"),
                 "country": user_data_doc.get("country"),
                 "aiExperience": user_data_doc.get("ai_experience")
             }

@@ -19,7 +19,7 @@ const ThankYouPage = () => {
         <p style={styles.bonusMessage}>
           {role === 'experimenter'
             ? 'Hooray, the tester guessed true, thus both of you will get a bonus code!'
-            : 'Hooray, you guessed true, thus you and the experimenter will get a bonus code!'}
+            : 'Hooray, you guessed true, thus you and the responder will get a bonus code!'}
         </p>
       )}
 

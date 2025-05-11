@@ -454,13 +454,6 @@ useEffect(() => {
 
   // Countdown for the real Turing Test
   useEffect(() => {
-    // console.log('Real test timer effect triggered with conditions:', {
-    //     realTestTimer,
-    //     chatTimerStarted,
-    //     quizStep,
-    //     partnerQuizStatus,
-    //     showNotifications: { tester: showNotificationForTester, experimenter: showNotificationForExperimenter }
-    // });
 
     // Don't start if timer is null
     if (realTestTimer === null) return;
@@ -476,12 +469,6 @@ useEffect(() => {
         // console.log('Timer not started - quiz not completed by both participants');
         return;
     }
-
-    // console.log('Starting real test timer', {
-    //     chatTimerStarted,
-    //     quizStep,
-    //     partnerQuizStatus
-    // });
 
     const realTestInterval = setInterval(() => {
       // console.log("Real test timer: ", realTestTimer);
@@ -534,7 +521,7 @@ useEffect(() => {
                   });
                 }
               } catch (error) {
-                console.error('Error generating code for experimenter after timeout:', error);
+                console.error('Error generating code for responder after timeout:', error);
                 // Potentially navigate to an error page or show a message
               }
         }, 30000); // 30 seconds
@@ -881,7 +868,7 @@ useEffect(() => {
                 question: "What happens if you correctly identify which candidate is human and which is a bot?",
                 options: [
                     "I will get disconnected",
-                    "Both I and the human experimenter will receive a $0.50 bonus each",
+                    "Both I and the human responder will receive a $0.50 bonus each",
                     "I will lose money"
                 ],
                 correctAnswer: 1
@@ -1047,10 +1034,45 @@ useEffect(() => {
     };
 
     const getRoleInstructions = (role) => {
-        if (role === 'tester') {
-            return "You will chat with both a human and a bot. Identify who is human. If you guess correctly, you and the human will receive $0.50 bonus each.";
+    if (role === 'tester') {
+        return `
+    **Your Mission: Identify the Human.**
+    
+    1.  **Initial Observation Phase (~3 minutes):**
+        *   You'll start by chatting in **two separate rooms simultaneously**.
+        *   One room contains a **human participant**, the other a **bot**.
+        *   Both will have their demographic information displayed. Observe their styles and how they use their demographics.
+        *   This phase helps you get a baseline before identities are hidden.
+    
+    2.  **Shuffle & Main Test Phase (~7 minutes):**
+        *   After about 3 minutes, a 'shuffle' will occur. The human and bot will remain in their rooms, but **you will no longer be told which room is which.**
+        *   Your task is to continue chatting in both rooms. Use the next ~7 minutes to determine which participant is the human and which is the bot, based on your ongoing conversations and your memory of their initial demographics.
+    
+    3.  **Your Goal:** After the main test, you'll guess which room held the human.
+    
+    **Bonus:** Correctly identify the human for a **$1.00 bonus** (shared with the human).
+    
+    **Important:**
+    *   ⚠️ Stay active to avoid disconnection.
+    *   You must pass a quiz on these instructions. Failure means no payment.
+            `;
         }
-        return "A human tester will chat with you and a bot. Help them understand that you are human too. If they pick you as human, you and the human tester will receive $0.50 bonus each.";
+        // Experimenter instructions
+        return `
+    **Your Mission: Convince the Tester You're Human.**
+    
+    1.  **The Setup:** A 'Tester' will chat with you and a bot, trying to identify you. There will be a 'shuffle' phase where chat partners might change.
+    2.  **Your Demographics are Key:** The Tester **will see your self-disclosed demographics** (age, occupation, etc.).
+    3.  **Expect Questions:** The Tester will likely ask about your demographics to verify you're human. Answer naturally and consistently.
+    
+    **Your Goal:** Convince the Tester you are the human.
+    
+    **Bonus:** If the Tester correctly identifies you as human, you both get a **$1.00 bonus.**
+    
+    **Important:**
+    *   ⚠️ Stay active to avoid disconnection.
+    *   You must pass a quiz on these instructions. Failure means no payment.
+        `;
     };
 
   useEffect(() => {
@@ -1230,19 +1252,34 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
             <div className="popup">
                 {quizStep === 'instructions' && (
                     <>
-                        <h3>Important Information</h3>
-                        <p>You will chat with both a human and a bot. Identify who is human. If you guess correctly, you
-                            and the human will receive $0.50 bonus each.</p>
-                        <p className="warning-text">
-                            ⚠️ If you remain inactive for too long, you will be disconnected without payment.
-                        </p>
-                        <p className="warning-text">
-                            You must pass a short quiz about these instructions to continue. Failing the quiz will
-                            result in immediate disconnection without payment.
-                        </p>
-                        {/*<p className="waiting-text">*/}
-                        {/*    {!experimenterDismissed && "Waiting for experimenter to acknowledge..."}*/}
-                        {/*</p>*/}
+                        <h3>Your Mission: Identify the Human.</h3>
+
+                        <h4>1. Initial Observation Phase (~3 minutes):</h4>
+                        <ul>
+                            <li>You'll start by chatting in <strong>two separate rooms simultaneously</strong>.</li>
+                            <li>One room contains a <strong>human participant</strong>, the other a <strong>bot</strong>.</li>
+                            <li>Both will have their demographic information displayed.</li>
+                            <li>This phase helps you get a baseline before identities are hidden.</li>
+                        </ul>
+
+                        <h4>2. Shuffle & Main Test Phase (~7 minutes):</h4>
+                        <ul>
+                            <li>After about 3 minutes, a 'shuffle' will occur. The human and bot will remain in their rooms, but <strong>you will no longer be told which room is which.</strong></li>
+                            <li>Your task is to continue chatting in both rooms. Use the next ~7 minutes to determine which participant is the human and which is the bot.</li>
+                        </ul>
+
+                        <h4>3. Your Goal:</h4>
+                        <p>After the main test, you'll guess which room held the human.</p>
+
+                        <h4>Bonus:</h4>
+                        <p>Correctly identify the human for a <strong>$1.00 bonus</strong> (shared with the human).</p>
+
+                        <h4>Important:</h4>
+                        <ul>
+                            <li><p className="warning-text">⚠️ Stay active to avoid disconnection.</p></li>
+                            <li><p className="warning-text">You must pass a quiz on these instructions. Failure means no payment.</p></li>
+                        </ul>
+
                         <button
                             onClick={() => setQuizStep('quiz')}
                             className="popup-continue-button"
@@ -1359,19 +1396,28 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
             <div className="popup">
                 {quizStep === 'instructions' && (
                     <>
-                        <h3>Important Information</h3>
-                        <p>A human tester will chat with you and a bot. Help them understand that you are human too. If
-                            they pick you as human, you and the human tester will receive $0.50 bonus each.</p>
-                        <p className="warning-text">
-                            ⚠️ If you remain inactive for too long, you will be disconnected without payment.
-                        </p>
-                        <p className="warning-text">
-                            You must pass a short quiz about these instructions to continue. Failing the quiz will
-                            result in immediate disconnection without payment.
-                        </p>
-                        {/*<p className="waiting-text">*/}
-                        {/*    {!testerDismissed && "Waiting for tester to acknowledge..."}*/}
-                        {/*</p>*/}
+                        <h3>Your Mission: Convince the Tester You're Human.</h3>
+
+                        <h4>1. The Setup:</h4>
+                        <p>A 'Tester' will chat with you and a bot, trying to identify you. There will be a 'shuffle' phase where chat partners might change.</p>
+
+                        <h4>2. Your Demographics are Key:</h4>
+                        <p>The Tester <strong>will see your self-disclosed demographics</strong> (age, occupation, etc.).</p>
+
+                        <h4>3. Expect Questions:</h4>
+                        <p>The Tester will likely ask about your demographics to verify you're human. Answer naturally and consistently.</p>
+
+                        <h4>Your Goal:</h4>
+                        <p>Convince the Tester you are the human.</p>
+
+                        <h4>Bonus:</h4>
+                        <p>If the Tester correctly identifies you as human, you both get a <strong>$1.00 bonus.</strong></p>
+
+                        <h4>Important:</h4>
+                        <ul>
+                            <li><p className="warning-text">⚠️ Stay active to avoid disconnection.</p></li>
+                            <li><p className="warning-text">You must pass a quiz on these instructions. Failure means no payment.</p></li>
+                        </ul>
                         <button
                             onClick={() => setQuizStep('quiz')}
                             className="popup-continue-button"
@@ -1527,7 +1573,7 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
         <div className="submission-area">
           {!experimenterReady ? (
             <div className="waiting-message">
-              Please wait for the experimenter to finish, it will take a few seconds, don't worry...
+              Please wait for the responder to finish, it will take a few seconds, don't worry...
             </div>
           ) : (
             <button onClick={handleSubmitGuesses} className="submit-button">
