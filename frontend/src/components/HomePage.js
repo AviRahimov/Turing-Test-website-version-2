@@ -145,7 +145,7 @@ function HomePage() {
   const handleStart = async () => {
     // Validate form data
     const { gender, age, occupation, education, country, aiExperience } = formData;
-    if (!gender || !age || !occupation || education || !country || !aiExperience) {
+    if (!gender || !age || !occupation || !education || !country || !aiExperience) {
       alert('Please fill in all demographic fields to start the experiment.');
       return;
     }
@@ -253,7 +253,7 @@ function HomePage() {
                   />
                 </label>
                 <label>
-                  Education:
+                  Field of Study:
                   <input
                       type="text"
                       name="education"

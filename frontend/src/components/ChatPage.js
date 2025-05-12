@@ -845,7 +845,7 @@ useEffect(() => {
             {
                 question: "Is it true that when the tester correctly identifies you as human, both of you will receive a bonus payment?",
                 options: [
-                    "Yes, we will both receive a $0.50 bonus",
+                    "Yes, we will both receive a $1 bonus",
                     "No, I won't receive any bonus",
                     "I will receive a bonus regardless of the tester's guess"
                 ],
@@ -868,7 +868,7 @@ useEffect(() => {
                 question: "What happens if you correctly identify which candidate is human and which is a bot?",
                 options: [
                     "I will get disconnected",
-                    "Both I and the human responder will receive a $0.50 bonus each",
+                    "Both I and the human responder will receive a $1 bonus each",
                     "I will lose money"
                 ],
                 correctAnswer: 1
@@ -883,20 +883,20 @@ useEffect(() => {
                 correctAnswer: 1
             },
             {
-                question: "After the 'shuffle,' what happens to the chat messages from before the shuffle?",
+                question: "After the 'shuffle,' what will happen to the room order?",
                 options: [
-                    "All previous chat messages will be deleted from both windows.", // Clearly wrong
-                    "The Human's previous messages will stay in one window, and any pre-shuffle Bot messages in the other.", // Plausible but wrong
-                    "The chat history you had with the original Human participant will initially appear in *both* 'Candidate A' and 'Candidate B' windows." // Correct
+                    "The room order will be randomized, and I won't know who is who.",
+                    "The room order will be the same as before the shuffle.",
+                    "The room order will be randomized, but I will know who is who."
                 ],
-                correctAnswer: 2
+                correctAnswer: 0
             },
             {
                 question: "After the 'shuffle,' what demographic details will be shown for 'Candidate A' and 'Candidate B'?",
                 options: [
-                    "No demographics will be shown to make guessing harder.", // Clearly wrong
-                    "One Candidate will show the Human's original demographics, the other will show the Bot's fixed profile.", // Plausible but wrong
-                    "Both Candidates will display the *original Human participant's* self-reported demographics." // Correct
+                    "No demographics will be shown to make guessing harder.",
+                    "Demographics of the bot will be shown for both candidates.",
+                    "Demographics of the human responder will be shown for both candidates."
                 ],
                 correctAnswer: 2
             }
@@ -1034,46 +1034,59 @@ useEffect(() => {
     };
 
     const getRoleInstructions = (role) => {
-    if (role === 'tester') {
-        return `
-    **Your Mission: Identify the Human.**
-    
-    1.  **Initial Observation Phase (~3 minutes):**
-        *   You'll start by chatting in **two separate rooms simultaneously**.
-        *   One room contains a **human participant**, the other a **bot**.
-        *   Both will have their demographic information displayed. Observe their styles and how they use their demographics.
-        *   This phase helps you get a baseline before identities are hidden.
-    
-    2.  **Shuffle & Main Test Phase (~7 minutes):**
-        *   After about 3 minutes, a 'shuffle' will occur. The human and bot will remain in their rooms, but **you will no longer be told which room is which.**
-        *   Your task is to continue chatting in both rooms. Use the next ~7 minutes to determine which participant is the human and which is the bot, based on your ongoing conversations and your memory of their initial demographics.
-    
-    3.  **Your Goal:** After the main test, you'll guess which room held the human.
-    
-    **Bonus:** Correctly identify the human for a **$1.00 bonus** (shared with the human).
-    
-    **Important:**
-    *   ⚠️ Stay active to avoid disconnection.
-    *   You must pass a quiz on these instructions. Failure means no payment.
-            `;
+        if (role === 'tester') {
+            return (
+                <>
+                    <h3><strong>Your Mission: Identify the Human.</strong></h3>
+                    <p>
+                        You will chat with both a human and a bot (in two separate rooms). You must identify who is human.
+                        If you guess correctly, you and the human will receive $1.00 bonus each.
+                        You will see the demographics of both participants.
+                    </p>
+                    <p>
+                        <strong>The interaction will be composed of two phases,</strong> the known identity phase (3 minutes)
+                        and the shuffle phase (7 minutes).
+                    </p>
+                    <p>
+                        In the known identity phase, you will see who is in which room, <strong>use this phase to familiarize
+                        yourself with the participants' behavior.</strong>
+                    </p>
+                    <p>
+                        In the shuffle phase, <strong>the location of both participants might be swapped,</strong> but both will show
+                        your previous chat history and demographics of the human participant. However, still one room will be a human
+                        and the other a bot.
+                    </p>
+                    <h4><strong>Important:</strong></h4>
+                    <ul>
+                        <li>⚠️ Stay active to avoid disconnection.</li>
+                        <li>You must pass a quiz on these instructions. Failure means no payment.</li>
+                    </ul>
+                </>
+            );
         }
+
         // Experimenter instructions
-        return `
-    **Your Mission: Convince the Tester You're Human.**
-    
-    1.  **The Setup:** A 'Tester' will chat with you and a bot, trying to identify you. There will be a 'shuffle' phase where chat partners might change.
-    2.  **Your Demographics are Key:** The Tester **will see your self-disclosed demographics** (age, occupation, etc.).
-    3.  **Expect Questions:** The Tester will likely ask about your demographics to verify you're human. Answer naturally and consistently.
-    
-    **Your Goal:** Convince the Tester you are the human.
-    
-    **Bonus:** If the Tester correctly identifies you as human, you both get a **$1.00 bonus.**
-    
-    **Important:**
-    *   ⚠️ Stay active to avoid disconnection.
-    *   You must pass a quiz on these instructions. Failure means no payment.
-        `;
+        return (
+            <>
+                <h3><strong>Your Mission: Convince the Tester You're Human.</strong></h3>
+                <p>
+                    You will chat with a human tester. You must convince the tester that you are human.
+                    If the tester guesses correctly, you and the tester will receive a $1.00 bonus each.
+                    The tester will see your demographics, so make sure to answer the questions truthfully.
+                </p>
+                <p>
+                    <strong>The interaction will be composed of two phases,</strong> the known identity phase (3 minutes)
+                    and the shuffle phase (7 minutes).
+                </p>
+                <h4><strong>Important:</strong></h4>
+                <ul>
+                    <li>⚠️ Stay active to avoid disconnection.</li>
+                    <li>You must pass a quiz on these instructions. Failure means no payment.</li>
+                </ul>
+            </>
+        );
     };
+
 
   useEffect(() => {
       if (chatMessagesRef.current) {
@@ -1254,25 +1267,24 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
                     <>
                         <h3>Your Mission: Identify the Human.</h3>
 
-                        <h4>1. Initial Observation Phase (~3 minutes):</h4>
+                        <p>
+                            You will chat with both a human and a bot (in two separate rooms). You must identify who is human.
+                            If you guess correctly, you and the human will receive <strong>$1.00 bonus</strong> each.
+                            You will see the demographics of both participants.
+                        </p>
+
+                        <h4>The interaction will be composed of two phases:</h4>
                         <ul>
-                            <li>You'll start by chatting in <strong>two separate rooms simultaneously</strong>.</li>
-                            <li>One room contains a <strong>human participant</strong>, the other a <strong>bot</strong>.</li>
-                            <li>Both will have their demographic information displayed.</li>
-                            <li>This phase helps you get a baseline before identities are hidden.</li>
+                            <li>
+                                <strong>Known identity phase (3 minutes):</strong> You will see who is in which room.
+                                Use this phase to familiarize yourself with the participants' behavior.
+                            </li>
+                            <li>
+                                <strong>Shuffle phase (7 minutes):</strong> The location of both participants might be swapped,
+                                but both rooms will show your previous chat history and the demographics of the human participant.
+                                However, still one room will be a human and the other a bot.
+                            </li>
                         </ul>
-
-                        <h4>2. Shuffle & Main Test Phase (~7 minutes):</h4>
-                        <ul>
-                            <li>After about 3 minutes, a 'shuffle' will occur. The human and bot will remain in their rooms, but <strong>you will no longer be told which room is which.</strong></li>
-                            <li>Your task is to continue chatting in both rooms. Use the next ~7 minutes to determine which participant is the human and which is the bot.</li>
-                        </ul>
-
-                        <h4>3. Your Goal:</h4>
-                        <p>After the main test, you'll guess which room held the human.</p>
-
-                        <h4>Bonus:</h4>
-                        <p>Correctly identify the human for a <strong>$1.00 bonus</strong> (shared with the human).</p>
 
                         <h4>Important:</h4>
                         <ul>
@@ -1288,6 +1300,7 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
                         </button>
                     </>
                 )}
+
 
                 {(quizStep === 'completed' && !chatTimerStarted) && (
                     <div className="timer-status">
@@ -1398,26 +1411,32 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
                     <>
                         <h3>Your Mission: Convince the Tester You're Human.</h3>
 
-                        <h4>1. The Setup:</h4>
-                        <p>A 'Tester' will chat with you and a bot, trying to identify you. There will be a 'shuffle' phase where chat partners might change.</p>
+                        <p>
+                            You will chat with a <strong>human Tester</strong>. Your goal is to convince the tester that <strong>you are the human</strong>.
+                            If the Tester guesses correctly, you and the Tester will each receive a <strong>$1.00 bonus</strong>.
+                        </p>
 
-                        <h4>2. Your Demographics are Key:</h4>
-                        <p>The Tester <strong>will see your self-disclosed demographics</strong> (age, occupation, etc.).</p>
+                        <p>
+                            The Tester will be able to see your demographics (such as age and occupation), so it’s important to answer any related questions
+                            <strong> truthfully and consistently</strong>.
+                        </p>
 
-                        <h4>3. Expect Questions:</h4>
-                        <p>The Tester will likely ask about your demographics to verify you're human. Answer naturally and consistently.</p>
-
-                        <h4>Your Goal:</h4>
-                        <p>Convince the Tester you are the human.</p>
-
-                        <h4>Bonus:</h4>
-                        <p>If the Tester correctly identifies you as human, you both get a <strong>$1.00 bonus.</strong></p>
+                        <h4>The Interaction Has Two Phases:</h4>
+                        <ul>
+                            <li>
+                                <strong>Known Identity Phase (3 minutes):</strong> The Tester knows which participant is human (you) and which is the bot.
+                            </li>
+                            <li>
+                                <strong>Shuffle Phase (7 minutes):</strong> The location of both participants might be swapped for the Tester, and the Tester will no longer know who is who.
+                            </li>
+                        </ul>
 
                         <h4>Important:</h4>
                         <ul>
                             <li><p className="warning-text">⚠️ Stay active to avoid disconnection.</p></li>
                             <li><p className="warning-text">You must pass a quiz on these instructions. Failure means no payment.</p></li>
                         </ul>
+
                         <button
                             onClick={() => setQuizStep('quiz')}
                             className="popup-continue-button"
@@ -1426,6 +1445,7 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
                         </button>
                     </>
                 )}
+
 
                 {(quizStep === 'completed' && !chatTimerStarted) && (
                     <div className="timer-status">
