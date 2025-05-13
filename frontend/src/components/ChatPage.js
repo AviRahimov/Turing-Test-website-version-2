@@ -105,7 +105,7 @@ useEffect(() => {
 
             // console.log(`${role} - Last activity: ${Math.floor(timeSinceLastActivity / 1000)} seconds ago`);
 
-            if (timeSinceLastActivity >= 90000) { // 90 seconds
+            if (timeSinceLastActivity >= 120000) { // 120 seconds
                 // console.log(`${role} - Inactivity limit reached - disconnecting user`);
 
                 const banMessage = "You have been disconnected due to inactivity. You will not receive payment for this session.";
@@ -124,7 +124,7 @@ useEffect(() => {
                 navigate('/disconnected', {
                     state: { message: banMessage }, replace: true
                 });
-            } else if (timeSinceLastActivity >= 30000 && !warningShown) { // 30 seconds
+            } else if (timeSinceLastActivity >= 60000 && !warningShown) { // 60 seconds
                 // console.log(`${role} - Warning threshold reached - showing warning`);
 
                 const warningMessage = role === 'tester'
@@ -229,12 +229,12 @@ useEffect(() => {
       setRealTestTimer(realTestTimer);
     }
 
-    if (role === 'tester') {
-      socket.on('experimenter_ready', (data) => {
-        // console.log('Received experimenter_ready event', data);
-        setExperimenterReady(true);
-      });
-    }
+    // if (role === 'tester') {
+    //   socket.on('experimenter_ready', (data) => {
+    //     // console.log('Received experimenter_ready event', data);
+    //     setExperimenterReady(true);
+    //   });
+    // }
 
     socket.on('notification_dismissed', (data) => {
       if (data.role === 'tester') {
@@ -276,6 +276,43 @@ useEffect(() => {
       }
     };
   }, [pairId, role, shuffleEnabled]);
+
+
+    // New useEffect specifically for the Tester's guessing phase timeout
+    useEffect(() => {
+      let submissionTimeoutId = null; // Keep track of the timeout
+
+      // This logic is only for the tester, when the guessing phase starts,
+      // and if the experimenter isn't already marked as ready.
+      if (role === 'tester' && realTestTimer === 0 && !experimenterReady) {
+
+        submissionTimeoutId = setTimeout(() => {
+          setExperimenterReady(true); // Force enable submit button
+        }, 20000); // 20 seconds
+
+        const handleExperimenterIsReady = (data) => {
+          // Check if the event is for the correct pair_id
+          if (data.pair_id === pairId) {
+            clearTimeout(submissionTimeoutId); // Clear the timeout
+            setExperimenterReady(true); // Enable submit button
+          }
+        };
+
+        // Listen for the experimenter's ready signal
+        socket.on('experimenter_ready', handleExperimenterIsReady);
+
+        // Cleanup function
+        return () => {
+          clearTimeout(submissionTimeoutId); // Ensure timeout is cleared on unmount or re-run
+          socket.off('experimenter_ready', handleExperimenterIsReady); // Remove listener
+        };
+      }
+
+      // If experimenterReady becomes true (either by event or timeout)
+      // and this effect re-runs, the `!experimenterReady` condition
+      // will prevent setting up a new timeout and listener.
+      // If realTestTimer changes from 0 or role changes, cleanup will also run.
+    }, [role, realTestTimer, pairId, socket, experimenterReady, setExperimenterReady]); // Dependencies
 
   // handle dismissal status
   useEffect(() => {
@@ -555,7 +592,7 @@ useEffect(() => {
         console.error('Error communicating with bot:', error);
     }
 
-    setMessageToBot('');
+    // setMessageToBot('');
   };
 
   useEffect(() => {
@@ -1342,7 +1379,7 @@ useEffect(() => {
         <div className="submission-area">
           {!experimenterReady ? (
             <div className="waiting-message">
-              Please wait for the experimenter to finish, it will take a few seconds, don't worry...
+              Please wait for the responder to finish, it will take a few seconds, don't worry...
             </div>
           ) : (
             <button onClick={handleSubmitGuesses} className="submit-button">

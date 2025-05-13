@@ -21,7 +21,7 @@ MONGODB_URI = os.getenv("MONGODB_URI")
 
 # MongoDB connection
 client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
-db = client['turing_test_db']  # database name
+db = client['enhanced_turing_test_db']  # database name
 
 # Flask app setup
 allowed = [
@@ -33,13 +33,12 @@ allowed = [
     "http://0.0.0.0:3000",
     "https://0.0.0.0:5000",
     "https://0.0.0.0:3000",
-    "http://3.93.242.186:5000",
-    "http://3.93.242.186:3000",
-    "https://3.93.242.186:5000",
-    "https://3.93.242.186:3000"
+    "http://54.83.111.130",
+    "https://54.83.111.130",
+    "http://54.83.111.130:5000",
+    "https://54.83.111.130:5000",
 ]
 app = Flask(__name__, static_folder="build", static_url_path='/')
-# app = Flask(__name__)  # For local testing
 
 CORS(app, resources={
     r"/*": {
@@ -623,6 +622,6 @@ def on_disconnect(data):
 if __name__ == "__main__":
     socketio.run(app,
                  debug=True,
-                 # host='0.0.0.0',  # Disable for testing locally
+                 host='0.0.0.0',  # Disable for testing locally
                  port=5000,
                  allow_unsafe_werkzeug=True)
