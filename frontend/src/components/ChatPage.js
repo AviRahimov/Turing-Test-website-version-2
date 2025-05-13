@@ -170,7 +170,7 @@ useEffect(() => {
 
             // console.log(`${role} - Last activity: ${Math.floor(timeSinceLastActivity / 1000)} seconds ago`);
 
-            if (timeSinceLastActivity >= 90000) { // 90 seconds
+            if (timeSinceLastActivity >= 120000) { // 120 seconds
                 // console.log(`${role} - Inactivity limit reached - disconnecting user`);
 
                 const banMessage = "You have been disconnected due to inactivity. You will not receive payment for this session.";
@@ -883,22 +883,13 @@ useEffect(() => {
                 correctAnswer: 1
             },
             {
-                question: "After the 'shuffle,' what will happen to the room order?",
+                question: "Regarding the 'shuffle' phase, which is true?",
                 options: [
-                    "The room order will be randomized, and I won't know who is who.",
-                    "The room order will be the same as before the shuffle.",
-                    "The room order will be randomized, but I will know who is who."
+                    "Room order is randomized, and I won't know who is who, the conversation histroy of the human will be duplicated.",
+                    "Room order is always identical to the known identity phase.",
+                    "The identity of both canditates is clearly visible."
                 ],
                 correctAnswer: 0
-            },
-            {
-                question: "After the 'shuffle,' what demographic details will be shown for 'Candidate A' and 'Candidate B'?",
-                options: [
-                    "No demographics will be shown to make guessing harder.",
-                    "Demographics of the bot will be shown for both candidates.",
-                    "Demographics of the human responder will be shown for both candidates."
-                ],
-                correctAnswer: 2
             }
         ]
     }
@@ -1412,24 +1403,17 @@ const renderChatWindow = (roomTypeArgument) => { // Renamed argument for clarity
                         <h3>Your Mission: Convince the Tester You're Human.</h3>
 
                         <p>
-                            You will chat with a <strong>human Tester</strong>. Your goal is to convince the tester that <strong>you are the human</strong>.
+                            You will chat with a <strong>human Tester</strong> (who is simultanesly chatting also with a bot). Your goal is to convince the tester that <strong>you are the human</strong>.
                             If the Tester guesses correctly, you and the Tester will each receive a <strong>$1.00 bonus</strong>.
                         </p>
 
                         <p>
-                            The Tester will be able to see your demographics (such as age and occupation), so it’s important to answer any related questions
-                            <strong> truthfully and consistently</strong>.
+                            The Tester will be able to see your demographics (such as age and occupation).
                         </p>
 
-                        <h4>The Interaction Has Two Phases:</h4>
-                        <ul>
-                            <li>
-                                <strong>Known Identity Phase (3 minutes):</strong> The Tester knows which participant is human (you) and which is the bot.
-                            </li>
-                            <li>
-                                <strong>Shuffle Phase (7 minutes):</strong> The location of both participants might be swapped for the Tester, and the Tester will no longer know who is who.
-                            </li>
-                        </ul>
+                        <p>
+                        Note, that at the first 3 minutes of the conversation (the known identity phase), the tester knows who is human and who is the bot, but in the later 8 minutes (the shuffle phase), the tester does not know.
+                        </p>
 
                         <h4>Important:</h4>
                         <ul>
