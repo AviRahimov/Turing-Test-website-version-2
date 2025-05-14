@@ -3,21 +3,30 @@ import string
 import time
 from datetime import datetime, timedelta
 from collections import deque
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_socketio import SocketIO, join_room, emit
 from flask_cors import CORS
-from flask import send_from_directory
 import random
 import logging
-import csv
-import json
-from threading import Lock
+from threading import Lock, Thread
 from pymongo import MongoClient
 from dotenv import load_dotenv
+import requests
+import json
+
+# Import from prompts module
+from prompts import (
+    get_main_system_prompt_content,
+    WAKEUP_GENERATION_SYSTEM_PROMPT,
+    WAKEUP_INSTRUCTIONS_FOR_LLM_USER_MESSAGE
+)
 
 load_dotenv()
 # Get the connection string from the environment variable
 MONGODB_URI = os.getenv("MONGODB_URI")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+BOT_MODEL = "meta-llama/llama-3.1-405b-instruct"
 
 # MongoDB connection
 client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
@@ -79,12 +88,13 @@ generated_codes = {}
 # Lock to ensure thread safety
 code_lock = Lock()
 pairing_lock = Lock()
-active_connections = {}
 
 # Add a counter for unique user IDs
 user_counter = 0
 user_lock = Lock()
 
+# Set a timer for the test
+REAL_TEST_DURATION_SECONDS = 300
 
 @socketio.on('check_ip')
 def handle_check_ip(data):
@@ -108,6 +118,100 @@ def handle_check_ip(data):
     )
 
 
+@app.route('/api/chat-bot', methods=['POST'])
+def handle_chat_bot():
+    if not OPENROUTER_API_KEY:
+        return jsonify({"error": "API key not configured on server."}), 500
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid JSON payload"}), 400
+
+        conversation_history = data.get('conversationHistory', [])
+        persona_data = data.get('persona')  # Expecting { name, gender, age }
+        is_generate_wakeup_call = data.get('isWakeup', False)
+        last_wakeup_content_for_context = data.get('lastWakeupContent')
+        use_main_system_prompt_flag = data.get('useSystemPrompt', False)
+
+        if not persona_data or not isinstance(persona_data, dict):
+            return jsonify({"error": "Persona information is missing or invalid"}), 400
+
+        persona_name = persona_data.get('name', 'Alex') # Default name if wasn't provided
+        persona_gender = persona_data.get('gender', 'Male') # Default gender if wasn't provided
+        persona_age = persona_data.get('age', 19)  # Default age if wasn't provided
+
+        messages_for_openrouter = []
+
+        if is_generate_wakeup_call:
+            formatted_wakeup_system_prompt = WAKEUP_GENERATION_SYSTEM_PROMPT.format(
+                persona_name=persona_name,
+                persona_gender=persona_gender,
+                persona_age=persona_age
+            )
+            messages_for_openrouter.append({"role": "system", "content": formatted_wakeup_system_prompt})
+            messages_for_openrouter.append({"role": "user", "content": WAKEUP_INSTRUCTIONS_FOR_LLM_USER_MESSAGE})
+        else:
+            # Regular conversation flow
+            if use_main_system_prompt_flag:
+                main_prompt_str = get_main_system_prompt_content(
+                    persona_name, persona_gender, persona_age
+                )
+                messages_for_openrouter.append({"role": "system", "content": main_prompt_str})
+
+            if last_wakeup_content_for_context:
+                messages_for_openrouter.append({
+                    "role": "system",
+                    "content": f"Context: You previously sent a message asking if they were still there: \"{last_wakeup_content_for_context}\". Now continue the conversation naturally based on their response."
+                })
+
+            for msg in conversation_history:
+                role = "assistant" if msg.get("sender") == "bot" else "user"
+                messages_for_openrouter.append({"role": role, "content": msg.get("content")})
+
+        if not messages_for_openrouter and is_generate_wakeup_call:
+            return jsonify({"error": "Cannot generate wakeup message without system guidance."}), 500
+        elif not messages_for_openrouter and not conversation_history and not use_main_system_prompt_flag:
+            return jsonify({"error": "No messages or system prompt to send to bot."}), 400
+
+        api_payload = {
+            "model": BOT_MODEL,
+            "temperature": 0.9,
+            "messages": messages_for_openrouter,
+        }
+
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "X-Title": f"Turing Test - User: AviRahimov"  # Added username to X-Title
+        }
+
+        # print(f"DEBUG: Sending to OpenRouter: {json.dumps(api_payload, indent=2)}")
+
+        response = requests.post(OPENROUTER_API_URL, json=api_payload, headers=headers)
+        response.raise_for_status()
+
+        response_data = response.json()
+        bot_reply = response_data.get("choices")[0].get("message").get("content")
+
+        # print(f"DEBUG: Received from OpenRouter: {bot_reply}")
+
+        return jsonify({"botReply": bot_reply})
+
+    except requests.exceptions.HTTPError as http_err:
+        error_details = "No details"
+        try:
+            error_details = http_err.response.json()
+        except ValueError:
+            error_details = http_err.response.text
+        print(f"ERROR: HTTP error calling OpenRouter: {http_err}, Response: {error_details}")
+        return jsonify({"error": "Failed to communicate with bot service", "details": str(http_err)}), 502
+    except Exception as e:
+        print(f"ERROR: Unexpected error in /api/chat-bot: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "An unexpected server error occurred", "details": str(e)}), 500
+
 @app.route('/api/unblock_ip', methods=['POST'])
 def unblock_ip():
     data = request.json
@@ -118,7 +222,6 @@ def unblock_ip():
 
     try:
         # Remove the IP from the blocked IPs collection
-        blocked_ips_collection = db['blocked_ips']
         blocked_ips_collection.delete_one({'ip': ip})
 
         return jsonify({
@@ -140,7 +243,7 @@ def serve_static_files(path):
         # Try to serve the requested file from the React build folder
         return send_from_directory(app.static_folder, path)
     except FileNotFoundError:
-        # If file is not found, serve React's index.html (for client-side routing)
+        # If the file is not found, serve React's index.html (for client-side routing)
         return send_from_directory(app.static_folder, 'index.html')
 
 
@@ -190,7 +293,7 @@ def generate_code():
 
         if existing_code:
             code = existing_code["code"]
-        # Handle case where guesses are None (experimenter waiting scenario)
+        # Handle the case where guesses are None (experimenter waiting scenario)
         elif role == "experimenter" or guess_a is None or guess_b is None:
             code = generate_unique_code(digits=6)
         elif role == "tester" and guess_a == real_a and guess_b == real_b:
@@ -206,7 +309,7 @@ def generate_code():
             "pairId": pair_id,
         }
 
-        # Insert new document instead of update
+        # Insert a new document instead of update
         codes_collection.insert_one(code_data)
 
         # Store in memory for quick lookup
@@ -375,7 +478,7 @@ def submit_name():
             tester_queue.append(username)
             role = "tester"
         elif not experimenter_queue:
-            # Second user becomes the Experimenter
+            # The Second user becomes the Experimenter
             experimenter_queue.append(username)
             role = "experimenter"
         else:
@@ -509,7 +612,7 @@ def save_feedback():
         feedback_collection.insert_one(feedback)
 
         print("user_id string: ", data.get("username"))
-        # Add pair_id to demographic collection
+        # Add pair_id to the demographic collection
         demographic_collection.update_one(
             {"user_id": data.get("username")},
             {"$set": {"pair_id": data.get("pairId")}}
