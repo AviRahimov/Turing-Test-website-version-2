@@ -1,7 +1,7 @@
 import { calculateReplyDelay } from './chatUtils';
 import config from "../components/config";
 
-const SERVER_URL = config.SERVER_URL;
+let server_url = config.SERVER_URL;
 
 
 export const sendBotMessage = async (
@@ -21,7 +21,7 @@ export const sendBotMessage = async (
         };
 
         // Make a POST request to your backend endpoint
-        const response = await fetch(`${SERVER_URL}/api/chat-bot`, { // Adjust if your backend is on a different URL/port in dev
+        const response = await fetch(server_url + '/api/chat-bot', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -24,7 +24,7 @@ from prompts import (
 load_dotenv()
 # Get the connection string from the environment variable
 MONGODB_URI = os.getenv("MONGODB_URI")
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 BOT_MODEL = "meta-llama/llama-3.1-405b-instruct"
 
@@ -119,7 +119,7 @@ def handle_check_ip(data):
 
 
 @app.route('/api/chat-bot', methods=['POST'])
-def handle_chat_bot():
+def chat_bot():
     if not OPENROUTER_API_KEY:
         return jsonify({"error": "API key not configured on server."}), 500
 
@@ -211,6 +211,7 @@ def handle_chat_bot():
         import traceback
         traceback.print_exc()
         return jsonify({"error": "An unexpected server error occurred", "details": str(e)}), 500
+
 
 @app.route('/api/unblock_ip', methods=['POST'])
 def unblock_ip():
