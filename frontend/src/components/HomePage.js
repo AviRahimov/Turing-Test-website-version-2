@@ -284,7 +284,15 @@ function HomePage() {
                   </select>
                 </label>
               </form>
-              <div className="agreement-checkbox">
+              <div className="agreement-checkbox" style={{
+                backgroundColor: 'rgba(255, 255, 255, 255)', // Slightly transparent red
+                padding: '10px', // Increased size
+                borderRadius: '5px', // Optional for better aesthetics
+                width: '40%', // Full width
+                margin: '0 auto', // Centered
+                fontSize: '1.1rem', // text size increased
+                border: '2px solid rgba(0, 0, 0, 0.2)', // cyclic border without color
+              }}>
                 <label>
                   <input
                       type="checkbox"

@@ -14,14 +14,23 @@ import json
 from threading import Lock
 from pymongo import MongoClient
 from dotenv import load_dotenv
+import json
+import requests
+
+# Import from prompts module
+from prompts import create_system_prompt, WAKEUP_SYSTEM_INSTRUCTION
 
 load_dotenv()
 # Get the connection string from the environment variable
 MONGODB_URI = os.getenv("MONGODB_URI")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_MODEL = "meta-llama/llama-3.1-405b-instruct"
+BOT_ENABLE_PROMPT = True
 
 # MongoDB connection
 client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
-db = client['turing_test_db']  # database name
+db = client['advanced_turing_test_db']  # database name
 
 # Flask app setup
 allowed = [
@@ -33,13 +42,12 @@ allowed = [
     "http://0.0.0.0:3000",
     "https://0.0.0.0:5000",
     "https://0.0.0.0:3000",
-    "http://3.93.242.186:5000",
-    "http://3.93.242.186:3000",
-    "https://3.93.242.186:5000",
-    "https://3.93.242.186:3000"
+    "http://54.89.200.237:5000",
+    "http://54.89.200.237:3000",
+    "https://54.89.200.237:5000",
+    "https://54.89.200.237:3000"
 ]
 app = Flask(__name__, static_folder="build", static_url_path='/')
-# app = Flask(__name__)  # For local testing
 
 CORS(app, resources={
     r"/*": {
@@ -107,6 +115,106 @@ def handle_check_ip(data):
         {"$set": {"blocked_at": datetime.now()}},
         upsert=True
     )
+
+
+@app.route('/api/chat_with_bot', methods=['POST'])
+def chat_with_bot():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid JSON payload"}), 400
+
+    # Extract necessary data from the frontend request
+    conversation_messages = data.get('conversationMessages')
+    bot_base_persona_details = data.get('botBasePersonaDetails')
+    is_wakeup_message = data.get('isWakeupMessage', False)
+    # enable_prompt_flag = data.get('enable_prompt_flag_from_config', BOT_ENABLE_PROMPT) # Use backend config or allow override
+    enable_prompt_flag = BOT_ENABLE_PROMPT  # Prefer backend config for this
+
+    injected_history = data.get('injectedHistoryForSystemPrompt')
+    displayed_demographics = data.get('displayedDemographicsForSystemPrompt')
+
+    # Validate required fields
+    if not conversation_messages or not isinstance(conversation_messages, list):
+        return jsonify({"error": "Missing or invalid 'conversationMessages'"}), 400
+    if not bot_base_persona_details or not isinstance(bot_base_persona_details, dict):
+        return jsonify({"error": "Missing or invalid 'botBasePersonaDetails'"}), 400
+
+    if not OPENROUTER_API_KEY:
+        logging.error("SERVER_ERROR: OPENROUTER_API_KEY is not configured on the backend.")
+        return jsonify({"error": "Bot service is not configured correctly on the server."}), 500
+
+    api_payload_messages = []
+    system_prompt_object = None
+
+    try:
+        if is_wakeup_message:
+            system_prompt_object = {"role": "system", "content": WAKEUP_SYSTEM_INSTRUCTION}
+        elif enable_prompt_flag:
+            if not all(k in bot_base_persona_details for k in ['name', 'gender', 'age']):
+                logging.warning("BOT_CHAT_ROUTE: botBasePersonaDetails missing name, gender, or age for system prompt.")
+                # Potentially use a very minimal default or skip system prompt
+            else:
+                system_prompt_object = create_system_prompt(
+                    bot_base_name=bot_base_persona_details.get('name'),
+                    bot_base_gender=bot_base_persona_details.get('gender'),
+                    bot_base_age=bot_base_persona_details.get('age'),
+                    bot_base_occupation=bot_base_persona_details.get('occupation', "Student"),
+                    bot_base_country=bot_base_persona_details.get('country', "USA"),
+                    bot_base_ai_experience=bot_base_persona_details.get('aiExperience', "Low"),
+                    injected_conversation_history=injected_history,
+                    bot_displayed_demographics=displayed_demographics
+                )
+
+        if system_prompt_object:
+            api_payload_messages.append(system_prompt_object)
+
+        api_payload_messages.extend(conversation_messages)
+
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            # Optional headers based on OpenRouter docs or your needs
+            # "HTTP-Referer": YOUR_SITE_URL,
+            # "X-Title": YOUR_APP_NAME
+        }
+        payload = {
+            "model": OPENROUTER_MODEL,
+            "messages": api_payload_messages,
+            "temperature": 0.9,  # Or your preferred temperature
+            # Add other parameters like max_tokens, top_p if needed
+        }
+
+        logging.info(
+            f"Calling OpenRouter API. Model: {OPENROUTER_MODEL}. Messages count: {len(api_payload_messages)}")
+        # logging.debug(f"OpenRouter Payload: {payload}") # Be careful logging full payload if it contains sensitive data
+
+        response = requests.post(OPENROUTER_API_URL, json=payload, headers=headers,
+                                 timeout=30)  # 30s timeout
+        response.raise_for_status()  # Raises an HTTPError for bad responses (4XX or 5XX)
+
+        response_data = response.json()
+
+        if response_data and response_data.get("choices") and response_data["choices"][0].get("message"):
+            bot_reply_content = response_data["choices"][0]["message"].get("content")
+            if bot_reply_content:
+                logging.info("Successfully received reply from OpenRouter.")
+                return jsonify({"reply": bot_reply_content})
+            else:
+                logging.error("OpenRouter response missing content in message.")
+                return jsonify({"error": "Bot returned an empty message."}), 500
+        else:
+            logging.error(f"Invalid or incomplete response structure from OpenRouter: {response_data}")
+            return jsonify({"error": "Bot did not provide a valid response structure."}), 500
+
+    except requests.exceptions.HTTPError as http_err:
+        logging.error(f"HTTP error occurred with OpenRouter: {http_err} - Response: {http_err.response.text}")
+        return jsonify({"error": f"Bot API request failed: {http_err.response.status_code}"}), 502  # Bad Gateway
+    except requests.exceptions.RequestException as req_err:
+        logging.error(f"Request exception occurred with OpenRouter: {req_err}")
+        return jsonify({"error": "Could not connect to bot service."}), 503  # Service Unavailable
+    except Exception as e:
+        logging.error(f"An unexpected error occurred in chat_with_bot: {e}", exc_info=True)
+        return jsonify({"error": "An internal server error occurred."}), 500
 
 
 @app.route('/api/unblock_ip', methods=['POST'])
@@ -640,9 +748,39 @@ def on_disconnect(data):
                     break
 
 
+def get_credits() -> float:
+    """
+    Fetches the number of credits remaining in the OpenRouter account.
+
+    Parameters:
+        api_key (str): Your OpenRouter API key.
+
+    Returns:
+        float: The number of remaining credits.
+
+    Raises:
+        Exception: If the API call fails or credits info is unavailable.
+    """
+    url = "https://openrouter.ai/api/v1/credits"
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}"
+    }
+
+    response = requests.get(url, headers=headers)
+
+    if response.status_code != 200:
+        raise Exception(f"API request failed with status code {response.status_code}: {response.text}")
+
+    data = response.json()
+    print("------------------------------------------------")
+    print(f"You have {data['data']['total_credits'] - data['data']['total_usage']} credits remaining.")
+    print("------------------------------------------------")
+
+
 if __name__ == "__main__":
+    get_credits()
     socketio.run(app,
                  debug=True,
-                 # host='0.0.0.0',  # Disable for testing locally
+                 host='0.0.0.0',  # Disable for testing locally
                  port=5000,
                  allow_unsafe_werkzeug=True)
