@@ -98,6 +98,9 @@ function ChatPage() {
     // This state will hold what the bot *displays* post-shuffle (which is the human's demographics)
     const [botDisplayedDemographicsPostShuffle, setBotDisplayedDemographicsPostShuffle] = useState(null);
 
+    // At the top of ChatPage component
+    const [capturedPreShuffleTesterResponderChat, setCapturedPreShuffleTesterResponderChat] = useState([]);
+    const [capturedPreShuffleTesterBotChat, setCapturedPreShuffleTesterBotChat] = useState([]);
 
     // Fetch Human Participant's Demographics
     useEffect(() => {
@@ -417,40 +420,86 @@ function ChatPage() {
 
     // Handle shuffle logic when pre-shuffle timer reaches 0
     useEffect(() => {
-        if (!shuffleEnabled) return; // From your config
-        if (role === 'tester' && timer === 0 && !isAnonymousMode) { // Assuming timer is your pre-shuffle timer
-            setShuffling(true);
-            const preShuffleHumanChatHistory = [...messages]; // Capture human chat
+        if (!shuffleEnabled) return;
+
+        if (role === 'tester' && timer === 0 && !isAnonymousMode) {
+            console.log("SHUFFLE INITIATED for Tester: Pre-shuffle timer reached 0.");
+            setShuffling(true); // For visual shuffle effect
+
+            // --- CAPTURE HISTORIES BEFORE SHUFFLE ---
+            // 1. Capture the Tester <-> Human Responder chat history (from 'messages' state)
+            // This is the history the bot will take over.
+            const testerResponderChatSnapshot = [...messages];
+            setCapturedPreShuffleTesterResponderChat(testerResponderChatSnapshot);
+            console.log("Captured Tester-Responder chat snapshot length:", testerResponderChatSnapshot.length);
+
+            // 2. Capture the original Tester <-> Bot (Alex) chat history (from 'botMessages' state)
+            // This is for the "confusion test" context.
+            const originalTesterBotChatSnapshot = [...botMessages];
+            setCapturedPreShuffleTesterBotChat(originalTesterBotChatSnapshot);
+            console.log("Captured original Tester-Bot chat snapshot length:", originalTesterBotChatSnapshot.length);
+            // --- END CAPTURE ---
 
             setTimeout(() => {
-                setupAnonymousRooms(); // Your existing function
-                saveChatLogs('Before Turing Test'); // Your existing function
+                console.log("SHUFFLE EXECUTION for Tester: Applying post-shuffle states.");
+                setupAnonymousRooms();
+                saveChatLogs('Before Turing Test: '); // Log before state changes fully apply to UI
 
-                setMessages([...preShuffleHumanChatHistory]);
-                setBotMessages([...preShuffleHumanChatHistory]);
+                // 3. Overwrite the bot's chat window (`botMessages`) with the Tester-Responder history.
+                // The bot will now see and continue this conversation.
+                setBotMessages([...testerResponderChatSnapshot]);
+                console.log("`botMessages` (bot's window) overwritten with Tester-Responder chat history.");
 
-                // Bot "adopts" human's demographics for display and conversational context
+                // Note: `setMessages([...preShuffleHumanChatHistory]);` from your original code is removed here.
+                // `messages` (the human responder's window) should typically continue live and not be reset
+                // to its pre-shuffle state, otherwise messages during the shuffle animation in that window would be lost.
+                // If you intended to clear it or reset it for some reason, that would be a different requirement.
+
+                // 4. Bot "adopts" human's demographics for display and conversational context
                 if (humanParticipantDemographics && !humanParticipantDemographics.error) {
                     setBotDisplayedDemographicsPostShuffle({
                         ...humanParticipantDemographics,
-                        source: 'adopted-human-post-shuffle' // Mark the source
+                        source: 'adopted-human-post-shuffle'
                     });
+                    console.log("Bot displayed demographics set to human participant's.");
                 } else {
-                    // Fallback if human demos failed to load, bot might display its fixed ones or nothing
-                    console.warn("Human demographics not available for bot to adopt post-shuffle.");
-                    setBotDisplayedDemographicsPostShuffle(FIXED_BOT_DEMOGRAPHICS); // Or null/error state
+                    console.warn("Human demographics not available for bot to adopt post-shuffle. Using fallback.");
+                    setBotDisplayedDemographicsPostShuffle(FIXED_BOT_DEMOGRAPHICS);
                 }
 
+                // 5. Switch to anonymous mode and set the real test timer
                 setIsAnonymousMode(true);
-                setRealTestTimer(config.REAL_TEST_TIMER); // Assuming this state exists
-                setShuffling(false);
+                setRealTestTimer(config.REAL_TEST_TIMER);
+
+                setShuffling(false); // End visual shuffle effect
+                console.log("Tester shuffle process complete. Anonymous mode active.");
+
             }, 3000); // Shuffle animation duration
+
         } else if (role === 'experimenter' && timer === 0 && !isAnonymousMode) {
-            // For experimenter, just ensure the real test timer is set and sync anonymous mode state
+            // For experimenter (Human Responder), sync anonymous mode and timer.
+            // Their chat history (`messages`) continues naturally.
+            console.log("SHUFFLE SYNC for Experimenter: Pre-shuffle timer reached 0.");
             setRealTestTimer(config.REAL_TEST_TIMER);
-            setIsAnonymousMode(true);
+            setIsAnonymousMode(true); // Experimenter also enters anonymous mode contextually
+            console.log("Experimenter shuffle process complete. Anonymous mode active.");
         }
-    }, [timer, role, shuffleEnabled, isAnonymousMode, messages, humanParticipantDemographics]); // Added botMessages to dependencies just in case, though messages is the primary source for preShuffleHumanChatHistory.
+    }, [
+        timer,
+        role,
+        shuffleEnabled,
+        isAnonymousMode,
+        messages,
+        botMessages, // Added as we are now reading from it for snapshot
+        humanParticipantDemographics,
+        // Include the setters for the new snapshot states if ESLint complains, though typically not needed for setters.
+        // However, it's crucial that `messages` and `botMessages` are in the dependency array
+        // so their latest versions are captured.
+        setCapturedPreShuffleTesterResponderChat, // Added for completeness, though setters usually don't cause re-runs
+        setCapturedPreShuffleTesterBotChat       // Added for completeness
+        // config.REAL_TEST_TIMER, FIXED_BOT_DEMOGRAPHICS, setupAnonymousRooms, saveChatLogs are typically stable
+        // setShuffling, setBotMessages, setBotDisplayedDemographicsPostShuffle, setIsAnonymousMode, setRealTestTimer
+    ]);
 
     // Countdown for the real Turing Test
     useEffect(() => {
@@ -592,92 +641,108 @@ function ChatPage() {
 
     // Send a message to the bot
     const sendMessageToBotQueue = async (messageContent) => {
-        let systemPromptContext = {
-            preShuffleHistory: null,
-            displayedDemographics: null,
-        };
-        let conversationHistoryForAPI; // This will be the history for the current API turn
-        let alexBasePersonaDetails;    // Alex's underlying identity details
+        let alexBasePersonaDetails;
+        let conversationHistoryForAPITurn; // This is the primary history for the API call (current window's messages)
 
-        // Determine Alex's base persona details (should be stable)
-        // Ensure currentPersona is populated with Alex's base details (e.g., from a config or initial state)
-        alexBasePersonaDetails = currentPersona || {
+        // Contexts for system prompt generation
+        let conversationToContinueCtx = null;       // Post-shuffle: Tester-Responder history
+        let displayedDemographicsCtx = null;      // Post-shuffle: Responder's demographics
+        let originalTesterBotHistoryCtx = null;   // Post-shuffle: Original Tester-Alex history
+
+        // alexBasePersonaDetails = currentPersona || {
+        //     name: 'Alex',
+        //     gender: 'Male',
+        //     age: 19,
+        //     occupation: 'Student',
+        //     country: 'USA',
+        //     aiExperience: 'Low',
+        // };
+
+        alexBasePersonaDetails = {
             name: 'Alex',
             gender: 'Male',
             age: 19,
             occupation: 'Student',
             country: 'USA',
             aiExperience: 'Low',
-            // any other base details needed by createSystemPrompt
         };
 
         if (isAnonymousMode) {
             // POST-SHUFFLE SCENARIO
-            // `botMessages` state at this point IS the pre-shuffle human-tester chat history.
-            // The bot is taking over this conversation, appearing with human's demographics.
-
-            conversationHistoryForAPI = botMessages.map(msg => ({
-                role: msg.sender === role ? 'user' : 'assistant', // 'user' if tester sent it, 'assistant' if the human (now bot) sent it
+            // `botMessages` state IS the pre-shuffle Tester-Responder chat history.
+            conversationHistoryForAPITurn = botMessages.map(msg => ({
+                role: msg.sender === role ? 'user' : 'assistant',
                 content: msg.content
             }));
 
-            // For the system prompt: provide the conversation history the bot is taking over
-            // and the demographics it's currently displayed with.
-            systemPromptContext.preShuffleHistory = [...conversationHistoryForAPI].slice(-10); // Last 10 for brevity
+            // For the system prompt, provide:
+            // 1. The Tester-Responder history (as the conversation to continue)
+            if (capturedPreShuffleTesterResponderChat && capturedPreShuffleTesterResponderChat.length > 0) {
+                conversationToContinueCtx = [...capturedPreShuffleTesterResponderChat].slice(-15); // Slice for brevity
+            } else {
+                // Fallback if preShuffleTesterResponderHistory is not yet populated or empty,
+                // use the current botMessages (which should be the same in this scenario)
+                conversationToContinueCtx = [...conversationHistoryForAPITurn].slice(-15);
+                console.warn("sendMessageToBotQueue (Post-Shuffle): preShuffleTesterResponderHistory was empty/null, using current botMessages for 'conversationToContinueCtx'. Ensure it's correctly populated.");
+            }
 
-            // `botDisplayedDemographicsPostShuffle` should hold the adopted human participant's demographics
-            systemPromptContext.displayedDemographics = botDisplayedDemographicsPostShuffle || FIXED_BOT_DEMOGRAPHICS; // Fallback
+            // 2. The Responder's demographics (for the bot to display)
+            displayedDemographicsCtx = botDisplayedDemographicsPostShuffle || FIXED_BOT_DEMOGRAPHICS;
+
+            // 3. The original Tester-Bot (Alex) pre-shuffle history (for the "confusion test")
+            // Ensure capturedPreShuffleTesterBotChat state is populated correctly by ChatPage logic
+            if (capturedPreShuffleTesterBotChat && capturedPreShuffleTesterBotChat.length > 0) {
+                originalTesterBotHistoryCtx = [...capturedPreShuffleTesterBotChat].slice(-10); // Slice for brevity
+            }
 
         } else {
             // PRE-SHUFFLE SCENARIO
-            // Bot (Alex) is chatting with its own identity and history.
-            // `botMessages` state contains the direct chat history between the tester and Alex.
-            conversationHistoryForAPI = botMessages.map(msg => ({
+            // `botMessages` state is the direct Tester-Alex chat history.
+            conversationHistoryForAPITurn = botMessages.map(msg => ({
                 role: msg.sender === 'bot' ? 'assistant' : 'user',
                 content: msg.content
             }));
-
-            // No special context needed for the system prompt beyond Alex's base persona,
-            // which createSystemPrompt will use by default if preShuffleHistory is null.
-            systemPromptContext.preShuffleHistory = null;
-            systemPromptContext.displayedDemographics = null; // Bot uses its own base persona defined in createSystemPrompt
+            // No special context needed beyond Alex's base persona for pre-shuffle.
+            // conversationToContinueCtx, displayedDemographicsCtx, originalTesterBotHistoryCtx remain null.
         }
 
-        // Add the new user message to the history for the API call
-        const fullHistoryForAPITurn = [
-            ...conversationHistoryForAPI,
+        const fullHistoryForAPITurnWithNewMessage = [
+            ...conversationHistoryForAPITurn,
             {role: 'user', content: messageContent}
         ];
 
         try {
-            const botReply = await sendBotMessage( // This is from botService.js
-                fullHistoryForAPITurn,
-                alexBasePersonaDetails, // Alex's base identity details
-                false, // isWakeupMessage (false for regular messages)
-                // lastWakeupMessageRef.current, // This param seems unused if createSystemPrompt handles wakeup variations
-                config.ENABLE_PROMPT,
-                systemPromptContext.preShuffleHistory,
-                systemPromptContext.displayedDemographics
+            // Call botService.js function, which now calls the backend
+            const botReply = await sendBotMessage(
+                fullHistoryForAPITurnWithNewMessage, // Primary conversation history for this API call
+                alexBasePersonaDetails,
+                false, // isWakeupMessage
+                // config.ENABLE_PROMPT, // Backend now primarily controls this via its own config.
+                // If frontend needs to override, sendBotMessage signature would need adjustment.
+
+                // Contexts for system prompt generation (passed to backend)
+                conversationToContinueCtx,          // Post-shuffle: Tester-Responder history
+                displayedDemographicsCtx,           // Post-shuffle: Responder's demographics
+                originalTesterBotHistoryCtx         // Post-shuffle: Original Tester-Alex history
             );
 
-            // Update the chat window for the bot with its reply
             setBotMessages(prevBotMessages => [
                 ...prevBotMessages,
-                {id: `${Date.now()}-bot`, sender: 'bot', content: botReply, timestamp: Date.now()}
+                {id: `${Date.now()}-bot-${Math.random()}`, sender: 'bot', content: botReply, timestamp: Date.now()}
             ]);
 
-            lastWakeupMessageRef.current = null; // Reset if a wakeup was pending
+            lastWakeupMessageRef.current = null;
             lastBotActivityTimestampRef.current = Date.now();
-            setMessageToBot(''); // Clear the input field
+            // setMessageToBot('');
 
         } catch (error) {
-            console.error('Error sending message to bot or processing reply:', error);
+            console.error('ChatPage: Error sending message to bot or processing reply:', error);
             setBotMessages(prevBotMessages => [
                 ...prevBotMessages,
                 {
-                    id: `${Date.now()}-bot-error`,
+                    id: `${Date.now()}-bot-error-${Math.random()}`,
                     sender: 'bot',
-                    content: "Sorry, I encountered an issue. Please try again.",
+                    content: error.message || "Sorry, I encountered an issue. Please try again.",
                     timestamp: Date.now()
                 }
             ]);

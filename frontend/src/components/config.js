@@ -1,7 +1,7 @@
 const config = {
   SHUFFLE_ENABLED: true,  // Set to true for timer and shuffling, false for immediate anonymous start
-  INITIAL_TIMER: 30,       // Only used when SHUFFLE_ENABLED is true
-  REAL_TEST_TIMER: 60,     // Duration of the actual test
+  INITIAL_TIMER: 60,       // Only used when SHUFFLE_ENABLED is true
+  REAL_TEST_TIMER: 120,     // Duration of the actual test
   CHECK_IP: false,         // Set to true to check IP address, false to skip
   ENABLE_BOT_WAKEUP: false,  // Enable/disable the bot wake-up message system
   ENABLE_PROMPT: true,      // Enable/disable the prompt system

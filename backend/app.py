@@ -123,18 +123,17 @@ def chat_with_bot():
     if not data:
         return jsonify({"error": "Invalid JSON payload"}), 400
 
-    # Extract necessary data from the frontend request
-    conversation_messages = data.get('conversationMessages')
+    conversation_messages_for_api_turn = data.get('conversationMessages')  # Renamed for clarity
     bot_base_persona_details = data.get('botBasePersonaDetails')
     is_wakeup_message = data.get('isWakeupMessage', False)
-    # enable_prompt_flag = data.get('enable_prompt_flag_from_config', BOT_ENABLE_PROMPT) # Use backend config or allow override
-    enable_prompt_flag = BOT_ENABLE_PROMPT  # Prefer backend config for this
+    enable_prompt_flag = 'BOT_ENABLE_PROMPT'  # Using backend config
 
-    injected_history = data.get('injectedHistoryForSystemPrompt')
+    # Contextual histories for system prompt generation
+    conversation_to_continue = data.get('conversationToContinueHistory')
+    original_tester_bot_chat = data.get('originalTesterBotHistory')
     displayed_demographics = data.get('displayedDemographicsForSystemPrompt')
 
-    # Validate required fields
-    if not conversation_messages or not isinstance(conversation_messages, list):
+    if not conversation_messages_for_api_turn or not isinstance(conversation_messages_for_api_turn, list):
         return jsonify({"error": "Missing or invalid 'conversationMessages'"}), 400
     if not bot_base_persona_details or not isinstance(bot_base_persona_details, dict):
         return jsonify({"error": "Missing or invalid 'botBasePersonaDetails'"}), 400
@@ -152,7 +151,6 @@ def chat_with_bot():
         elif enable_prompt_flag:
             if not all(k in bot_base_persona_details for k in ['name', 'gender', 'age']):
                 logging.warning("BOT_CHAT_ROUTE: botBasePersonaDetails missing name, gender, or age for system prompt.")
-                # Potentially use a very minimal default or skip system prompt
             else:
                 system_prompt_object = create_system_prompt(
                     bot_base_name=bot_base_persona_details.get('name'),
@@ -161,57 +159,52 @@ def chat_with_bot():
                     bot_base_occupation=bot_base_persona_details.get('occupation', "Student"),
                     bot_base_country=bot_base_persona_details.get('country', "USA"),
                     bot_base_ai_experience=bot_base_persona_details.get('aiExperience', "Low"),
-                    injected_conversation_history=injected_history,
-                    bot_displayed_demographics=displayed_demographics
+                    conversation_to_continue_history=conversation_to_continue,
+                    bot_displayed_demographics=displayed_demographics,
+                    original_tester_bot_history=original_tester_bot_chat
                 )
 
         if system_prompt_object:
             api_payload_messages.append(system_prompt_object)
 
-        api_payload_messages.extend(conversation_messages)
+        api_payload_messages.extend(conversation_messages_for_api_turn)
 
         headers = {
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
             "Content-Type": "application/json",
-            # Optional headers based on OpenRouter docs or your needs
-            # "HTTP-Referer": YOUR_SITE_URL,
-            # "X-Title": YOUR_APP_NAME
         }
         payload = {
             "model": OPENROUTER_MODEL,
             "messages": api_payload_messages,
-            "temperature": 0.9,  # Or your preferred temperature
-            # Add other parameters like max_tokens, top_p if needed
+            "temperature": 0.9,
         }
 
         logging.info(
-            f"Calling OpenRouter API. Model: {OPENROUTER_MODEL}. Messages count: {len(api_payload_messages)}")
-        # logging.debug(f"OpenRouter Payload: {payload}") # Be careful logging full payload if it contains sensitive data
+            f"Calling OpenRouter API. Model: {OPENROUTER_MODEL}. System prompt generated: {bool(system_prompt_object)}"
+        )
 
-        response = requests.post(OPENROUTER_API_URL, json=payload, headers=headers,
-                                 timeout=30)  # 30s timeout
-        response.raise_for_status()  # Raises an HTTPError for bad responses (4XX or 5XX)
-
+        response = requests.post(OPENROUTER_API_URL, json=payload, headers=headers, timeout=30)
+        response.raise_for_status()
         response_data = response.json()
 
         if response_data and response_data.get("choices") and response_data["choices"][0].get("message"):
             bot_reply_content = response_data["choices"][0]["message"].get("content")
-            if bot_reply_content:
+            if bot_reply_content is not None:  # Check for not None, as empty string can be a valid reply
                 logging.info("Successfully received reply from OpenRouter.")
                 return jsonify({"reply": bot_reply_content})
-            else:
-                logging.error("OpenRouter response missing content in message.")
-                return jsonify({"error": "Bot returned an empty message."}), 500
-        else:
-            logging.error(f"Invalid or incomplete response structure from OpenRouter: {response_data}")
-            return jsonify({"error": "Bot did not provide a valid response structure."}), 500
+
+        logging.error(f"Invalid or incomplete response structure from OpenRouter: {response_data}")
+        return jsonify({"error": "Bot did not provide a valid response structure."}), 500
 
     except requests.exceptions.HTTPError as http_err:
-        logging.error(f"HTTP error occurred with OpenRouter: {http_err} - Response: {http_err.response.text}")
-        return jsonify({"error": f"Bot API request failed: {http_err.response.status_code}"}), 502  # Bad Gateway
+        error_text = http_err.response.text if http_err.response else 'No response body'
+        status_code = http_err.response.status_code if http_err.response else 'Unknown HTTP error'
+        logging.error(
+            f"HTTP error occurred with OpenRouter: {http_err} - Status: {status_code} - Response: {error_text}")
+        return jsonify({"error": f"Bot API request failed: {status_code}"}), 502
     except requests.exceptions.RequestException as req_err:
         logging.error(f"Request exception occurred with OpenRouter: {req_err}")
-        return jsonify({"error": "Could not connect to bot service."}), 503  # Service Unavailable
+        return jsonify({"error": "Could not connect to bot service."}), 503
     except Exception as e:
         logging.error(f"An unexpected error occurred in chat_with_bot: {e}", exc_info=True)
         return jsonify({"error": "An internal server error occurred."}), 500

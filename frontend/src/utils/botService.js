@@ -5,51 +5,42 @@ import config from "../components/config";
 let server_url = config.SERVER_URL;
 
 export const sendBotMessage = async (
-    conversationMessages, // Chat history for the current API turn
-    botBasePersonaDetails, // { name, gender, age, occupation?, country?, aiExperience? }
+    // This is the primary chat history for the API turn.
+    // Post-shuffle, this is the Tester-Responder chat (now in bot's window) + new user message.
+    conversationMessagesForAPITurn,
+    botBasePersonaDetails,
     isWakeupMessage = false,
-    enable_prompt_flag_from_config, // This will be controlled by backend config or passed if dynamic
+    // Removed enable_prompt_flag_from_config; backend uses its own BOT_ENABLE_PROMPT config.
 
-    // Context for system prompt generation (passed to backend)
-    injectedHistoryForSystemPrompt = null,
-    displayedDemographicsForSystemPrompt = null,
-
-    // Other params that ChatPage might pass, like a dynamic enable_prompt flag
-    // For simplicity, let's assume enable_prompt logic is primarily on backend now,
-    // but if ChatPage needs to override, it could pass a flag.
-    // For now, this parameter is removed from here, backend uses its own config.
-    // dynamicEnablePromptFlag // Example if needed
+    // Contextual information for the backend to construct the system prompt:
+    conversationToContinueHistory = null, // Post-shuffle: The Tester-Responder pre-shuffle history.
+    displayedDemographicsForSystemPrompt = null, // Post-shuffle: The Responder's demographics.
+    originalTesterBotHistory = null // Post-shuffle: The original Tester-Alex pre-shuffle history.
 ) => {
     try {
-        // Construct payload for your backend API
         const payloadToBackend = {
-            conversationMessages,
+            conversationMessages: conversationMessagesForAPITurn, // Corrected: This is the main history for the API call
             botBasePersonaDetails,
             isWakeupMessage,
-            // If you still need a dynamic per-call prompt enable flag from frontend:
-            // enable_prompt_flag_from_config: dynamicEnablePromptFlag,
-            injectedHistoryForSystemPrompt,
-            displayedDemographicsForSystemPrompt
+
+            // Pass through the contextual histories for system prompt generation
+            conversationToContinueHistory,
+            displayedDemographicsForSystemPrompt,
+            originalTesterBotHistory
         };
 
-        // console.log("Sending payload to backend /api/chat_with_bot:", payloadToBackend);
+        const apiUrl = server_url + '/api/chat_with_bot';
 
-        const backendResponse = await axios.post(server_url + '/api/chat_with_bot', payloadToBackend, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        // Send the payload to the backend
+        const backendResponse = await axios.post(apiUrl, payloadToBackend, {
+            headers: { 'Content-Type': 'application/json' }
         });
 
         if (backendResponse && backendResponse.data && typeof backendResponse.data.reply === 'string') {
             const botReplyContent = backendResponse.data.reply;
-
-            // Frontend UX delay can still be applied here if desired
             await new Promise((resolve) => setTimeout(resolve, calculateReplyDelay(botReplyContent)));
-
             return botReplyContent;
         } else {
-            console.error("Invalid or incomplete response from backend API:", backendResponse ? JSON.stringify(backendResponse.data) : 'No response data');
-            // Try to extract a more specific error from backend if available
             const errorMessage = backendResponse?.data?.error || "Bot did not provide a valid reply from backend.";
             throw new Error(errorMessage);
         }
@@ -57,18 +48,13 @@ export const sendBotMessage = async (
     } catch (error) {
         let errorMessage = "Failed to get a response from the bot via backend.";
         if (error.response) {
-            // Error from backend HTTP response
-            console.error('Error calling backend bot API (Response Error):', error.response.data || error.response.statusText);
             errorMessage = error.response.data?.error || error.response.statusText || errorMessage;
         } else if (error.request) {
-            // Request was made but no response received (e.g., backend down)
-            console.error('Error calling backend bot API (No Response / Network Error):', error.request);
             errorMessage = "Could not connect to the backend bot service.";
         } else {
-            // Something else happened in setting up the request
-            console.error('Error calling backend bot API (Request Setup Error):', error.message);
             errorMessage = error.message || errorMessage;
         }
+        console.error('Error in sendBotMessage (botService.js):', errorMessage, error);
         throw new Error(errorMessage);
     }
 };
