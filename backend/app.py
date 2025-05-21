@@ -166,7 +166,7 @@ def chat_bot():
                 })
 
             for msg in conversation_history:
-                role = "assistant" if msg.get("sender") == "bot" else "user"
+                role = "assistant" if msg.get("role") == "assistant" else "user"
                 messages_for_openrouter.append({"role": role, "content": msg.get("content")})
 
         if not messages_for_openrouter and is_generate_wakeup_call:
