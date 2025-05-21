@@ -23,7 +23,7 @@ const usePreventBackNavigation = () => {
       }
     };
 
-    const intervalId = setInterval(handleHistoryChange, 100);
+    const intervalId = setInterval(handleHistoryChange, 1000);
 
     return () => {
       window.removeEventListener('popstate', preventBack);
