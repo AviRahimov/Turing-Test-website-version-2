@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import usePreventBackNavigation from './usePreventBackNavigation';
 import config from "./config";
 
 const FeedbackPage = () => {
-  usePreventBackNavigation();
+  // Prevent back navigation for tester on feedback page
+  usePreventBackNavigation({ allowedPaths: ['/feedback', '/thank_you'], refreshOnBack: false });
+  
   const location = useLocation();
   const {realIdentityA, realIdentityB, guessCandidateA, guessCandidateB, userId, code, role, pairId, username } = location.state || {};
-  console.log("The user id in the feedback page is", userId);
+  // Always use the string username as userId for backend calls
+  const effectiveUserId = username;
 
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -15,6 +18,10 @@ const FeedbackPage = () => {
     comments: '',
     improvements: '',
   });
+
+  useEffect(() => {
+    console.log("The user id in the feedback page is", effectiveUserId);
+  }, [effectiveUserId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,7 +38,7 @@ const FeedbackPage = () => {
         body: JSON.stringify({
           ...formData,
           username,
-          userId,
+          userId: effectiveUserId,
           pairId,
           realIdentityA,
           realIdentityB,

@@ -4,18 +4,19 @@ import time
 from datetime import datetime, timedelta
 from collections import deque
 from flask import Flask, request, jsonify
-from flask_socketio import SocketIO, join_room, emit
+from flask_socketio import SocketIO, join_room, emit, disconnect
 from flask_cors import CORS
 from flask import send_from_directory
 import random
 import logging
 import csv
 import json
-from threading import Lock
+from threading import Lock, Thread
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import json
 import requests
+import flask
 
 # Import from prompts module
 from prompts import create_system_prompt, WAKEUP_SYSTEM_INSTRUCTION
@@ -26,6 +27,7 @@ MONGODB_URI = os.getenv("MONGODB_URI")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODEL = "meta-llama/llama-3.1-405b-instruct"
+# OPENROUTER_MODEL = "deepseek/deepseek-r1:free"
 BOT_ENABLE_PROMPT = True
 
 # MongoDB connection
@@ -58,7 +60,6 @@ CORS(app, resources={
 
 socketio = SocketIO(app,
                     cors_allowed_origins=allowed,
-                    logging=True,
                     ping_timeout=5000,
                     ping_interval=25000)
 logging.basicConfig(level=logging.INFO)
@@ -94,6 +95,12 @@ active_connections = {}
 user_counter = 0
 user_lock = Lock()
 
+# Timer state for each pair
+pair_timers = {}
+pair_quiz_status = {}  # Track quiz completion status for each pair
+SHUFFLE_TIMER_DURATION = 30  # 1 minute shuffle timer (3 minutes in production)
+REAL_TEST_DURATION = 40  # 70 seconds real test timer (8 minutes in production)
+
 
 @socketio.on('check_ip')
 def handle_check_ip(data):
@@ -126,12 +133,16 @@ def chat_with_bot():
     conversation_messages_for_api_turn = data.get('conversationMessages')  # Renamed for clarity
     bot_base_persona_details = data.get('botBasePersonaDetails')
     is_wakeup_message = data.get('isWakeupMessage', False)
-    enable_prompt_flag = 'BOT_ENABLE_PROMPT'  # Using backend config
-
-    # Contextual histories for system prompt generation
+    enable_prompt_flag = BOT_ENABLE_PROMPT  # Using backend config    # Contextual histories for system prompt generation
     conversation_to_continue = data.get('conversationToContinueHistory')
     original_tester_bot_chat = data.get('originalTesterBotHistory')
     displayed_demographics = data.get('displayedDemographicsForSystemPrompt')
+
+    # Debug logging
+    logging.info(f"chat_with_bot: Received conversation_messages_for_api_turn length: {len(conversation_messages_for_api_turn) if conversation_messages_for_api_turn else 0}")
+    logging.info(f"chat_with_bot: conversation_to_continue length: {len(conversation_to_continue) if conversation_to_continue else 0}")
+    logging.info(f"chat_with_bot: original_tester_bot_chat length: {len(original_tester_bot_chat) if original_tester_bot_chat else 0}")
+    logging.info(f"chat_with_bot: displayed_demographics: {displayed_demographics}")
 
     if not conversation_messages_for_api_turn or not isinstance(conversation_messages_for_api_turn, list):
         return jsonify({"error": "Missing or invalid 'conversationMessages'"}), 400
@@ -173,6 +184,7 @@ def chat_with_bot():
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
             "Content-Type": "application/json",
         }
+        
         payload = {
             "model": OPENROUTER_MODEL,
             "messages": api_payload_messages,
@@ -182,6 +194,10 @@ def chat_with_bot():
         logging.info(
             f"Calling OpenRouter API. Model: {OPENROUTER_MODEL}. System prompt generated: {bool(system_prompt_object)}"
         )
+        logging.info(f"API payload messages count: {len(api_payload_messages)}")
+        if api_payload_messages:
+            logging.info(f"First message role: {api_payload_messages[0].get('role', 'N/A')}")
+            logging.info(f"Last message role: {api_payload_messages[-1].get('role', 'N/A')}")
 
         response = requests.post(OPENROUTER_API_URL, json=payload, headers=headers, timeout=30)
         response.raise_for_status()
@@ -213,6 +229,8 @@ def chat_with_bot():
 @app.route('/api/unblock_ip', methods=['POST'])
 def unblock_ip():
     data = request.json
+    if not data or 'ip' not in data:
+        return jsonify({'status': 'error', 'message': 'No IP provided'}), 400
     ip = data.get('ip')
 
     if not ip:
@@ -240,10 +258,12 @@ def unblock_ip():
 def serve_static_files(path):
     try:
         # Try to serve the requested file from the React build folder
-        return send_from_directory(app.static_folder, path)
+        static_folder = app.static_folder or "build"
+        return send_from_directory(static_folder, path)
     except FileNotFoundError:
         # If file is not found, serve React's index.html (for client-side routing)
-        return send_from_directory(app.static_folder, 'index.html')
+        static_folder = app.static_folder or "build"
+        return send_from_directory(static_folder, 'index.html')
 
 
 # --- Helper Functions ---
@@ -263,6 +283,44 @@ def get_unique_user_id():
         return user_counter
 
 
+# Helper to start the shuffle timer when both users complete quiz
+def start_shuffle_timer(pair_id):
+    def shuffle_timer_thread():
+        remaining = SHUFFLE_TIMER_DURATION
+        while remaining > 0:
+            time.sleep(1)
+            remaining -= 1
+        # When shuffle timer ends, emit shuffle event and start real test timer
+        socketio.emit('shuffle_started', {'pair_id': pair_id}, to=pair_id)
+        logging.info(f"Shuffle started for pair {pair_id}")
+        # Start the real test timer immediately after shuffle
+        start_real_test_timer(pair_id)
+    
+    # Start the shuffle timer in a new thread
+    t = Thread(target=shuffle_timer_thread, daemon=True)
+    pair_timers[f"{pair_id}_shuffle"] = t
+    t.start()
+    logging.info(f"Shuffle timer started for pair {pair_id}")
+
+# Helper to start the real test timer for a pair
+def start_real_test_timer(pair_id):
+    def timer_thread():
+        remaining = REAL_TEST_DURATION
+        while remaining > 0:
+            time.sleep(1)
+            remaining -= 1
+        # When timer ends, emit chat_ended to both users in the room
+        socketio.emit('chat_ended', {'pair_id': pair_id}, to=pair_id)
+        pair_timers.pop(f"{pair_id}_real", None)
+        logging.info(f"Real test timer ended for pair {pair_id}")
+    
+    # Start the timer in a new thread
+    t = Thread(target=timer_thread, daemon=True)
+    pair_timers[f"{pair_id}_real"] = t
+    t.start()
+    logging.info(f"Real test timer started for pair {pair_id}")
+
+
 # --- Routes ---
 @app.route("/")
 def home():
@@ -272,6 +330,9 @@ def home():
 @app.route("/api/generate_code", methods=["POST"])
 def generate_code():
     data = request.json
+    if not data:
+        return jsonify({"status": "error", "message": "No data provided"}), 400
+
     role = data.get("role")
     userId = data.get("userId")
     pair_id = data.get("pairId")
@@ -315,11 +376,13 @@ def generate_code():
         # generated_codes[name] = code
 
         # Notify the experimenter
-        experimenter_id = user_sockets.get(pairs[pair_id]["experimenter"])
-        print("experimenter_id", experimenter_id)
-        if experimenter_id:
-            socketio.emit("bonus_code", {"bonus": code})
-            print("emitted bonus code")
+        experimenter_username = pairs[pair_id]["experimenter"]
+        experimenter_sid = user_sockets.get(experimenter_username)
+        print("experimenter_username", experimenter_username)
+        print("experimenter_sid", experimenter_sid)
+        if experimenter_sid:
+            socketio.emit("bonus_code", {"bonus": code}, to=experimenter_sid)
+            print("emitted bonus code to experimenter_sid")
 
         return jsonify({"status": "success", "code": code})
 
@@ -328,7 +391,7 @@ def generate_code():
 def handle_notification_dismissed(data):
     pair_id = data.get('pair_id')
     role = data.get('role')
-    emit('notification_dismissed', {'role': role}, room=pair_id)
+    emit('notification_dismissed', {'role': role}, to=pair_id)
 
 
 @socketio.on('quiz_completed')
@@ -336,7 +399,24 @@ def handle_quiz_completed(data):
     logging.info(f"Quiz completed: {data}")
     pair_id = data.get('pair_id')
     role = data.get('role')
-    emit('quiz_completed', {'role': role}, room=pair_id)
+    
+    # Initialize pair quiz status if not exists
+    if pair_id not in pair_quiz_status:
+        pair_quiz_status[pair_id] = {'tester': False, 'experimenter': False}
+    
+    # Mark this role as completed
+    pair_quiz_status[pair_id][role] = True
+    
+    # Emit to the pair that this role completed
+    emit('quiz_completed', {'role': role}, to=pair_id)
+    
+    # Check if both users have completed the quiz
+    if pair_quiz_status[pair_id]['tester'] and pair_quiz_status[pair_id]['experimenter']:
+        logging.info(f"Both users completed quiz for pair {pair_id}, starting shuffle timer")
+        # Both completed, start the shuffle timer
+        start_shuffle_timer(pair_id)
+        # Emit timer started event to both users
+        emit('timer_started', {'pair_id': pair_id}, to=pair_id)
 
 
 @socketio.on('quiz_failed')
@@ -344,7 +424,7 @@ def handle_quiz_failed(data):
     logging.info(f"Quiz failed: {data}")
     pair_id = data.get('pair_id')
     role = data.get('role')
-    emit('quiz_failed', {'role': role}, room=pair_id)
+    emit('quiz_failed', {'role': role}, to=pair_id)
 
 
 @socketio.on("participant_inactivity_warning")
@@ -352,7 +432,7 @@ def handle_inactivity_warning(data):
     print("Received inactivity warning:", data)  # Debug log
     pair_id = data.get("pair_id")
     role = data.get("role")
-    emit("inactivity_warning", {"role": role}, room=pair_id)
+    emit("inactivity_warning", {"role": role}, to=pair_id)
     print(f"Sent inactivity warning to room {pair_id}")  # Debug log
 
 
@@ -361,7 +441,7 @@ def handle_participant_ban(data):
     print("Received participant ban:", data)  # Debug log
     pair_id = data.get("pair_id")
     role = data.get("role")
-    emit("participant_banned", {"role": role}, room=pair_id)
+    emit("participant_banned", {"role": role}, to=pair_id)
     print(f"Sent ban notification to room {pair_id}")  # Debug log
 
 
@@ -371,7 +451,7 @@ def on_connect():
     """
     Handle new socket connections
     """
-    logging.info(f"User connected with SID: {request.sid}")
+    logging.info(f"User connected with SID: {request.sid}") # type: ignore
     emit('connect_response', {'status': 'connected'})
 
 
@@ -388,24 +468,25 @@ def error_handler(e):
 @socketio.on("register_user")
 def register_user(data):
     """
-    Register the user with a unique ID upon connection.
+    Register the user with a unique string username upon connection.
     """
     unique_id = get_unique_user_id()
-    print("unique_id", unique_id)
     username = f"user_{unique_id}"
-    if username and username in user_sockets:
+    if username in user_sockets:
         logging.warning(f"User {username} is already connected.")
         return  # Do not re-register
 
-    if username:
-        user_sockets[username] = request.sid
-        logging.info(f"Registered user {username} with socket ID {request.sid}")
-        emit('user_registered', {'username': username, 'user_id': unique_id})
+    user_sockets[username] = request.sid # type: ignore
+    logging.info(f"Registered user {username} with socket ID {request.sid}") # type: ignore
+    # Emit the string username as both username and user_id for consistency
+    emit('user_registered', {'username': username, 'user_id': username})
 
 
 @app.route("/api/save_demographics", methods=["POST"])
 def save_demographics():
     data = request.json
+    if not data:
+        return jsonify({"status": "error", "message": "No data provided"}), 400
     print(f"Received demographics data to save: {data}")  # DEBUG LINE
     user_id_from_frontend = data.get("user_id") # This is the "user_X" string
     gender = data.get("gender")
@@ -420,7 +501,7 @@ def save_demographics():
         age_num = int(age)
         if age_num <= 0:
             return jsonify({"status": "error", "message": "Invalid age"}), 400
-    except ValueError:
+    except (ValueError, TypeError):
         return jsonify({"status": "error", "message": "Age must be a number"}), 400
 
     demographic_data = {
@@ -484,89 +565,61 @@ def submit_name():
     Handle user submission and automatically assign roles to pair testers and experimenters.
     """
     data = request.json
+    if not data:
+        return jsonify({"status": "error", "message": "No data provided"}), 400
     logging.info(f"Received name submission data: {data}")
     username = data.get("username")
-    unique_id = data.get("user_id")
+    user_id = data.get("user_id")  # This should be the string username
 
-    if not username or not unique_id:
+    if not username or not user_id or username != user_id:
         return jsonify({"status": "error", "message": "Invalid username or user ID"}), 400
 
-    with pairing_lock:  # Use the existing lock for thread safety
-        # Check if the user's socket is connected
+    with pairing_lock:
         if username not in user_sockets:
             return jsonify({"status": "error", "message": "Socket connection not established"}), 400
-
-        # Check if the user is already in the queues
         if username in tester_queue or username in experimenter_queue:
             return jsonify({"status": "waiting", "message": "You are already waiting to be paired"}), 200
-
-        # Automatic role assignment
         role = None
         if not tester_queue:
-            # First user becomes the Tester
             tester_queue.append(username)
             role = "tester"
         elif not experimenter_queue:
-            # Second user becomes the Experimenter
             experimenter_queue.append(username)
             role = "experimenter"
         else:
-            # If both queues are already full, return a waiting response
             return jsonify({"status": "waiting", "message": "Waiting for another user to connect"}), 200
-
-        # Attempt to pair users if both queues are filled
         if tester_queue and experimenter_queue:
             tester_username_str = tester_queue[0]
             experimenter_username_str = experimenter_queue[0]
-
             tester_socket_id = user_sockets.get(tester_username_str)
             experimenter_socket_id = user_sockets.get(experimenter_username_str)
-
             if tester_socket_id and experimenter_socket_id:
                 tester_queue.popleft()
                 experimenter_queue.popleft()
                 pair_id = generate_unique_room_number()
                 pairs[pair_id] = {"tester": tester_username_str, "experimenter": experimenter_username_str}
-
-                # Tester payload
                 socketio.emit("paired", {
                     "pair_id": pair_id, "role": "tester",
-                    "user_id": user_sockets.get(tester_username_str),  # Socket ID
-                    "username": tester_username_str,  # "user_X"
-                    "partner_username": experimenter_username_str  # Partner's "user_Y"
+                    "user_id": tester_username_str,  # Use string username
+                    "username": tester_username_str,
+                    "partner_username": experimenter_username_str
                 }, to=tester_socket_id)
-
-                # Experimenter payload
                 socketio.emit("paired", {
                     "pair_id": pair_id, "role": "experimenter",
-                    "user_id": user_sockets.get(experimenter_username_str),  # Socket ID
-                    "username": experimenter_username_str,  # "user_Y"
-                    "partner_username": tester_username_str  # Partner's "user_X"
-                }, to=experimenter_socket_id)
-
+                    "user_id": experimenter_username_str,  # Use string username
+                    "username": experimenter_username_str,
+                    "partner_username": tester_username_str                }, to=experimenter_socket_id)
                 logging.info(
-                    f"Paired {tester_username_str} (ID: {tester_socket_id}) with {experimenter_username_str} (ID: {experimenter_socket_id}) in room {pair_id}"
+                    f"Paired {tester_username_str} (SID: {tester_socket_id}) with {experimenter_username_str} (SID: {experimenter_socket_id}) in room {pair_id}"
                 )
-                return jsonify(
-                    {
-                        "status": "paired",
-                        "pair_id": pair_id,
-                        "users": [
-                            {
-                                "username": tester_username_str,
-                                "role": "tester",
-                                "user_id": tester_socket_id,
-                            },
-                            {
-                                "username": experimenter_username_str,
-                                "role": "experimenter",
-                                "user_id": experimenter_socket_id,
-                            },
-                        ],
-                    }
-                ), 200
-
-        # If pairing wasn't possible, inform the user to wait
+                return jsonify({
+                    "status": "paired",
+                    "pair_id": pair_id,
+                    "users": [
+                        {"username": tester_username_str, "role": "tester", "user_id": tester_username_str},
+                        {"username": experimenter_username_str, "role": "experimenter", "user_id": experimenter_username_str},
+                    ],
+                }), 200
         return jsonify({"status": "waiting", "message": "Waiting for another user to connect"}), 200
 
 
@@ -574,6 +627,9 @@ def submit_name():
 def save_chat():
     """Save chat logs to MongoDB."""
     chat_data = request.json
+    if not chat_data:
+        return jsonify({"status": "error", "message": "No chat data provided"}), 400
+
     pair_id = chat_data.get("pairId")
     title = chat_data.get("title")
 
@@ -603,7 +659,7 @@ def save_feedback():
     data = request.json
 
     # Normalize real identities
-    if data.get("realIdentityA", "").lower() == "bot":
+    if data and data.get("realIdentityA", "").lower() == "bot":
         real_identity_a = "bot"
         real_identity_b = "experimenter"
     else:
@@ -611,18 +667,18 @@ def save_feedback():
         real_identity_b = "bot"
 
     feedback = {
-        "username": data.get("username"),
-        "userId": data.get("userId"),
-        "pairId": data.get("pairId"),
-        "experience": data.get("experience"),
-        "comments": data.get("comments"),
-        "improvements": data.get("improvements"),
-        "guessCandidateA": data.get("guessCandidateA"),
-        "guessCandidateB": data.get("guessCandidateB"),
+        "username": data.get("username") if data else None,
+        "userId": data.get("userId") if data else None,
+        "pairId": data.get("pairId") if data else None,
+        "experience": data.get("experience") if data else None,
+        "comments": data.get("comments") if data else None,
+        "improvements": data.get("improvements") if data else None,
+        "guessCandidateA": data.get("guessCandidateA") if data else None,
+        "guessCandidateB": data.get("guessCandidateB") if data else None,
         "realIdentityA": real_identity_a,
         "realIdentityB": real_identity_b,
-        "correctGuessA": data.get("guessCandidateA") == real_identity_a,
-        "correctGuessB": data.get("guessCandidateB") == real_identity_b,
+        "correctGuessA": (data.get("guessCandidateA") == real_identity_a) if data else False,
+        "correctGuessB": (data.get("guessCandidateB") == real_identity_b) if data else False,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     }
 
@@ -630,11 +686,11 @@ def save_feedback():
         # Save to MongoDB
         feedback_collection.insert_one(feedback)
 
-        print("user_id string: ", data.get("username"))
+        print("user_id string: ", data.get("username") if data else None)
         # Add pair_id to demographic collection
         demographic_collection.update_one(
-            {"user_id": data.get("username")},
-            {"$set": {"pair_id": data.get("pairId")}}
+            {"user_id": data.get("username") if data else None},
+            {"$set": {"pair_id": data.get("pairId") if data else None}}
         )
 
         return jsonify({"status": "success", "message": "Feedback saved"})
@@ -646,6 +702,8 @@ def save_feedback():
 @app.route("/api/verify_code", methods=["POST"])
 def verify_code():
     try:
+        if not request.json or "code" not in request.json:
+            return jsonify({"status": "error", "message": "No code provided"}), 400
         code = request.json.get("code")
         # Query MongoDB for the code
         code_doc = codes_collection.find_one({"code": code})
@@ -687,13 +745,69 @@ def on_join(data):
 @socketio.on("experimenter_ready")
 def handle_experimenter_ready(data):
     pair_id = data.get("pair_id")
-    emit("experimenter_ready", {"status": "ready"}, room=pair_id)
+    emit("experimenter_ready", {"status": "ready"}, to=pair_id)
 
 
 @socketio.on("tester_guessed")
 def handle_tester_guessed(data):
-    pair_id = data.get("pair_id")
-    emit("bonus_code", {"bonus": generate_unique_code()}, room=pair_id)
+    print(f"Received tester_guessed event: {data}")  # Debug log
+    pair_id = data.get("pairId")
+    guess_a = data.get("guessCandidateA")
+    guess_b = data.get("guessCandidateB")
+    real_a = data.get("realIdentityA")
+    real_b = data.get("realIdentityB")
+    tester = data.get("tester")
+    
+    print(f"Processing guesses - A: {guess_a} vs {real_a}, B: {guess_b} vs {real_b}")  # Debug log
+    
+    # Find experimenter username and sid
+    experimenter_username = pairs.get(pair_id, {}).get("experimenter")
+    experimenter_sid = user_sockets.get(experimenter_username)
+    
+    print(f"Experimenter: {experimenter_username}, SID: {experimenter_sid}")  # Debug log
+      # Determine code length
+    if guess_a == real_a and guess_b == real_b:
+        code = generate_unique_code(digits=7)
+        print("Both guesses correct - generating 7-digit code")  # Debug log
+    else:
+        code = generate_unique_code(digits=6)
+        print("Incorrect guesses - generating 6-digit code")  # Debug log
+    
+    print(f"Generated code: {code}")  # Debug log
+    
+    # Save to DB for both roles
+    codes_collection.insert_one({
+        "code": code,
+        "role": "experimenter",
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "pairId": pair_id,
+    })
+    codes_collection.insert_one({
+        "code": code,
+        "role": "tester",
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "pairId": pair_id,
+    })
+    print("Saved code to database for both roles")  # Debug log
+    
+    # Emit bonus code to both experimenter and tester
+    socketio.emit("bonus_code", {
+        "bonus": code, 
+        "role": "both",  # Both users should receive the same code
+        "pair_id": pair_id
+    }, to=pair_id)
+    print(f"Emitted bonus_code to room {pair_id} for both roles: {code}")  # Debug log
+    
+    # Send confirmation to the tester
+    socketio.emit("guess_submitted", {
+        "message": "Your guesses have been submitted successfully!",
+        "correct": guess_a == real_a and guess_b == real_b,
+        "bonus_code": code,  # Include the bonus code in the confirmation
+        "role": "tester",
+        "pair_id": pair_id
+    }, to=pair_id)
+    print(f"Emitted guess_submitted confirmation to room {pair_id}")  # Debug log
+    print("Sent guess_submitted confirmation to tester")  # Debug log
 
 
 @socketio.on("message")
@@ -708,9 +822,9 @@ def handle_message(data):
 
 
 @socketio.on('disconnect')
-def on_disconnect(data):
+def on_disconnect():
     """ Handle user disconnections. """
-    sid = request.sid
+    sid = request.sid # type: ignore
     username = next((u for u, s in user_sockets.items() if s == sid), None)
     if username:
         logging.info(f"User {username} disconnected")
@@ -723,7 +837,7 @@ def on_disconnect(data):
                 experimenter_queue.remove(username)
 
             # Check if the disconnected user was paired
-            for pair_id, pair in pairs.items():
+            for pair_id, pair in list(pairs.items()):
                 if pair['tester'] == username or pair['experimenter'] == username:
                     logging.info(f"User {username} was in pair {pair_id}, updating status")
 
@@ -734,14 +848,14 @@ def on_disconnect(data):
                     if other_user_id:
                         socketio.emit('partner_disconnected',
                                       {'message': 'Your partner has disconnected. Please wait for a new partner.'},
-                                      room=other_user_id)
+                                      to=other_user_id)
 
                     # Remove the pair
                     del pairs[pair_id]
                     break
 
 
-def get_credits() -> float:
+def get_credits():
     """
     Fetches the number of credits remaining in the OpenRouter account.
 

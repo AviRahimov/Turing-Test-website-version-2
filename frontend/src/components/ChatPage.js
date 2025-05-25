@@ -27,39 +27,39 @@ function ChatPage() {
     const location = useLocation();
     const navigate = useNavigate();
     const {pairId, role, userId, username} = location.state || {};
+    // Always use the string username as userId for backend calls
+    const experimenterId = username;
 
     const [currentPersona, setCurrentPersona] = useState(null);
     const [messageQueue, setMessageQueue] = useState([]); // Queue for tester messages
-    const messageQueueEnabled = config.ENABLE_MESSAGE_QUEUE;
-
-    const [messages, setMessages] = useState([]); // Chat with experimenter
+    const messageQueueEnabled = config.ENABLE_MESSAGE_QUEUE;    const [messages, setMessages] = useState([]); // Chat with experimenter
     const [botMessages, setBotMessages] = useState([]); // Chat with bot
     const [messageToExperimenter, setMessageToExperimenter] = useState('');
     const [messageToBot, setMessageToBot] = useState('');
-    const [timer, setTimer] = useState(config.INITIAL_TIMER);
-    const [realTestTimer, setRealTestTimer] = useState(config.REAL_TEST_TIMER);
-    const [shuffling, setShuffling] = useState(false);
-    const [finalRoomConfig, setFinalRoomConfig] = useState({
+    const [shuffling, setShuffling] = useState(false);    const [finalRoomConfig, setFinalRoomConfig] = useState({
         leftRoom: {
             candidate: 'A',
-            role: null
+            role: 'experimenter' // Default: experimenter is in left room (Candidate A)
         },
         rightRoom: {
             candidate: 'B',
-            role: null
+            role: 'bot' // Default: bot is in right room (Candidate B)
         },
     });
     const [roomOrder, setRoomOrder] = useState(['experimenter', 'bot']);
     const [guessCandidateA, setGuessCandidateA] = useState('');
     const [guessCandidateB, setGuessCandidateB] = useState('');
-    const [experimenterBonus, setExperimenterBonus] = useState(null);
+    const [experimenterBonus, setExperimenterBonus] = useState(() => {
+        // Try to load from localStorage in case of reload
+        return localStorage.getItem('experimenterBonus') || '';
+    });
+    const [showBonusNotification, setShowBonusNotification] = useState(false);
     const [experimenterReady, setExperimenterReady] = useState(false);
     const [showOverlay, setShowOverlay] = useState(false); // Manage overlay visibility
     const [showNotificationForExperimenter, setShowNotificationForExperimenter] = useState(role === 'experimenter');
     const [showNotificationForTester, setShowNotificationForTester] = useState(role === 'tester');
     const [testerDismissed, setTesterDismissed] = useState(false);
-    const [experimenterDismissed, setExperimenterDismissed] = useState(false);
-    const [timerPaused, setTimerPaused] = useState(true); // Start with timer paused
+    const [experimenterDismissed, setExperimenterDismissed] = useState(false);    const [timerPaused, setTimerPaused] = useState(true); // Start with timer paused
     const [isAnonymousMode, setIsAnonymousMode] = useState(false);
     const [shuffleEnabled] = useState(config.SHUFFLE_ENABLED);
 
@@ -96,11 +96,11 @@ function ChatPage() {
     const [isLoadingHumanDemographics, setIsLoadingHumanDemographics] = useState(false);
 
     // This state will hold what the bot *displays* post-shuffle (which is the human's demographics)
-    const [botDisplayedDemographicsPostShuffle, setBotDisplayedDemographicsPostShuffle] = useState(null);
-
-    // At the top of ChatPage component
+    const [botDisplayedDemographicsPostShuffle, setBotDisplayedDemographicsPostShuffle] = useState(null);    // At the top of ChatPage component
     const [capturedPreShuffleTesterResponderChat, setCapturedPreShuffleTesterResponderChat] = useState([]);
-    const [capturedPreShuffleTesterBotChat, setCapturedPreShuffleTesterBotChat] = useState([]);
+    const [capturedPreShuffleTesterBotChat, setCapturedPreShuffleTesterBotChat] = useState([]);    // Refs to track real-time conversation history for reliable shuffle capture
+    const messagesRef = useRef([]);
+    const botMessagesRef = useRef([]);
 
     // Fetch Human Participant's Demographics
     useEffect(() => {
@@ -147,20 +147,15 @@ function ChatPage() {
                 {demData.aiExperience && <p><span>AI Exp:</span> {demData.aiExperience}</p>}
             </div>
         );
-    };
-
-    // useEffect for handling the start of inactivity checking
+    };    // useEffect for handling the start of inactivity checking
     useEffect(() => {
-        // Start the inactivity checker only when both conditions are met:
-        // 1. Test timer is running (> 0)
-        // 2. Timer is not paused (notifications dismissed)
-        // 3. Checker hasn't been started yet
-        if (realTestTimer > 0 && !timerPaused && !inactivityCheckerActive) {
+        // Start the inactivity checker when chat timer has started and not paused
+        if (chatTimerStarted && !timerPaused && !inactivityCheckerActive) {
             // console.log(`${role} - Starting inactivity monitoring system`);
             lastActivityTimestampRef.current = Date.now(); // Initialize the ref
             setInactivityCheckerActive(true);
         }
-    }, [realTestTimer, timerPaused, inactivityCheckerActive, role]);
+    }, [chatTimerStarted, timerPaused, inactivityCheckerActive, role]);
 
 // useEffect for the actual inactivity checking
     useEffect(() => {
@@ -233,9 +228,7 @@ function ChatPage() {
 
     const addToMessageQueue = (message) => {
         setMessageQueue((prevQueue) => [...prevQueue, message]);
-    };
-
-    const sendMessageToBot = () => {
+    };    const sendMessageToBot = () => {
         if (!messageToBot.trim()) return;
 
         // console.log('User sending message to bot, resetting timestamps and counters');
@@ -252,7 +245,21 @@ function ChatPage() {
         }
 
         const newMessage = {sender: role, content: messageToBot};
-        setBotMessages((prevBotMessages) => [...prevBotMessages, newMessage]);
+        
+        // DEBUG: Track bot message additions
+        console.log("🤖 ADDING MESSAGE TO BOT:", newMessage);
+        console.log("🤖 Current botMessages length before add:", botMessages.length);
+          setBotMessages((prevBotMessages) => {
+            const updatedBotMessages = [...prevBotMessages, newMessage];
+            console.log("🤖 Updated botMessages length after add:", updatedBotMessages.length);
+            console.log("🤖 Full botMessages array:", updatedBotMessages.map(msg => `${msg.sender}: ${msg.content}`));
+            
+            // SYNC WITH REF for reliable shuffle capture
+            botMessagesRef.current = updatedBotMessages;
+            console.log("🤖 SYNCED botMessagesRef length:", botMessagesRef.current.length);
+            
+            return updatedBotMessages;
+        });
 
         // If message queue is disabled, send directly to bot. Otherwise, add to queue
         if (!messageQueueEnabled) {
@@ -281,19 +288,15 @@ function ChatPage() {
         } catch (error) {
             console.error('Error saving chat logs:', error);
         }
-    };
-
-    // Initial setup: Socket connection and listeners
+    };    // Initial setup: Socket connection and listeners
     useEffect(() => {
         socket.emit('join', {pair_id: pairId, role: role});
 
         // If shuffle is disabled, set up rooms immediately
         if (!shuffleEnabled) {
             // Skip timer and go straight to anonymous setup
-            setTimer(0);
             setIsAnonymousMode(true);
             setupAnonymousRooms();
-            setRealTestTimer(realTestTimer);
         }
 
         if (role === 'tester') {
@@ -309,35 +312,128 @@ function ChatPage() {
             } else if (data.role === 'experimenter') {
                 setExperimenterDismissed(true);
             }
-        });
-
-        socket.on('message', (data) => {
+        });        socket.on('message', (data) => {
             const newMessage = {sender: data.sender, content: data.message};
+            
+            // DEBUG: Track incoming messages
+            console.log("📨 RECEIVED MESSAGE via socket:", newMessage);
+            console.log("📨 Current role:", role);
 
             // Avoid duplication in messages for experimenter or tester
             if (data.sender !== 'bot') {
-                setMessages((prevMessages) => {
+                console.log("📨 Adding to messages array (experimenter chat)");
+                console.log("📨 Current messages length before add:", messages.length);
+                  setMessages((prevMessages) => {
                     if (prevMessages.find((msg) => msg.content === newMessage.content && msg.sender === newMessage.sender)) {
+                        console.log("📨 DUPLICATE detected, ignoring message");
                         return prevMessages; // Ignore duplicates
                     }
-                    return [...prevMessages, newMessage];
+                    const updatedMessages = [...prevMessages, newMessage];
+                    console.log("📨 Updated messages length after add:", updatedMessages.length);
+                    console.log("📨 Full messages array:", updatedMessages.map(msg => `${msg.sender}: ${msg.content}`));
+                    
+                    // SYNC WITH REF for reliable shuffle capture
+                    messagesRef.current = updatedMessages;
+                    console.log("📨 SYNCED messagesRef from socket, length:", messagesRef.current.length);
+                    
+                    return updatedMessages;
                 });
             }
 
             // Avoid duplication in botMessages for bot-related messages
             if (data.sender === 'bot' && role === 'tester') {
-                setBotMessages((prevBotMessages) => {
+                console.log("📨 Adding to botMessages array (bot chat)");                setBotMessages((prevBotMessages) => {
                     if (prevBotMessages.find((msg) => msg.content === newMessage.content)) {
+                        console.log("📨 DUPLICATE bot message detected, ignoring");
                         return prevBotMessages; // Ignore duplicates
                     }
-                    return [...prevBotMessages, newMessage];
+                    const updatedBotMessages = [...prevBotMessages, newMessage];
+                    console.log("📨 Updated botMessages length after add:", updatedBotMessages.length);
+                    
+                    // SYNC WITH REF for reliable shuffle capture
+                    botMessagesRef.current = updatedBotMessages;
+                    console.log("📨 SYNCED botMessagesRef from socket, length:", botMessagesRef.current.length);
+                    
+                    return updatedBotMessages;
                 });
             }
         });
 
-        return () => {
+        // Listen for timer events from backend
+        socket.on('timer_started', (data) => {
+            console.log('Timer started event received:', data);
+            setTimerPaused(false);
+            setChatTimerStarted(true);
+        });        socket.on('shuffle_started', (data) => {
+            console.log('Shuffle started event received:', data);
+            // Trigger shuffle logic for both roles
+            if (role === 'tester') {
+                // Trigger shuffle logic directly
+                performShuffleForTester();
+            } else if (role === 'experimenter') {
+                // For experimenter, just enter anonymous mode
+                console.log("SHUFFLE SYNC for Experimenter: Shuffle started by backend.");
+                setIsAnonymousMode(true); // Experimenter enters anonymous mode
+                console.log("Experimenter shuffle process complete. Anonymous mode active.");
+            }
+        });        socket.on('chat_ended', (data) => {
+            console.log('Chat ended event received:', data);
+            // Backend says chat is over, show overlay
+            setShowOverlay(true);
+            setInactivityCheckerActive(false); // Stop inactivity checking
+            // Both participants are ready for guessing phase since backend timer manages both simultaneously
+            setExperimenterReady(true);
+            saveChatLogs('During Turing Test');
+        });        socket.on('bonus_code', (data) => {
+            console.log('Bonus code received:', data);
+            // Process bonus code for both roles when role is "both", or for specific role
+            if (data.role === 'both' || (data.role === 'experimenter' && role === 'experimenter')) {
+                const bonusCode = data.bonus;
+                setExperimenterBonus(bonusCode);
+                localStorage.setItem('experimenterBonus', bonusCode);
+                
+                if (role === 'experimenter') {                    setShowBonusNotification(true);
+                    
+                    // Navigate to thank you page after a short delay to let the user see the bonus code
+                    setTimeout(() => {
+                        navigate('/thank_you', {
+                            state: {
+                                bonusCode: bonusCode,
+                                role: role,
+                                pairId: pairId
+                            }
+                        });
+                    }, 500); // 500ms delay
+                }
+                // For tester, just store the code - navigation will happen on guess_submitted
+            }
+        });        socket.on('guess_submitted', (data) => {
+            console.log('Guess submission confirmed:', data);
+            // Only process if this is for the tester role and we are a tester
+            if (data.role === 'tester' && role === 'tester') {
+                // Get the bonus code from localStorage or from the data
+                const bonusCode = localStorage.getItem('experimenterBonus') || data.bonus_code || experimenterBonus;
+                
+                // Navigate to feedback page after user acknowledges the alert
+                setTimeout(() => {
+                    navigate('/feedback', {
+                        state: {
+                            code: bonusCode,
+                            role: role,
+                            pairId: pairId,
+                            userId: userId
+                        }
+                    });
+                }, 500); // Short delay to ensure alert is dismissed
+            }
+        });return () => {
             socket.off('message');
             socket.off('notification_dismissed');
+            socket.off('timer_started');
+            socket.off('shuffle_started');
+            socket.off('chat_ended');
+            socket.off('bonus_code');
+            socket.off('guess_submitted');
             if (role === 'tester') {
                 socket.off('experimenter_ready');
             }
@@ -350,9 +446,7 @@ function ChatPage() {
             setTimerPaused(false);
             // console.log('Both participants dismissed notifications, timer starting');
         }
-    }, [testerDismissed, experimenterDismissed]);
-
-    // handle immediate room setup
+    }, [testerDismissed, experimenterDismissed]);    // handle immediate room setup
     const setupAnonymousRooms = () => {
         // Randomly decide if we should shuffle the room order
         const shouldShuffle = Math.random() > 0.5;
@@ -363,39 +457,99 @@ function ChatPage() {
         // Update room configuration based on the new order
         const newConfig = {
             leftRoom: {
-                candidate: 'A',  // Always A in left room
-                role: newRoomOrder[0]  // Will be either 'experimenter' or 'bot' based on shuffle
+                candidate: 'A'  // Always A in left room
+                , role: newRoomOrder[0]  // Will be either 'experimenter' or 'bot' based on shuffle
             },
             rightRoom: {
-                candidate: 'B',  // Always B in right room
-                role: newRoomOrder[1]  // Will be the opposite of left room
+                candidate: 'B'  // Always B in right room
+                , role: newRoomOrder[1]  // Will be the opposite of left room
             }
-        };
-
-        // Update both states
+        };        // Update both states
         setRoomOrder(newRoomOrder);
         setFinalRoomConfig(newConfig);
-    };
+    };    // Function to handle shuffle logic for tester role (called from socket event)
+    const performShuffleForTester = () => {        console.log("SHUFFLE INITIATED for Tester: Backend triggered shuffle.");
+        
+        // DEBUG: Check state and ref values
+        console.log("Current messages state length:", messages.length);
+        console.log("Current botMessages state length:", botMessages.length);
+        console.log("Current messages content:", messages.map(msg => `${msg.sender}: ${msg.content}`));
+        console.log("Current botMessages content:", botMessages.map(msg => `${msg.sender}: ${msg.content}`));
+        
+        // CRITICAL FIX: Use refs instead of state for reliable capture
+        console.log("🔍 CHECKING REFS:");
+        console.log("messagesRef.current length:", messagesRef.current.length);
+        console.log("botMessagesRef.current length:", botMessagesRef.current.length);
+        console.log("messagesRef.current content:", messagesRef.current.map(msg => `${msg.sender}: ${msg.content}`));
+        console.log("botMessagesRef.current content:", botMessagesRef.current.map(msg => `${msg.sender}: ${msg.content}`));
+        
+        setShuffling(true); // For visual shuffle effect
 
-// Modify the timer effect
-    useEffect(() => {
-        if (!chatTimerStarted || timerPaused || !shuffleEnabled) {
-            return; // Don't run timer if paused or shuffling disabled
+        // --- CAPTURE HISTORIES BEFORE SHUFFLE ---
+        // 1. Capture the Tester <-> Human Responder chat history (from messagesRef - real-time data)
+        // This is the history the bot will take over.
+        const testerResponderChatSnapshot = [...messagesRef.current]; // USE REF instead of state
+        setCapturedPreShuffleTesterResponderChat(testerResponderChatSnapshot);
+        console.log("✅ CAPTURED Tester-Responder chat snapshot length:", testerResponderChatSnapshot.length);
+        console.log("✅ CAPTURED Tester-Responder chat content:", testerResponderChatSnapshot.map(msg => `${msg.sender}: ${msg.content}`));
+
+        // 2. Capture the original Tester <-> Bot (Alex) chat history (from botMessagesRef - real-time data)
+        // This is for the "confusion test" context.
+        const originalTesterBotChatSnapshot = [...botMessagesRef.current]; // USE REF instead of state       
+        setCapturedPreShuffleTesterBotChat(originalTesterBotChatSnapshot);        
+        console.log("✅ CAPTURED original Tester-Bot chat snapshot length:", originalTesterBotChatSnapshot.length);
+        console.log("✅ CAPTURED original Tester-Bot chat content:", originalTesterBotChatSnapshot.map(msg => `${msg.sender}: ${msg.content}`));
+        
+        // VALIDATE CAPTURED DATA
+        if (testerResponderChatSnapshot.length === 0 && originalTesterBotChatSnapshot.length === 0) {
+            console.error("❌ CRITICAL: BOTH chat histories are empty! This should not happen if users have been chatting.");
+            console.error("❌ This suggests the shuffle is being triggered too early or there's a state management issue.");
         }
+        // --- END CAPTURE ---
 
-        const countdownInterval = setInterval(() => {
-            setTimer((prev) => {
-                if (prev > 0) {
-                    return prev - 1;
-                } else {
-                    clearInterval(countdownInterval);
-                    return 0;
-                }
-            });
-        }, 1000);
+        setTimeout(() => {
+            console.log("🔄 SHUFFLE EXECUTION for Tester: Applying post-shuffle states.");
+            setupAnonymousRooms();
+            saveChatLogs('Before Turing Test: '); // Log before state changes fully apply to UI            
+            
+            // 3. CRITICAL: Both candidate A and candidate B should display the same pre-shuffle tester-experimenter chat history
+            // ONLY use the tester-experimenter chat history, never bot messages
+            
+            // ALWAYS use the captured history, even if it appears empty (to debug the real issue)
+            console.log("🔄 Setting both chat windows to captured tester-experimenter history...");
+            console.log("🔄 Using captured history with length:", testerResponderChatSnapshot.length);
+            
+            setMessages([...testerResponderChatSnapshot]); // Experimenter window (Candidate A or B)
+            setBotMessages([...testerResponderChatSnapshot]); // Bot window (Candidate A or B) - same history
+            
+            if (testerResponderChatSnapshot.length === 0) {
+                console.warn("⚠️ WARNING: Applied empty chat history. This indicates a problem with timing or state capture.");
+                console.warn("⚠️ The shuffle may be occurring before participants have had a chance to chat.");
+            } else {
+                console.log("✅ SUCCESS: Both chat windows populated with actual tester-experimenter conversation history.");
+                console.log("✅ Shared chat history content:", testerResponderChatSnapshot.map(msg => `${msg.sender}: ${msg.content}`));
+            }
 
-        return () => clearInterval(countdownInterval);
-    }, [chatTimerStarted, timerPaused, shuffleEnabled]);
+            // 4. Bot "adopts" human's demographics for display and conversational context
+            if (humanParticipantDemographics && !humanParticipantDemographics.error) {
+                setBotDisplayedDemographicsPostShuffle({
+                    ...humanParticipantDemographics,
+                    source: 'adopted-human-post-shuffle'
+                });
+                console.log("Bot displayed demographics set to human participant's.");
+            } else {
+                console.warn("Human demographics not available for bot to adopt post-shuffle. Using fallback.");
+                setBotDisplayedDemographicsPostShuffle(FIXED_BOT_DEMOGRAPHICS);
+            }
+
+            // 5. Switch to anonymous mode
+            setIsAnonymousMode(true);
+
+            setShuffling(false); // End visual shuffle effect
+            console.log("Tester shuffle process complete. Anonymous mode active.");
+
+        }, 3000); // Shuffle animation duration
+    };
 
     const handleDismissNotification = () => {
         if (role === 'tester') {
@@ -417,186 +571,6 @@ function ChatPage() {
             // console.log('Both participants completed quiz and dismissed notifications, starting timer');
         }
     }, [quizStep, partnerQuizStatus, testerDismissed, experimenterDismissed]);
-
-    // Handle shuffle logic when pre-shuffle timer reaches 0
-    useEffect(() => {
-        if (!shuffleEnabled) return;
-
-        if (role === 'tester' && timer === 0 && !isAnonymousMode) {
-            console.log("SHUFFLE INITIATED for Tester: Pre-shuffle timer reached 0.");
-            setShuffling(true); // For visual shuffle effect
-
-            // --- CAPTURE HISTORIES BEFORE SHUFFLE ---
-            // 1. Capture the Tester <-> Human Responder chat history (from 'messages' state)
-            // This is the history the bot will take over.
-            const testerResponderChatSnapshot = [...messages];
-            setCapturedPreShuffleTesterResponderChat(testerResponderChatSnapshot);
-            console.log("Captured Tester-Responder chat snapshot length:", testerResponderChatSnapshot.length);
-
-            // 2. Capture the original Tester <-> Bot (Alex) chat history (from 'botMessages' state)
-            // This is for the "confusion test" context.
-            const originalTesterBotChatSnapshot = [...botMessages];
-            setCapturedPreShuffleTesterBotChat(originalTesterBotChatSnapshot);
-            console.log("Captured original Tester-Bot chat snapshot length:", originalTesterBotChatSnapshot.length);
-            // --- END CAPTURE ---
-
-            setTimeout(() => {
-                console.log("SHUFFLE EXECUTION for Tester: Applying post-shuffle states.");
-                setupAnonymousRooms();
-                saveChatLogs('Before Turing Test: '); // Log before state changes fully apply to UI
-
-                // 3. Overwrite the bot's chat window (`botMessages`) with the Tester-Responder history.
-                // The bot will now see and continue this conversation.
-                setBotMessages([...testerResponderChatSnapshot]);
-                console.log("`botMessages` (bot's window) overwritten with Tester-Responder chat history.");
-
-                // Note: `setMessages([...preShuffleHumanChatHistory]);` from your original code is removed here.
-                // `messages` (the human responder's window) should typically continue live and not be reset
-                // to its pre-shuffle state, otherwise messages during the shuffle animation in that window would be lost.
-                // If you intended to clear it or reset it for some reason, that would be a different requirement.
-
-                // 4. Bot "adopts" human's demographics for display and conversational context
-                if (humanParticipantDemographics && !humanParticipantDemographics.error) {
-                    setBotDisplayedDemographicsPostShuffle({
-                        ...humanParticipantDemographics,
-                        source: 'adopted-human-post-shuffle'
-                    });
-                    console.log("Bot displayed demographics set to human participant's.");
-                } else {
-                    console.warn("Human demographics not available for bot to adopt post-shuffle. Using fallback.");
-                    setBotDisplayedDemographicsPostShuffle(FIXED_BOT_DEMOGRAPHICS);
-                }
-
-                // 5. Switch to anonymous mode and set the real test timer
-                setIsAnonymousMode(true);
-                setRealTestTimer(config.REAL_TEST_TIMER);
-
-                setShuffling(false); // End visual shuffle effect
-                console.log("Tester shuffle process complete. Anonymous mode active.");
-
-            }, 3000); // Shuffle animation duration
-
-        } else if (role === 'experimenter' && timer === 0 && !isAnonymousMode) {
-            // For experimenter (Human Responder), sync anonymous mode and timer.
-            // Their chat history (`messages`) continues naturally.
-            console.log("SHUFFLE SYNC for Experimenter: Pre-shuffle timer reached 0.");
-            setRealTestTimer(config.REAL_TEST_TIMER);
-            setIsAnonymousMode(true); // Experimenter also enters anonymous mode contextually
-            console.log("Experimenter shuffle process complete. Anonymous mode active.");
-        }
-    }, [
-        timer,
-        role,
-        shuffleEnabled,
-        isAnonymousMode,
-        messages,
-        botMessages, // Added as we are now reading from it for snapshot
-        humanParticipantDemographics,
-        // Include the setters for the new snapshot states if ESLint complains, though typically not needed for setters.
-        // However, it's crucial that `messages` and `botMessages` are in the dependency array
-        // so their latest versions are captured.
-        setCapturedPreShuffleTesterResponderChat, // Added for completeness, though setters usually don't cause re-runs
-        setCapturedPreShuffleTesterBotChat       // Added for completeness
-        // config.REAL_TEST_TIMER, FIXED_BOT_DEMOGRAPHICS, setupAnonymousRooms, saveChatLogs are typically stable
-        // setShuffling, setBotMessages, setBotDisplayedDemographicsPostShuffle, setIsAnonymousMode, setRealTestTimer
-    ]);
-
-    // Countdown for the real Turing Test
-    useEffect(() => {
-
-        // Don't start if timer is null
-        if (realTestTimer === null) return;
-
-        // Don't start if quiz isn't completed by both participants
-        if (!chatTimerStarted) {
-            // console.log('Timer not started - waiting for quiz completion');
-            return;
-        }
-
-        // Don't start if either participant hasn't completed the quiz
-        if (quizStep !== 'completed' || partnerQuizStatus !== 'completed') {
-            // console.log('Timer not started - quiz not completed by both participants');
-            return;
-        }
-
-        const realTestInterval = setInterval(() => {
-            // console.log("Real test timer: ", realTestTimer);
-            setRealTestTimer((prev) => {
-                if (prev > 0) {
-                    return prev - 1;
-                } else {
-                    clearInterval(realTestInterval);
-                    return 0;
-                }
-            });
-        }, 1000);
-
-        return () => {
-            // console.log('Cleaning up real test timer');
-            clearInterval(realTestInterval);
-        };
-    }, [
-        realTestTimer,
-        chatTimerStarted,
-        quizStep,
-        partnerQuizStatus,
-    ]);
-
-    // Navigate to appropriate pages when the Turing Test ends
-    useEffect(() => {
-        if (realTestTimer === 0) {
-            saveChatLogs('During Turing Test');
-            setShowOverlay(true);
-
-            // Stop inactivity checker when chat ends
-            setInactivityCheckerActive(false);
-
-            if (role === 'experimenter') {
-                console.log(`Experimenter (Pair: ${pairId}) - Overlay should be active. Emitting 'experimenter_is_waiting_for_submission'.`);
-                // EXPERIMENTER ONLY: Emit an event to notify the tester they are now waiting.
-                socket.emit('experimenter_ready', {pair_id: pairId});
-
-                // Set a timeout for 30 seconds
-                const timeoutId = setTimeout(async () => {
-                    console.log(`Experimenter (Pair: ${pairId}) - 30s timeout reached. Generating code.`);
-                    try {
-                        const response = await axios.post(server_url + '/api/generate_code', {
-                            role: 'experimenter',
-                            pairId,
-                        });
-                        if (response.data.status === 'success') {
-                            navigate('/thank_you', {
-                                state: {bonusCode: response.data.code, userId, role: 'experimenter', pairId},
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Error generating code for responder after timeout:', error);
-                        // Potentially navigate to an error page or show a message
-                    }
-                }, 30000); // 30 seconds
-
-                socket.on('bonus_code', (data) => {
-                    clearTimeout(timeoutId); // Clear the timeout if the bonus code is received
-                    setExperimenterBonus(data.bonus);
-                    setShowOverlay(false);
-                    navigate('/thank_you', {
-                        state: {
-                            bonusCode: data.bonus,
-                            userId,
-                            role: 'experimenter',
-                        },
-                    });
-                });
-
-                return () => {
-                    socket.off('bonus_code');
-                    clearTimeout(timeoutId); // Clear the timeout on cleanup
-                };
-            }
-        }
-    }, [realTestTimer, role, pairId]);
-
-
     // Send a message to the experimenter
     const sendMessageToExperimenter = () => {
         if (!messageToExperimenter.trim()) return;
@@ -607,7 +581,21 @@ function ChatPage() {
         // console.log(`${role} - Activity timestamp reset - message to experimenter`);
 
         const newMessage = {sender: role, content: messageToExperimenter};
-        setMessages((prevMessages) => [...prevMessages, newMessage]);
+        
+        // DEBUG: Track message additions
+        console.log("💬 ADDING MESSAGE TO EXPERIMENTER:", newMessage);
+        console.log("💬 Current messages length before add:", messages.length);
+          setMessages((prevMessages) => {
+            const updatedMessages = [...prevMessages, newMessage];
+            console.log("💬 Updated messages length after add:", updatedMessages.length);
+            console.log("💬 Full messages array:", updatedMessages.map(msg => `${msg.sender}: ${msg.content}`));
+            
+            // SYNC WITH REF for reliable shuffle capture
+            messagesRef.current = updatedMessages;
+            console.log("💬 SYNCED messagesRef length:", messagesRef.current.length);
+            
+            return updatedMessages;
+        });
 
         socket.emit('message', {
             pair_id: pairId,
@@ -665,24 +653,31 @@ function ChatPage() {
             occupation: 'Student',
             country: 'USA',
             aiExperience: 'Low',
-        };
-
-        if (isAnonymousMode) {
+        };        if (isAnonymousMode) {
             // POST-SHUFFLE SCENARIO
             // `botMessages` state IS the pre-shuffle Tester-Responder chat history.
+            // In this history, 'tester' messages should be 'user' and 'experimenter' messages should be 'assistant'
+            console.log("POST-SHUFFLE: Processing botMessages for API call:", botMessages);
             conversationHistoryForAPITurn = botMessages.map(msg => ({
-                role: msg.sender === role ? 'user' : 'assistant',
+                role: msg.sender === 'tester' ? 'user' : 'assistant',
                 content: msg.content
             }));
+            console.log("POST-SHUFFLE: Mapped conversation history for API:", conversationHistoryForAPITurn);
 
             // For the system prompt, provide:
             // 1. The Tester-Responder history (as the conversation to continue)
             if (capturedPreShuffleTesterResponderChat && capturedPreShuffleTesterResponderChat.length > 0) {
-                conversationToContinueCtx = [...capturedPreShuffleTesterResponderChat].slice(-15); // Slice for brevity
+                conversationToContinueCtx = capturedPreShuffleTesterResponderChat.map(msg => ({
+                    sender: msg.sender === 'tester' ? 'user' : 'previous_participant',
+                    content: msg.content
+                })).slice(-15); // Slice for brevity
             } else {
                 // Fallback if preShuffleTesterResponderHistory is not yet populated or empty,
                 // use the current botMessages (which should be the same in this scenario)
-                conversationToContinueCtx = [...conversationHistoryForAPITurn].slice(-15);
+                conversationToContinueCtx = botMessages.map(msg => ({
+                    sender: msg.sender === 'tester' ? 'user' : 'previous_participant',
+                    content: msg.content
+                })).slice(-15);
                 console.warn("sendMessageToBotQueue (Post-Shuffle): preShuffleTesterResponderHistory was empty/null, using current botMessages for 'conversationToContinueCtx'. Ensure it's correctly populated.");
             }
 
@@ -692,7 +687,10 @@ function ChatPage() {
             // 3. The original Tester-Bot (Alex) pre-shuffle history (for the "confusion test")
             // Ensure capturedPreShuffleTesterBotChat state is populated correctly by ChatPage logic
             if (capturedPreShuffleTesterBotChat && capturedPreShuffleTesterBotChat.length > 0) {
-                originalTesterBotHistoryCtx = [...capturedPreShuffleTesterBotChat].slice(-10); // Slice for brevity
+                originalTesterBotHistoryCtx = capturedPreShuffleTesterBotChat.map(msg => ({
+                    sender: msg.sender === 'tester' ? 'user' : 'bot',
+                    content: msg.content
+                })).slice(-10); // Slice for brevity
             }
 
         } else {
@@ -724,12 +722,23 @@ function ChatPage() {
                 conversationToContinueCtx,          // Post-shuffle: Tester-Responder history
                 displayedDemographicsCtx,           // Post-shuffle: Responder's demographics
                 originalTesterBotHistoryCtx         // Post-shuffle: Original Tester-Alex history
-            );
-
-            setBotMessages(prevBotMessages => [
+            );            setBotMessages(prevBotMessages => [
                 ...prevBotMessages,
                 {id: `${Date.now()}-bot-${Math.random()}`, sender: 'bot', content: botReply, timestamp: Date.now()}
             ]);
+
+            // DEBUG: Track bot response additions
+            console.log("🤖 BOT RESPONSE ADDED:", botReply);
+            setBotMessages(currentBotMessages => {
+                console.log("🤖 Current botMessages length after bot response:", currentBotMessages.length);
+                console.log("🤖 Full botMessages after bot response:", currentBotMessages.map(msg => `${msg.sender}: ${msg.content}`));
+                
+                // SYNC WITH REF for reliable shuffle capture
+                botMessagesRef.current = currentBotMessages;
+                console.log("🤖 SYNCED botMessagesRef after bot response, length:", botMessagesRef.current.length);
+                
+                return currentBotMessages;
+            });
 
             lastWakeupMessageRef.current = null;
             lastBotActivityTimestampRef.current = Date.now();
@@ -755,7 +764,7 @@ function ChatPage() {
             return;
         }
 
-        if (!inactivityCheckerActive || role !== 'tester' || realTestTimer === 0) {
+        if (!inactivityCheckerActive || role !== 'tester' || !chatTimerStarted) {
             if (wakeupIntervalRef.current) {
                 // console.log('Cleaning up existing wake-up interval');
                 clearInterval(wakeupIntervalRef.current);
@@ -821,12 +830,17 @@ function ChatPage() {
             );
 
             // Store the wake-up message
-            lastWakeupMessageRef.current = botReply;
-
-            setBotMessages((prevBotMessages) => [
+            lastWakeupMessageRef.current = botReply;            setBotMessages((prevBotMessages) => [
                 ...prevBotMessages,
                 {sender: 'bot', content: botReply}
             ]);
+            
+            // SYNC WITH REF for reliable shuffle capture
+            setBotMessages(currentBotMessages => {
+                botMessagesRef.current = currentBotMessages;
+                console.log("🤖 SYNCED botMessagesRef after wake-up message, length:", botMessagesRef.current.length);
+                return currentBotMessages;
+            });
 
             setWakeupAttemptsCount(prev => prev + 1);
             lastBotActivityTimestampRef.current = Date.now();
@@ -849,57 +863,39 @@ function ChatPage() {
             setGuessCandidateB(selectedRole);
             setGuessCandidateA(selectedRole === 'experimenter' ? 'bot' : 'experimenter');
         }
-    };
-
-    const handleSubmitGuesses = async () => {
+    };    const handleSubmitGuesses = async () => {
+        console.log('Submit button clicked'); // Debug log
+        console.log('finalRoomConfig:', finalRoomConfig); // Debug log
+        console.log('guessCandidateA:', guessCandidateA); // Debug log
+        console.log('guessCandidateB:', guessCandidateB); // Debug log
+        
         if (!finalRoomConfig) {
             console.error('Final room configuration not found');
             return;
         }
-
         if (!guessCandidateA || !guessCandidateB) {
             alert('Please select both candidates before submitting.');
             return;
         }
-
         const realIdentityA = finalRoomConfig.leftRoom.role;
         const realIdentityB = finalRoomConfig.rightRoom.role;
-
-        try {
-            const response = await axios.post(server_url + '/api/generate_code', {
-                role: 'tester',
-                userId,
-                pairId,
-                guessCandidateA,
-                guessCandidateB,
-                realIdentityA,
-                realIdentityB
-            });
-
-            // console.log("The user ID in the chat page is: ", userId);
-            if (response.data.status === 'success') {
-                socket.emit('tester_guessed', {pairId});
-
-                navigate('/feedback', {
-                    state: {
-                        realIdentityA,
-                        realIdentityB,
-                        guessCandidateA,
-                        guessCandidateB,
-                        userId,
-                        code: response.data.code,
-                        role: 'tester',
-                        pairId,
-                        username
-                    }
-                });
-            } else {
-                console.error('Error submitting guesses:', response.data.message);
-            }
-        } catch (error) {
-            console.error('Error submitting guesses:', error);
-        }
+        
+        console.log('realIdentityA:', realIdentityA); // Debug log
+        console.log('realIdentityB:', realIdentityB); // Debug log
+        
+        // Emit guesses to backend via socket
+        socket.emit('tester_guessed', {
+            pairId,
+            guessCandidateA,
+            guessCandidateB,
+            realIdentityA,
+            realIdentityB,
+            tester: username // for logging/debugging
+        });
+        console.log('Emitted tester_guessed event'); // Debug log
+        // Optionally, show a waiting message or disable the submit button
     };
+
 
     const quizConfig = {
         experimenter: {
@@ -959,37 +955,30 @@ function ChatPage() {
 
     const generateAndNavigateToBonusCode = async () => {
         try {
-            // console.log('[QUIZ-FAIL] Attempting to generate bonus code for passing user');
-            // Get the user's IP first
             const ipResponse = await fetch('https://api.ipify.org?format=json');
             const ipData = await ipResponse.json();
             const userIp = ipData.ip;
-            // console.log('[QUIZ-FAIL] Got user IP:', userIp);
 
             const response = await axios.post(server_url + '/api/generate_code', {
                 pairId,
                 role,
-                userId,
+                userId: username, // Use string username as userId
                 userIp // Add the user's IP to the request
             });
-            // console.log('[QUIZ-FAIL] Generate code response:', response.data);
 
             if (response.data.status === 'success') {
-                // Call the unblock endpoint
                 try {
                     const unblockResponse = await axios.post(server_url + '/api/unblock_ip', {
                         ip: userIp
                     });
-                    // console.log('[QUIZ-FAIL] Unblock IP response:', unblockResponse.data);
                 } catch (unblockError) {
                     console.error('[QUIZ-FAIL] Error unblocking IP:', unblockError);
                 }
 
-                // console.log('[QUIZ-FAIL] Navigating to thank you page');
                 navigate('/thank_you', {
                     state: {
                         bonusCode: response.data.code,
-                        userId,
+                        userId: username, // Use string username as userId
                         role,
                         message: "Your partner failed the quiz, but you passed. Here's your bonus code. You can now participate in the experiment again with a different partner.",
                         canParticipateAgain: true // Add this flag
@@ -1193,10 +1182,8 @@ function ChatPage() {
         // If not in anonymous mode, roomInfo might be undefined, handle gracefully.
         const roomInfo = isAnonymousMode ?
             (finalRoomConfig[roomTypeArgument === roomOrder[0] ? 'leftRoom' : 'rightRoom'])
-            : null;
-
-        // GUESSING PHASE (realTestTimer === 0 and role is 'tester')
-        if (role === 'tester' && realTestTimer === 0 && showOverlay) {
+            : null;        // GUESSING PHASE (chat ended and role is 'tester')
+        if (role === 'tester' && showOverlay) {
             // Ensure roomInfo is available for candidate identification in anonymous mode
             if (isAnonymousMode && !roomInfo) return null; // Should not happen if finalRoomConfig guard is effective
 
@@ -1659,7 +1646,7 @@ function ChatPage() {
                 )}
             </div>
 
-            {role === 'tester' && realTestTimer === 0 && (
+            {role === 'tester' && showOverlay && (
                 <div className="submission-area">
                     {!experimenterReady ? (
                         <div className="waiting-message">
@@ -1670,6 +1657,14 @@ function ChatPage() {
                             Submit
                         </button>
                     )}
+                </div>
+            )}
+
+            {/* Optionally, display a notification if showBonusNotification is true */}
+            {showBonusNotification && (
+                <div className="bonus-notification">
+                    <p>🎉 Bonus code received: <strong>{experimenterBonus}</strong></p>
+                    <button onClick={() => setShowBonusNotification(false)}>Dismiss</button>
                 </div>
             )}
         </div>

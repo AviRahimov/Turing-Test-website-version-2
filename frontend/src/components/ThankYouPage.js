@@ -1,11 +1,78 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import usePreventBackNavigation from './usePreventBackNavigation';
 
 const ThankYouPage = () => {
-  usePreventBackNavigation();
+  // Prevent back navigation with refresh option enabled to maintain state
+  usePreventBackNavigation({ allowedPaths: ['/thank_you'], refreshOnBack: true });
+  
   const location = useLocation();
-  const { bonusCode, name, user_id, role, message, canParticipateAgain } = location.state || {};
+  const [pageData, setPageData] = useState({
+    bonusCode: '',
+    role: '',
+    name: '',
+    user_id: '',
+    message: '',
+    canParticipateAgain: false
+  });
+
+  useEffect(() => {
+    // Try to get data from location.state first (fresh navigation)
+    const stateData = location.state || {};
+    
+    // If we have fresh data from navigation, store it and use it
+    if (stateData.bonusCode) {
+      const dataToStore = {
+        bonusCode: stateData.bonusCode,
+        role: stateData.role,
+        name: stateData.name,
+        user_id: stateData.user_id,
+        message: stateData.message,
+        canParticipateAgain: stateData.canParticipateAgain
+      };
+      
+      // Store in localStorage for persistence across refreshes
+      localStorage.setItem('thankYouPageData', JSON.stringify(dataToStore));
+      setPageData(dataToStore);
+    } else {
+      // Try to retrieve from localStorage (after refresh)
+      const storedData = localStorage.getItem('thankYouPageData');
+      if (storedData) {
+        try {
+          const parsedData = JSON.parse(storedData);
+          setPageData(parsedData);
+        } catch (error) {
+          console.error('Error parsing stored thank you page data:', error);
+          // Fallback to experimenterBonus if available
+          const fallbackCode = localStorage.getItem('experimenterBonus');
+          if (fallbackCode) {
+            setPageData(prev => ({ ...prev, bonusCode: fallbackCode }));
+          }
+        }
+      } else {
+        // Last resort: try experimenterBonus from localStorage
+        const fallbackCode = localStorage.getItem('experimenterBonus');
+        if (fallbackCode) {
+          setPageData(prev => ({ ...prev, bonusCode: fallbackCode }));
+        }
+      }
+    }  }, [location.state]);
+
+  // Cleanup stored data when component unmounts (if user somehow leaves the page)
+  useEffect(() => {
+    return () => {
+      // Only cleanup if user is participating again
+      const cleanup = () => {
+        localStorage.removeItem('thankYouPageData');
+        localStorage.removeItem('experimenterBonus');
+      };
+      
+      // Delay cleanup to allow for page refreshes
+      setTimeout(cleanup, 1000);
+    };
+  }, []);
+
+  const { bonusCode, role, name, user_id, message, canParticipateAgain } = pageData;
   const isSevenDigitCode = bonusCode && bonusCode.length === 7;
   console.log("bonus_code", bonusCode);
 
@@ -25,13 +92,16 @@ const ThankYouPage = () => {
 
       {message && (
         <p style={styles.message}>{message}</p>
-      )}
-
-      {canParticipateAgain && (
+      )}      {canParticipateAgain && (
         <div style={styles.participateAgain}>
           <p>You can now participate in the experiment again with a different partner.</p>
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={() => {
+              // Clean up stored data before participating again
+              localStorage.removeItem('thankYouPageData');
+              localStorage.removeItem('experimenterBonus');
+              window.location.href = '/';
+            }}
             style={styles.participateButton}
           >
             Participate Again

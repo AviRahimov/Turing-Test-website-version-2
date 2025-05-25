@@ -83,7 +83,7 @@ function HomePage() {
           state: {
             pairId: data.pair_id,
             role: data.role,
-            userId: userID, // Numerical ID of self
+            userId: username, // Use string username (user_X) as userId everywhere
             username: username, // String username of self (user_X)
             // partner_username will be added by backend for fetching partner's demographics
             partner_username: data.partner_username // EXPECTING THIS FROM BACKEND
