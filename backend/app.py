@@ -287,39 +287,39 @@ def get_unique_user_id():
 # Helper to start the shuffle timer when both users complete quiz
 def start_shuffle_timer(pair_id):
     def shuffle_timer_thread():
-        remaining = SHUFFLE_TIMER_DURATION
-        while remaining > 0:
-            time.sleep(1)
-            remaining -= 1
-        # When shuffle timer ends, emit shuffle event and start real test timer
+        logging.info(f"🔥 SHUFFLE TIMER THREAD STARTED for pair {pair_id}")
+        for remaining in range(SHUFFLE_TIMER_DURATION, 0, -1):
+            if remaining % 5 == 0:
+                logging.info(f"🔥 Shuffle timer for pair {pair_id}: {remaining} seconds remaining")
+            socketio.sleep(1)
+        logging.info(f"🔥 SHUFFLE TIMER ENDED - EMITTING shuffle_started event for pair {pair_id}")
         socketio.emit('shuffle_started', {'pair_id': pair_id}, to=pair_id)
-        logging.info(f"Shuffle started for pair {pair_id}")
-        # Start the real test timer immediately after shuffle
+        logging.info(f"🔥 shuffle_started event emitted to room {pair_id}")
+        socketio.emit('shuffle_started_broadcast', {'pair_id': pair_id})
+        logging.info(f"🔥 shuffle_started_broadcast event emitted to all clients as fallback")
+        # Continue to real test timer
         start_real_test_timer(pair_id)
-    
-    # Start the shuffle timer in a new thread
-    t = Thread(target=shuffle_timer_thread, daemon=True)
+
+    # Start shuffle timer as a background task for proper SocketIO context
+    t = socketio.start_background_task(shuffle_timer_thread)
     pair_timers[f"{pair_id}_shuffle"] = t
-    t.start()
-    logging.info(f"Shuffle timer started for pair {pair_id}")
+    logging.info(f"🔥 ✅ SHUFFLE TIMER BACKGROUND TASK STARTED for pair {pair_id}")
 
 # Helper to start the real test timer for a pair
 def start_real_test_timer(pair_id):
     def timer_thread():
         remaining = REAL_TEST_DURATION
         while remaining > 0:
-            time.sleep(1)
+            socketio.sleep(1)
             remaining -= 1
-        # When timer ends, emit chat_ended to both users in the room
         socketio.emit('chat_ended', {'pair_id': pair_id}, to=pair_id)
         pair_timers.pop(f"{pair_id}_real", None)
         logging.info(f"Real test timer ended for pair {pair_id}")
-    
-    # Start the timer in a new thread
-    t = Thread(target=timer_thread, daemon=True)
+
+    # Start real test timer as background task for proper SocketIO context
+    t = socketio.start_background_task(timer_thread)
     pair_timers[f"{pair_id}_real"] = t
-    t.start()
-    logging.info(f"Real test timer started for pair {pair_id}")
+    logging.info(f"Real test timer background task started for pair {pair_id}")
 
 
 # --- Routes ---
@@ -382,7 +382,7 @@ def generate_code():
         print("experimenter_username", experimenter_username)
         print("experimenter_sid", experimenter_sid)
         if experimenter_sid:
-            socketio.emit("bonus_code", {"bonus": code}, to=experimenter_sid)
+            emit("bonus_code", {"bonus": code}, to=experimenter_sid)
             print("emitted bonus code to experimenter_sid")
 
         return jsonify({"status": "success", "code": code})
@@ -397,27 +397,38 @@ def handle_notification_dismissed(data):
 
 @socketio.on('quiz_completed')
 def handle_quiz_completed(data):
-    logging.info(f"Quiz completed: {data}")
+    logging.info(f"🎯 QUIZ COMPLETED EVENT RECEIVED: {data}")
     pair_id = data.get('pair_id')
     role = data.get('role')
     
     # Initialize pair quiz status if not exists
     if pair_id not in pair_quiz_status:
         pair_quiz_status[pair_id] = {'tester': False, 'experimenter': False}
+        logging.info(f"🎯 Initialized quiz status for pair {pair_id}")
     
     # Mark this role as completed
     pair_quiz_status[pair_id][role] = True
+    logging.info(f"🎯 Marked {role} as completed for pair {pair_id}")
+    logging.info(f"🎯 Current quiz status for pair {pair_id}: {pair_quiz_status[pair_id]}")
     
     # Emit to the pair that this role completed
     emit('quiz_completed', {'role': role}, to=pair_id)
+    logging.info(f"🎯 Emitted quiz_completed event for {role} to room {pair_id}")
+      # Check if both users have completed the quiz
+    tester_completed = pair_quiz_status[pair_id]['tester']
+    experimenter_completed = pair_quiz_status[pair_id]['experimenter']
     
-    # Check if both users have completed the quiz
-    if pair_quiz_status[pair_id]['tester'] and pair_quiz_status[pair_id]['experimenter']:
-        logging.info(f"Both users completed quiz for pair {pair_id}, starting shuffle timer")
+    logging.info(f"🎯 Quiz completion check - Tester: {tester_completed}, Experimenter: {experimenter_completed}")
+    
+    if tester_completed and experimenter_completed:
+        logging.info(f"🎯 ✅ BOTH USERS COMPLETED QUIZ for pair {pair_id}, starting shuffle timer")
         # Both completed, start the shuffle timer
         start_shuffle_timer(pair_id)
         # Emit timer started event to both users
-        emit('timer_started', {'pair_id': pair_id}, to=pair_id)
+        emit('timer_started', {'pair_id': pair_id, 'shuffle_duration': SHUFFLE_TIMER_DURATION}, to=pair_id)
+        logging.info(f"🎯 Emitted timer_started event to room {pair_id}")
+    else:
+        logging.info(f"🎯 ⏳ WAITING for other user - Tester completed: {tester_completed}, Experimenter completed: {experimenter_completed}")
 
 
 @socketio.on('quiz_failed')
@@ -723,24 +734,34 @@ def on_join(data):
     """
     Handle user joining a room.
     """
-    logging.info(f"[JOIN] Joining room with data: {data}")
+    logging.info(f"🔗 [JOIN] Joining room with data: {data}")
     pair_id = data.get("pair_id")
     role = data.get("role")
 
     if not pair_id:
-        logging.error("[JOIN] Invalid join request: Missing pair_id")
+        logging.error("🔗 [JOIN] Invalid join request: Missing pair_id")
         return
 
     try:
+        logging.info(f"🔗 [JOIN] Adding user {role} to room {pair_id}")
         join_room(pair_id)
+        
+        logging.info(f"🔗 [JOIN] Emitting joined_room event to room {pair_id}")
         emit(
             "joined_room",
             {"pair_id": pair_id, "role": role},
             to=pair_id,
         )
-        logging.info(f"[JOIN] User with role {role} joined room {pair_id}")
+        logging.info(f"🔗 [JOIN] ✅ User with role {role} successfully joined room {pair_id}")
+        
+        # Check current room status for debugging
+        if pair_id in pair_quiz_status:
+            logging.info(f"🔗 [JOIN] Current quiz status for pair {pair_id}: {pair_quiz_status[pair_id]}")
+        else:
+            logging.info(f"🔗 [JOIN] No quiz status yet for pair {pair_id}")
+            
     except Exception as e:
-        logging.error(f"[JOIN] Error joining room {pair_id}: {str(e)}")
+        logging.error(f"🔗 [JOIN] Error joining room {pair_id}: {str(e)}")
 
 
 @socketio.on("experimenter_ready")
@@ -823,7 +844,7 @@ def handle_message(data):
 
 
 @socketio.on('disconnect')
-def on_disconnect():
+def on_disconnect(*args):
     """ Handle user disconnections. """
     sid = request.sid # type: ignore
     username = next((u for u, s in user_sockets.items() if s == sid), None)
@@ -832,28 +853,82 @@ def on_disconnect():
         user_sockets.pop(username, None)
 
         with pairing_lock:  # Ensure thread safety
+            # Remove from queues if they were waiting
             if username in tester_queue:
                 tester_queue.remove(username)
+                logging.info(f"Removed {username} from tester queue")
             if username in experimenter_queue:
                 experimenter_queue.remove(username)
+                logging.info(f"Removed {username} from experimenter queue")
 
             # Check if the disconnected user was paired
             for pair_id, pair in list(pairs.items()):
                 if pair['tester'] == username or pair['experimenter'] == username:
-                    logging.info(f"User {username} was in pair {pair_id}, updating status")
+                    logging.info(f"User {username} was in pair {pair_id}, cleaning up pair")
 
-                    # Notify the other user that their partner has disconnected
+                    # Find the remaining user
                     other_user = pair['experimenter'] if pair['tester'] == username else pair['tester']
                     other_user_id = user_sockets.get(other_user)
+                    other_user_role = 'experimenter' if pair['tester'] == username else 'tester'
 
-                    if other_user_id:
+                    # Clean up timers for this pair
+                    timers_to_remove = []
+                    for timer_key in pair_timers:
+                        if timer_key.startswith(f"{pair_id}_"):
+                            timers_to_remove.append(timer_key)
+                    
+                    for timer_key in timers_to_remove:
+                        timer_thread = pair_timers.pop(timer_key, None)
+                        if timer_thread and hasattr(timer_thread, 'cancel'):
+                            timer_thread.cancel()
+                        logging.info(f"Cleaned up timer: {timer_key}")
+
+                    # Clean up quiz status for this pair
+                    if pair_id in pair_quiz_status:
+                        del pair_quiz_status[pair_id]
+                        logging.info(f"Cleaned up quiz status for pair {pair_id}")                    # Handle the remaining user
+                    if other_user_id and other_user in user_sockets:
+                        logging.info(f"Generating 6-digit code for remaining user {other_user} due to partner disconnection")
+                        
+                        # Generate a 6-digit code for the remaining user
+                        code = generate_unique_code(digits=6)
+                        
+                        # Save the code to MongoDB for the remaining user
+                        try:
+                            codes_collection.insert_one({
+                                "code": code,
+                                "username": other_user,
+                                "user_id": other_user,
+                                "role": other_user_role,
+                                "pair_id": pair_id,
+                                "reason": "partner_disconnected",
+                                "timestamp": datetime.now()
+                            })
+                            logging.info(f"Saved disconnection code {code} for user {other_user}")
+                        except Exception as e:
+                            logging.error(f"Error saving disconnection code: {e}")                        # Notify the remaining user with 6-digit code and redirect to thank you page
+                        logging.info(f"About to emit partner_disconnected to socket {other_user_id} for user {other_user}")
                         socketio.emit('partner_disconnected',
-                                      {'message': 'Your partner has disconnected. Please wait for a new partner.'},
-                                      to=other_user_id)
+                                      {
+                                          'message': 'Your partner has disconnected. You will be redirected to the completion page.',
+                                          'redirect_to_thank_you': True,
+                                          'bonus_code': code,
+                                          'role': other_user_role,
+                                          'username': other_user,
+                                          'user_id': other_user
+                                      },
+                                      to=pair_id)
+                        
+                        logging.info(f"Notified {other_user} about partner disconnection with code {code} and redirect to thank you page")
+                    else:
+                        logging.warning(f"Could not find socket for remaining user {other_user}")
 
                     # Remove the pair
                     del pairs[pair_id]
+                    logging.info(f"Removed pair {pair_id} from pairs dict")
                     break
+        
+        logging.info(f"Disconnection cleanup complete for user {username}")
 
 
 def get_credits():

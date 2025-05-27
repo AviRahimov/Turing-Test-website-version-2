@@ -84,6 +84,13 @@ function ChatPage() {
     const [chatTimerStarted, setChatTimerStarted] = useState(false);
     const [partnerHasFailed, setPartnerHasFailed] = useState(false);
 
+    // Timer-related state
+    const [currentPhase, setCurrentPhase] = useState('waiting'); // 'waiting', 'known_identity', 'shuffle'
+    const [timeRemaining, setTimeRemaining] = useState(0);
+    const [totalPhaseTime, setTotalPhaseTime] = useState(0);
+    const [timerVisible, setTimerVisible] = useState(false);
+    const timerIntervalRef = useRef(null);
+
     // state for the instructions modal
     const [showInstructions, setShowInstructions] = useState(false);
 
@@ -101,6 +108,8 @@ function ChatPage() {
     const [capturedPreShuffleTesterBotChat, setCapturedPreShuffleTesterBotChat] = useState([]);    // Refs to track real-time conversation history for reliable shuffle capture
     const messagesRef = useRef([]);
     const botMessagesRef = useRef([]);
+    const socketSetupRef = useRef(false); // Prevent duplicate socket setup
+    const fallbackShuffleTimeoutRef = useRef(null);
 
     // Fetch Human Participant's Demographics
     useEffect(() => {
@@ -288,165 +297,70 @@ function ChatPage() {
         } catch (error) {
             console.error('Error saving chat logs:', error);
         }
-    };    // Initial setup: Socket connection and listeners
-    useEffect(() => {
-        socket.emit('join', {pair_id: pairId, role: role});
-
-        // If shuffle is disabled, set up rooms immediately
-        if (!shuffleEnabled) {
-            // Skip timer and go straight to anonymous setup
-            setIsAnonymousMode(true);
-            setupAnonymousRooms();
+    };    
+    // Timer countdown functions
+    const startCountdown = () => {
+        if (timerIntervalRef.current) {
+            clearInterval(timerIntervalRef.current);
         }
-
-        if (role === 'tester') {
-            socket.on('experimenter_ready', (data) => {
-                // console.log('Received experimenter_ready event', data);
-                setExperimenterReady(true);
-            });
-        }
-
-        socket.on('notification_dismissed', (data) => {
-            if (data.role === 'tester') {
-                setTesterDismissed(true);
-            } else if (data.role === 'experimenter') {
-                setExperimenterDismissed(true);
-            }
-        });        socket.on('message', (data) => {
-            const newMessage = {sender: data.sender, content: data.message};
-            
-            // DEBUG: Track incoming messages
-            console.log("📨 RECEIVED MESSAGE via socket:", newMessage);
-            console.log("📨 Current role:", role);
-
-            // Avoid duplication in messages for experimenter or tester
-            if (data.sender !== 'bot') {
-                console.log("📨 Adding to messages array (experimenter chat)");
-                console.log("📨 Current messages length before add:", messages.length);
-                  setMessages((prevMessages) => {
-                    if (prevMessages.find((msg) => msg.content === newMessage.content && msg.sender === newMessage.sender)) {
-                        console.log("📨 DUPLICATE detected, ignoring message");
-                        return prevMessages; // Ignore duplicates
-                    }
-                    const updatedMessages = [...prevMessages, newMessage];
-                    console.log("📨 Updated messages length after add:", updatedMessages.length);
-                    console.log("📨 Full messages array:", updatedMessages.map(msg => `${msg.sender}: ${msg.content}`));
-                    
-                    // SYNC WITH REF for reliable shuffle capture
-                    messagesRef.current = updatedMessages;
-                    console.log("📨 SYNCED messagesRef from socket, length:", messagesRef.current.length);
-                    
-                    return updatedMessages;
-                });
-            }
-
-            // Avoid duplication in botMessages for bot-related messages
-            if (data.sender === 'bot' && role === 'tester') {
-                console.log("📨 Adding to botMessages array (bot chat)");                setBotMessages((prevBotMessages) => {
-                    if (prevBotMessages.find((msg) => msg.content === newMessage.content)) {
-                        console.log("📨 DUPLICATE bot message detected, ignoring");
-                        return prevBotMessages; // Ignore duplicates
-                    }
-                    const updatedBotMessages = [...prevBotMessages, newMessage];
-                    console.log("📨 Updated botMessages length after add:", updatedBotMessages.length);
-                    
-                    // SYNC WITH REF for reliable shuffle capture
-                    botMessagesRef.current = updatedBotMessages;
-                    console.log("📨 SYNCED botMessagesRef from socket, length:", botMessagesRef.current.length);
-                    
-                    return updatedBotMessages;
-                });
-            }
-        });
-
-        // Listen for timer events from backend
-        socket.on('timer_started', (data) => {
-            console.log('Timer started event received:', data);
-            setTimerPaused(false);
-            setChatTimerStarted(true);
-        });        socket.on('shuffle_started', (data) => {
-            console.log('Shuffle started event received:', data);
-            // Trigger shuffle logic for both roles
-            if (role === 'tester') {
-                // Trigger shuffle logic directly
-                performShuffleForTester();
-            } else if (role === 'experimenter') {
-                // For experimenter, just enter anonymous mode
-                console.log("SHUFFLE SYNC for Experimenter: Shuffle started by backend.");
-                setIsAnonymousMode(true); // Experimenter enters anonymous mode
-                console.log("Experimenter shuffle process complete. Anonymous mode active.");
-            }
-        });        socket.on('chat_ended', (data) => {
-            console.log('Chat ended event received:', data);
-            // Backend says chat is over, show overlay
-            setShowOverlay(true);
-            setInactivityCheckerActive(false); // Stop inactivity checking
-            // Both participants are ready for guessing phase since backend timer manages both simultaneously
-            setExperimenterReady(true);
-            saveChatLogs('During Turing Test');
-        });        socket.on('bonus_code', (data) => {
-            console.log('Bonus code received:', data);
-            // Process bonus code for both roles when role is "both", or for specific role
-            if (data.role === 'both' || (data.role === 'experimenter' && role === 'experimenter')) {
-                const bonusCode = data.bonus;
-                setExperimenterBonus(bonusCode);
-                localStorage.setItem('experimenterBonus', bonusCode);
-                
-                if (role === 'experimenter') {                    setShowBonusNotification(true);
-                    
-                    // Navigate to thank you page after a short delay to let the user see the bonus code
-                    setTimeout(() => {
-                        navigate('/thank_you', {
-                            state: {
-                                bonusCode: bonusCode,
-                                role: role,
-                                pairId: pairId
-                            }
-                        });
-                    }, 500); // 500ms delay
+        
+        timerIntervalRef.current = setInterval(() => {
+            setTimeRemaining((prev) => {
+                if (prev <= 1) {
+                    stopCountdown();
+                    return 0;
                 }
-                // For tester, just store the code - navigation will happen on guess_submitted
-            }
-        });        socket.on('guess_submitted', (data) => {
-            console.log('Guess submission confirmed:', data);
-            // Only process if this is for the tester role and we are a tester
-            if (data.role === 'tester' && role === 'tester') {
-                // Get the bonus code from localStorage or from the data
-                const bonusCode = localStorage.getItem('experimenterBonus') || data.bonus_code || experimenterBonus;
-                
-                // Navigate to feedback page after user acknowledges the alert
-                setTimeout(() => {
-                    navigate('/feedback', {
-                        state: {
-                            code: bonusCode,
-                            role: role,
-                            pairId: pairId,
-                            userId: userId
-                        }
-                    });
-                }, 500); // Short delay to ensure alert is dismissed
-            }
-        });return () => {
-            socket.off('message');
-            socket.off('notification_dismissed');
-            socket.off('timer_started');
-            socket.off('shuffle_started');
-            socket.off('chat_ended');
-            socket.off('bonus_code');
-            socket.off('guess_submitted');
-            if (role === 'tester') {
-                socket.off('experimenter_ready');
-            }
-        };
-    }, [pairId, role, shuffleEnabled]);
+                return prev - 1;
+            });
+        }, 1000);
+    };
 
-    // handle dismissal status
-    useEffect(() => {
-        if (testerDismissed && experimenterDismissed) {
-            setTimerPaused(false);
-            // console.log('Both participants dismissed notifications, timer starting');
+    const stopCountdown = () => {
+        if (timerIntervalRef.current) {
+            clearInterval(timerIntervalRef.current);
+            timerIntervalRef.current = null;
         }
-    }, [testerDismissed, experimenterDismissed]);    // handle immediate room setup
+    };
+
+    // Cleanup timer on unmount
+    useEffect(() => {
+        return () => {
+            stopCountdown();
+        };
+    }, []);
+
+    // Format time display (mm:ss)
+    const formatTime = (seconds) => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    };
+
+    // Calculate timer progress percentage
+    const getTimerProgress = () => {
+        if (totalPhaseTime === 0) return 0;
+        return ((totalPhaseTime - timeRemaining) / totalPhaseTime) * 100;
+    };
+
+    // Get phase display name
+    const getPhaseDisplayName = () => {
+        switch (currentPhase) {
+            case 'known_identity':
+                return 'Known Identity Phase';
+            case 'shuffle':
+                return 'Anonymous Phase';
+            default:
+                return 'Waiting...';
+        }
+    };    // Get timer color based on remaining time
+    const getTimerColor = () => {
+        const percentage = (timeRemaining / totalPhaseTime) * 100;
+        if (percentage > 50) return '#4caf50'; // Green
+        if (percentage > 25) return '#ff9800'; // Orange
+        return '#f44336'; // Red
+    };
+
+    // handle immediate room setup
     const setupAnonymousRooms = () => {
         // Randomly decide if we should shuffle the room order
         const shouldShuffle = Math.random() > 0.5;
@@ -457,18 +371,23 @@ function ChatPage() {
         // Update room configuration based on the new order
         const newConfig = {
             leftRoom: {
-                candidate: 'A'  // Always A in left room
-                , role: newRoomOrder[0]  // Will be either 'experimenter' or 'bot' based on shuffle
+                candidate: 'A',  // Always A in left room
+                role: newRoomOrder[0]  // Will be either 'experimenter' or 'bot' based on shuffle
             },
             rightRoom: {
-                candidate: 'B'  // Always B in right room
-                , role: newRoomOrder[1]  // Will be the opposite of left room
+                candidate: 'B',  // Always B in right room
+                role: newRoomOrder[1]  // Will be the opposite of left room
             }
-        };        // Update both states
+        };
+
+        // Update both states
         setRoomOrder(newRoomOrder);
         setFinalRoomConfig(newConfig);
     };    // Function to handle shuffle logic for tester role (called from socket event)
-    const performShuffleForTester = () => {        console.log("SHUFFLE INITIATED for Tester: Backend triggered shuffle.");
+    const performShuffleForTester = () => {
+        console.log("🎯 PERFORM_SHUFFLE_FOR_TESTER FUNCTION CALLED!");
+        console.log("🎯 Function is executing - this confirms the function was found and called");
+        console.log("SHUFFLE INITIATED for Tester: Backend triggered shuffle.");
         
         // DEBUG: Check state and ref values
         console.log("Current messages state length:", messages.length);
@@ -510,7 +429,7 @@ function ChatPage() {
         setTimeout(() => {
             console.log("🔄 SHUFFLE EXECUTION for Tester: Applying post-shuffle states.");
             setupAnonymousRooms();
-            saveChatLogs('Before Turing Test: '); // Log before state changes fully apply to UI            
+            saveChatLogs('Before Turing Test'); // Log before state changes fully apply to UI            
             
             // 3. CRITICAL: Both candidate A and candidate B should display the same pre-shuffle tester-experimenter chat history
             // ONLY use the tester-experimenter chat history, never bot messages
@@ -543,13 +462,367 @@ function ChatPage() {
             }
 
             // 5. Switch to anonymous mode
-            setIsAnonymousMode(true);
-
-            setShuffling(false); // End visual shuffle effect
+            setIsAnonymousMode(true);        setShuffling(false); // End visual shuffle effect
             console.log("Tester shuffle process complete. Anonymous mode active.");
 
         }, 3000); // Shuffle animation duration
-    };
+    };    // Socket connection setup with duplicate prevention
+    useEffect(() => {
+        console.log('🔗 Socket useEffect triggered with:', {role, pairId, shuffleEnabled});
+        console.log('🔗 Setting up socket connection for role:', role, 'pairId:', pairId);
+        console.log('🔗 Socket object:', socket);
+        console.log('🔗 Socket connected?', socket?.connected);
+        console.log('🔗 Current socketSetupRef value:', socketSetupRef.current);
+        
+        // Prevent duplicate socket setup
+        if (socketSetupRef.current) {
+            console.log('🔗 Socket setup already completed, skipping duplicate execution');
+            return () => {
+                console.log('🔗 Skipped setup - no cleanup needed');
+            };
+        }
+        
+        // Mark socket setup as completed to prevent duplicates
+        socketSetupRef.current = true;
+        console.log('🔗 Setting socketSetupRef to true to prevent duplicates');
+          // Only remove specific listeners that we're about to re-add to prevent conflicts
+        // CRITICAL: Do NOT remove shuffle_started listener as it's a one-time event that must persist
+        console.log('🔗 Removing specific event listeners to prevent duplicates...');
+        const eventsToRemove = ['message', 'timer_started', 'chat_ended', 'bonus_code', 'guess_submitted', 'experimenter_ready', 'notification_dismissed'];
+        eventsToRemove.forEach(event => {
+            socket.removeAllListeners(event);
+            console.log(`🔗 Removed all listeners for event: ${event}`);
+        });
+        
+        // Special handling for shuffle_started: only remove if we haven't set up the ref flag
+        if (!socketSetupRef.current) {
+            console.log('🔗 First time setup - removing any existing shuffle_started listeners');
+            socket.removeAllListeners('shuffle_started');
+        } else {
+            console.log('🔗 Preserving existing shuffle_started listener to prevent missing the event');
+        }
+        
+        // Add connection status listeners
+        socket.on('connect', () => {
+            console.log('🔗 Socket CONNECTED successfully');
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('🔗 Socket DISCONNECTED');
+        });
+          // Add a generic event listener to catch all events
+        socket.onAny((eventName, ...args) => {
+            console.log('📥 RECEIVED ANY EVENT:', eventName, args);
+        });
+        
+        socket.emit('join', {pair_id: pairId, role: role});
+        console.log('🔗 Emitted join event with:', {pair_id: pairId, role: role});
+
+        // If shuffle is disabled, set up rooms immediately
+        if (!shuffleEnabled) {
+            console.log('🔗 Shuffle disabled, setting up anonymous rooms immediately');
+            // Skip timer and go straight to anonymous setup
+            setIsAnonymousMode(true);
+            setupAnonymousRooms();
+        } else {
+            console.log('🔗 Shuffle enabled, waiting for shuffle_started event');
+        }
+
+        if (role === 'tester') {
+            socket.on('experimenter_ready', (data) => {
+                // console.log('Received experimenter_ready event', data);
+                setExperimenterReady(true);
+            });
+        }
+
+        socket.on('notification_dismissed', (data) => {
+            if (data.role === 'tester') {
+                setTesterDismissed(true);
+            } else if (data.role === 'experimenter') {
+                setExperimenterDismissed(true);
+            }        });
+          socket.on('message', (data) => {
+            const newMessage = {sender: data.sender, content: data.message};
+            
+            // DEBUG: Track incoming messages
+            console.log("≡ƒô¿ RECEIVED MESSAGE via socket:", newMessage);
+            console.log("≡ƒô¿ Current role:", role);
+
+            // Avoid duplication in messages for experimenter or tester
+            if (data.sender !== 'bot') {
+                console.log("≡ƒô¿ Adding to messages array (experimenter chat)");
+                console.log("≡ƒô¿ Current messages length before add:", messages.length);
+                setMessages((prevMessages) => {
+                    if (prevMessages.find((msg) => msg.content === newMessage.content && msg.sender === newMessage.sender)) {
+                        console.log("≡ƒô¿ DUPLICATE detected, ignoring message");
+                        return prevMessages; // Ignore duplicates
+                    }
+                    const updatedMessages = [...prevMessages, newMessage];
+                    console.log("≡ƒô¿ Updated messages length after add:", updatedMessages.length);
+                    console.log("≡ƒô¿ Full messages array:", updatedMessages.map(msg => `${msg.sender}: ${msg.content}`));
+                    
+                    // SYNC WITH REF for reliable shuffle capture
+                    messagesRef.current = updatedMessages;
+                    console.log("≡ƒô¿ SYNCED messagesRef from socket, length:", messagesRef.current.length);
+                    
+                    return updatedMessages;
+                });
+            }
+
+            // Avoid duplication in botMessages for bot-related messages
+            if (data.sender === 'bot' && role === 'tester') {
+                console.log("≡ƒô¿ Adding to botMessages array (bot chat)");
+                setBotMessages((prevBotMessages) => {
+                    if (prevBotMessages.find((msg) => msg.content === newMessage.content)) {
+                        console.log("≡ƒô¿ DUPLICATE bot message detected, ignoring");
+                        return prevBotMessages; // Ignore duplicates
+                    }
+                    const updatedBotMessages = [...prevBotMessages, newMessage];
+                    console.log("≡ƒô¿ Updated botMessages length after add:", updatedBotMessages.length);
+                    
+                    // SYNC WITH REF for reliable shuffle capture
+                    botMessagesRef.current = updatedBotMessages;
+                    console.log("≡ƒô¿ SYNCED botMessagesRef from socket, length:", botMessagesRef.current.length);
+                    
+                    return updatedBotMessages;
+                });
+            }
+        });
+
+        // Listen for timer events from backend
+        socket.on('timer_started', (data) => {
+            console.log('Timer started event received:', data);
+            setTimerPaused(false);
+            setChatTimerStarted(true);
+            setCurrentPhase('known_identity');
+            setTotalPhaseTime(30);
+            setTimeRemaining(30);
+            setTimerVisible(true);
+            startCountdown();
+            // Schedule fallback shuffle in case server event not received
+            if (data.shuffle_duration) {
+                fallbackShuffleTimeoutRef.current = setTimeout(() => {
+                    console.warn('Fallback shuffle triggered after timeout');
+                    if (role === 'tester') {
+                        performShuffleForTester();
+                    } else {
+                        setIsAnonymousMode(true);
+                    }
+                }, data.shuffle_duration * 1000);
+            }
+        });
+          // CRITICAL: Set up shuffle_started listener
+        console.log('🚀 REGISTERING shuffle_started event listener');
+        socket.on('shuffle_started', (data) => {
+            console.log('🚀 SHUFFLE_STARTED EVENT RECEIVED!', data);
+            // Clear fallback shuffle timeout
+            clearTimeout(fallbackShuffleTimeoutRef.current);
+            console.log('🚀 Current role:', role);
+            console.log('🚀 Event data:', JSON.stringify(data, null, 2));
+            console.log('🚀 performShuffleForTester function available?', typeof performShuffleForTester);
+            
+            // Trigger shuffle logic for both roles
+            if (role === 'tester') {
+                console.log('🚀 ROLE IS TESTER - Calling performShuffleForTester()');
+                try {
+                    // Trigger shuffle logic directly
+                    performShuffleForTester();
+                    console.log('🚀 performShuffleForTester() completed successfully');
+                } catch (error) {
+                    console.error('🚀 ERROR in performShuffleForTester():', error);
+                }
+            } else if (role === 'experimenter') {
+                console.log('🚀 ROLE IS EXPERIMENTER - Entering anonymous mode');
+                try {
+                    // For experimenter, just enter anonymous mode
+                    console.log("SHUFFLE SYNC for Experimenter: Shuffle started by backend.");
+                    setIsAnonymousMode(true); // Experimenter enters anonymous mode
+                    console.log("Experimenter shuffle process complete. Anonymous mode active.");
+                } catch (error) {
+                    console.error('🚀 ERROR in experimenter shuffle logic:', error);
+                }
+            } else {
+                console.log('🚀 UNKNOWN ROLE:', role);
+            }        });        console.log('🚀 shuffle_started listener registered successfully');
+        
+        // BACKUP: Also listen for broadcast version in case room-targeted event fails
+        socket.on('shuffle_started_broadcast', (data) => {
+            console.log('🚀 SHUFFLE_STARTED_BROADCAST EVENT RECEIVED!', data);
+            if (data.pair_id === pairId) {
+                console.log('🚀 Broadcast event matches our pairId, processing...');
+                // Trigger same shuffle logic as regular event
+                if (role === 'tester') {
+                    console.log('🚀 BROADCAST - ROLE IS TESTER - Calling performShuffleForTester()');
+                    try {
+                        performShuffleForTester();
+                        console.log('🚀 BROADCAST - performShuffleForTester() completed successfully');
+                    } catch (error) {
+                        console.error('🚀 BROADCAST - ERROR in performShuffleForTester():', error);
+                    }
+                } else if (role === 'experimenter') {
+                    console.log('🚀 BROADCAST - ROLE IS EXPERIMENTER - Entering anonymous mode');
+                    try {
+                        setIsAnonymousMode(true);
+                        console.log("BROADCAST - Experimenter shuffle process complete. Anonymous mode active.");
+                    } catch (error) {
+                        console.error('🚀 BROADCAST - ERROR in experimenter shuffle logic:', error);
+                    }
+                }
+            } else {
+                console.log('🚀 Broadcast event for different pair, ignoring:', data.pair_id);
+            }
+        });
+        console.log('🚀 shuffle_started_broadcast listener registered successfully');
+        
+        socket.on('chat_ended', (data) => {
+            console.log('Chat ended event received:', data);
+            // Backend says chat is over, show overlay
+            setShowOverlay(true);
+            setInactivityCheckerActive(false); // Stop inactivity checking
+            // Both participants are ready for guessing phase since backend timer manages both simultaneously
+            setExperimenterReady(true);
+            saveChatLogs('During Turing Test');
+        });
+        
+        socket.on('bonus_code', (data) => {
+            console.log('Bonus code received:', data);
+            // Process bonus code for both roles when role is "both", or for specific role
+            if (data.role === 'both' || (data.role === 'experimenter' && role === 'experimenter')) {
+                const bonusCode = data.bonus;
+                setExperimenterBonus(bonusCode);
+                localStorage.setItem('experimenterBonus', bonusCode);
+                
+                if (role === 'experimenter') {
+                    setShowBonusNotification(true);
+                    
+                    // Navigate to thank you page after a short delay to let the user see the bonus code
+                    setTimeout(() => {
+                        navigate('/thank_you', {
+                            state: {
+                                bonusCode: bonusCode,
+                                role: role,
+                                pairId: pairId
+                            }
+                        });
+                    }, 500); // 500ms delay
+                }
+                // For tester, just store the code - navigation will happen on guess_submitted
+            }
+        });
+        
+        socket.on('guess_submitted', (data) => {
+            console.log('Guess submission confirmed:', data);
+            // Only process if this is for the tester role and we are a tester
+            if (data.role === 'tester' && role === 'tester') {
+                // Get the bonus code from localStorage or from the data
+                const bonusCode = localStorage.getItem('experimenterBonus') || data.bonus_code || experimenterBonus;
+                
+                // Navigate to feedback page after user acknowledges the alert
+                setTimeout(() => {
+                    navigate('/feedback', {
+                        state: {
+                            code: bonusCode,
+                            role: role,
+                            pairId: pairId,
+                            userId: userId
+                        }
+                    });
+                }, 500); // Short delay to ensure alert is dismissed
+            }
+        });
+          // All critical listeners have been registered successfully
+        console.log('🔗 All socket event listeners registered successfully');        // Only return cleanup function if this was the actual setup execution
+        return () => {
+            console.log('🔗 Cleanup function called for actual socket setup');
+            console.log('🔗 Cleaning up socket listeners...');
+            
+            // DO NOT reset the setup flag here to prevent duplicate executions
+            // Only reset it when component truly unmounts
+            // socketSetupRef.current = false; // REMOVED THIS LINE            socket.off('message');
+            socket.off('notification_dismissed');
+            socket.off('timer_started');
+            // socket.off('shuffle_started'); // PRESERVE SHUFFLE LISTENER - DO NOT REMOVE
+            // socket.off('shuffle_started_broadcast'); // PRESERVE BROADCAST LISTENER - DO NOT REMOVE
+            socket.off('chat_ended');
+            socket.off('bonus_code');
+            socket.off('guess_submitted');
+            if (role === 'tester') {
+                socket.off('experimenter_ready');
+            }            console.log('🔗 Socket cleanup completed (shuffle_started listener preserved)');
+        };
+        }, []); // CRITICAL FIX: Empty dependencies - socket setup should only run once!
+
+
+    // Partner disconnection listener
+    useEffect(() => {
+        console.log('🔥 Setting up partner_disconnected listener');
+        
+        const handlePartnerDisconnected = (data) => {
+            console.log('🔥 PARTNER DISCONNECTED EVENT RECEIVED:', data);
+            console.log('🔥 Event data details:', JSON.stringify(data, null, 2));
+            
+            // Stop any active timers or intervals
+            setInactivityCheckerActive(false);
+            setChatTimerStarted(false);
+            setTimerPaused(true);
+            
+            // Show disconnect message to user
+            alert(data.message || 'Your partner has disconnected. You will be redirected to the completion page.');
+            
+            // Clear session storage to prevent redirect loop
+            sessionStorage.removeItem('wasDisconnected');
+            
+            // Navigate to thank you page with 6-digit code
+            if (data.redirect_to_thank_you && data.bonus_code) {
+                console.log('🔥 Redirecting to ThankYou page with code:', data.bonus_code);
+                navigate('/thank_you', {
+                    replace: true,
+                    state: { 
+                        bonusCode: data.bonus_code,
+                        role: role,
+                        name: username,
+                        user_id: username,
+                        message: 'Your partner disconnected, but you completed the experiment.',
+                        canParticipateAgain: false
+                    }
+                });
+            } else {
+                console.log('🔥 Redirecting to HomePage - no valid completion data');
+                navigate('/', { 
+                    replace: true,
+                    state: { 
+                        message: 'Your partner disconnected. You can join the queue again.',
+                        canRejoin: true 
+                    }
+                });
+            }
+        };
+
+        if (socket) {
+            socket.on('partner_disconnected', handlePartnerDisconnected);
+        }
+
+        return () => {
+            if (socket) {
+                socket.off('partner_disconnected', handlePartnerDisconnected);
+            }
+        };        }, []); // Empty dependency array
+
+    // Component unmount cleanup - reset socket setup ref
+    useEffect(() => {
+        return () => {
+            console.log('🔗 Component unmounting - resetting socketSetupRef');
+            socketSetupRef.current = false;
+        };
+    }, []); // Empty dependency array, only runs on unmount
+
+    // handle dismissal status
+    useEffect(() => {
+        if (testerDismissed && experimenterDismissed) {
+            setTimerPaused(false);
+            // console.log('Both participants dismissed notifications, timer starting');
+        }
+    }, [testerDismissed, experimenterDismissed]);
 
     const handleDismissNotification = () => {
         if (role === 'tester') {
@@ -990,83 +1263,98 @@ function ChatPage() {
             console.error('Error generating bonus code:', error);
         }
     };
-
-
     useEffect(() => {
         // Log when socket events are registered
-        // console.log('[SOCKET] Registering quiz events');
+        console.log('🎯 [SOCKET] Registering quiz events for role:', role);
 
         socket.on('quiz_completed', (data) => {
-            // console.log('[QUIZ-COMPLETED] Event received with data:', data);
+            console.log('🎯 [QUIZ-COMPLETED] Event received with data:', data);
+            console.log('🎯 [QUIZ-COMPLETED] Current state:', {
+                currentRole: role,
+                currentQuizStep: quizStep,
+                currentPartnerStatus: partnerQuizStatus
+            });
 
             if (data.role !== role) {
-                // console.log('[QUIZ-COMPLETED] Both quizzes complete, starting chat timer');
+                console.log('🎯 [QUIZ-COMPLETED] Partner completed quiz, updating partner status');
                 setPartnerQuizStatus('completed');
 
                 // If we've already completed our quiz, start the chat timer
                 if (quizStep === 'completed') {
+                    console.log('🎯 [QUIZ-COMPLETED] Both quizzes complete, starting chat timer');
                     setChatTimerStarted(true);
+                } else {
+                    console.log('🎯 [QUIZ-COMPLETED] Partner completed but we have not completed yet');
                 }
+            } else {
+                console.log('🎯 [QUIZ-COMPLETED] Received our own completion event, ignoring');
             }
         });
 
         socket.on('quiz_failed', (data) => {
-            // console.log('[QUIZ-FAIL] Received quiz_failed event:', {
-            //     data,
-            //     currentRole: role,
-            //     currentQuizStep: quizStep,
-            //     partnerQuizStatus: partnerQuizStatus
-            // });
+            console.log('🎯 [QUIZ-FAIL] Received quiz_failed event:', {
+                data,
+                currentRole: role,
+                currentQuizStep: quizStep,
+                partnerQuizStatus: partnerQuizStatus
+            });
 
             if (data.role !== role) {
+                console.log('🎯 [QUIZ-FAIL] Partner failed quiz');
                 setPartnerQuizStatus('failed');
-                // console.log('[QUIZ-FAIL] Partner failed quiz, current user status:', {
-                //     role,
-                //     quizStep,
-                //     willGenerateBonus: quizStep === 'completed'
-                // });
-
                 setPartnerHasFailed(true); // Set the flag when partner fails
 
                 // If we've already completed our quiz, generate bonus code
                 if (quizStep === 'completed') {
+                    console.log('🎯 [QUIZ-FAIL] We completed but partner failed, generating bonus');
                     generateAndNavigateToBonusCode();
+                } else {
+                    console.log('🎯 [QUIZ-FAIL] Partner failed but we have not completed yet');
                 }
+            } else {
+                console.log('🎯 [QUIZ-FAIL] Received our own failure event, ignoring');
             }
         });
 
         return () => {
+            console.log('🎯 [SOCKET] Cleaning up quiz event listeners');
             socket.off('quiz_completed');
             socket.off('quiz_failed');
         };
-    }, [role, quizStep]);
-
-    // Modify the quiz submission logic in both notification components
+    }, [role, quizStep]);// Modify the quiz submission logic in both notification components
     const handleQuizSubmission = async (isCorrect) => {
-        // console.log('[QUIZ-SUBMIT] Quiz submission:', {
-        //     isCorrect,
-        //     role,
-        //     currentQuizStep: quizStep,
-        //     partnerStatus: partnerQuizStatus
-        // });
+        console.log('🎯 [QUIZ-SUBMIT] Quiz submission starting:', {
+            isCorrect,
+            role,
+            pairId,
+            currentQuizStep: quizStep,
+            partnerStatus: partnerQuizStatus
+        });
 
         if (isCorrect) {
+            console.log('🎯 [QUIZ-SUBMIT] Quiz passed, setting step to completed');
             setQuizStep('completed');
+            
+            console.log('🎯 [QUIZ-SUBMIT] Emitting quiz_completed event to backend');
             socket.emit('quiz_completed', {pair_id: pairId, role});
-            // console.log('[QUIZ-SUBMIT] Emitted quiz_completed event');
+            console.log('🎯 [QUIZ-SUBMIT] quiz_completed event emitted with data:', {pair_id: pairId, role});
 
             // Check if partner has already failed when we complete our quiz
             if (partnerHasFailed) {
-                // console.log('[QUIZ-SUBMIT] Partner already failed, generating bonus code');
+                console.log('🎯 [QUIZ-SUBMIT] Partner already failed, generating bonus code');
                 await generateAndNavigateToBonusCode();
             } else if (partnerQuizStatus === 'completed') {
+                console.log('🎯 [QUIZ-SUBMIT] Partner also completed, starting chat timer');
                 // Only start chat if partner has completed and not failed
                 setChatTimerStarted(true);
+            } else {
+                console.log('🎯 [QUIZ-SUBMIT] Waiting for partner to complete quiz');
             }
             handleDismissNotification();
         } else {
-            // console.log('[QUIZ-SUBMIT] Quiz failed, emitting quiz_failed event');
+            console.log('🎯 [QUIZ-SUBMIT] Quiz failed, emitting quiz_failed event');
             socket.emit('quiz_failed', {pair_id: pairId, role});
+            console.log('🎯 [QUIZ-SUBMIT] Navigating to disconnected page');
             navigate('/disconnected', {
                 state: {
                     message: "You were disconnected because you failed the Quiz. You will not receive payment for this session."
@@ -1306,10 +1594,8 @@ function ChatPage() {
         // Or if role is 'experimenter' (they only see one window, handled outside this mapping)
         return null;
     };
-
-
-    return (
-        <div className={`chat-container ${shuffling ? 'shuffling' : ''}`}>
+    return (        <div className={`chat-container ${shuffling ? 'shuffling' : ''}`}>
+            
             {showNotificationForTester && role === 'tester' && (
                 <div className="popup-overlay">
                     <div className="popup">
@@ -1343,9 +1629,8 @@ function ChatPage() {
 
                                 <h4>Important:</h4>
                                 <ul>
-                                    <li><p className="warning-text">⚠️ Stay active to avoid disconnection.</p></li>
-                                    <li><p className="warning-text">You must pass a quiz on these instructions. Failure
-                                        means no payment.</p></li>
+                                    <li>⚠️ Stay active to avoid disconnection.</li>
+                                    <li>You must pass a quiz on these instructions. Failure means no payment.</li>
                                 </ul>
 
                                 <button
@@ -1470,6 +1755,7 @@ function ChatPage() {
 
                                 <p>
                                     You will chat with a <strong>human Tester</strong> (who is simultanesly chatting
+
                                     also with a bot). Your goal is to convince the tester that <strong>you are the
                                     human</strong>.
                                     If the Tester guesses correctly, you and the Tester will each receive a <strong>$1.00
@@ -1658,13 +1944,38 @@ function ChatPage() {
                         </button>
                     )}
                 </div>
+            )}            {/* Timer Component */}
+            {timerVisible && (
+                <div 
+                    className={`timer-component ${timeRemaining <= totalPhaseTime * 0.2 ? 'low-time' : ''}`}
+                    data-phase={currentPhase}
+                >
+                    <div className="timer-header">
+                        <div className="timer-phase">{getPhaseDisplayName()}</div>
+                        <div className="timer-display" style={{ color: getTimerColor() }}>
+                            {formatTime(timeRemaining)}
+                        </div>
+                    </div>
+                    <div className="timer-progress-bar">
+                        <div 
+                            className="timer-progress-fill" 
+                            style={{ 
+                                width: `${getTimerProgress()}%`,
+                                backgroundColor: getTimerColor()
+                            }}
+                        ></div>
+                    </div>
+                    <div className="timer-info">
+                        Time remaining in current phase
+                    </div>
+                </div>
             )}
 
             {/* Optionally, display a notification if showBonusNotification is true */}
             {showBonusNotification && (
                 <div className="bonus-notification">
                     <p>🎉 Bonus code received: <strong>{experimenterBonus}</strong></p>
-                    <button onClick={() => setShowBonusNotification(false)}>Dismiss</button>
+                                       <button onClick={() => setShowBonusNotification(false)}>Dismiss</button>
                 </div>
             )}
         </div>

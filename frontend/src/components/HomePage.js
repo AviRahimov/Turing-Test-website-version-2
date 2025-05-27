@@ -34,11 +34,12 @@ function HomePage() {
   const [agreedToParticipate, setAgreedToParticipate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [socketConnected, setSocketConnected] = useState(socket.connected);
-  const [status, setStatus] = useState('');
-  const [userID, setUserID] = useState(null); // This is the numerical ID
-  const [username, setUsername] = useState(''); // This is the "user_X" string
+  const [status, setStatus] = useState('');  const [userID, setUserID] = useState(null); // This is the numerical ID
+  const [username, setUsername] = useState(''); // This is the "user_X" string  const [isBlocked, setIsBlocked] = useState(false);
+  const [waitingTimeoutId, setWaitingTimeoutId] = useState(null); // Track timeout ID for cleanup
+  const [waitingStartTime, setWaitingStartTime] = useState(null); // Track when waiting started
+  const [waitingElapsedTime, setWaitingElapsedTime] = useState(0); // Elapsed waiting time in seconds
   const [isBlocked, setIsBlocked] = useState(false);
-
 
   useEffect(() => {
     // Clear any previous disconnection state when starting fresh
@@ -73,11 +74,18 @@ function HomePage() {
       setUserID(data.user_id);
       setUsername(data.username);
       console.log('User registered:', data);
-    });
-
-    socket.on('paired', (data) => {
+    });    socket.on('paired', (data) => {
       if (!isBlocked) {
         console.log('Paired event received:', data);
+          // Clear the waiting timeout since user is now paired
+        if (waitingTimeoutId) {
+          clearTimeout(waitingTimeoutId);
+          setWaitingTimeoutId(null);
+          setWaitingStartTime(null);
+          setWaitingElapsedTime(0);
+          console.log('Cleared waiting timeout - user successfully paired');
+        }
+        
         // Pass necessary data to ChatPage, including own username for demographics
         navigate(`/chat/${data.pair_id}`, {
           state: {
@@ -119,27 +127,88 @@ function HomePage() {
 
     if (config.CHECK_IP){
         checkIP();
-    }
-
-    return () => {
+    }    return () => {
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
       socket.off('connect_error', handleConnectError);
       socket.off('user_registered');
       socket.off('paired');
       socket.off('ip_blocked');
+        // Clear waiting timeout if component unmounts
+      if (waitingTimeoutId) {
+        clearTimeout(waitingTimeoutId);
+        setWaitingTimeoutId(null);
+        setWaitingStartTime(null);
+        setWaitingElapsedTime(0);
+        console.log('Cleared waiting timeout on component unmount');
+      }
     };
-  }, [navigate, isBlocked, userID, username]);
+  }, [navigate, isBlocked, userID, username, waitingTimeoutId]);
+
+  // useEffect to update elapsed waiting time every second
+  useEffect(() => {
+    let interval;
+    
+    if (waitingStartTime && isSubmitting) {
+      interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - waitingStartTime) / 1000);
+        setWaitingElapsedTime(elapsed);
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [waitingStartTime, isSubmitting]);
 
   const handleCheckboxChange = (e) => {
       if (!agreedToParticipate) {
           setAgreedToParticipate(e.target.checked);
       }
   };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  // Function to format elapsed time for display
+  const formatElapsedTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // Function to generate a 6-digit code for timeout scenario
+  const generateTimeoutCode = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+
+  // Function to handle timeout and navigate to thank you page
+  const handleWaitingTimeout = () => {
+    console.log('Waiting timeout reached - navigating to thank you page');
+    
+    // Clear any existing timeout
+    if (waitingTimeoutId) {
+      clearTimeout(waitingTimeoutId);
+      setWaitingTimeoutId(null);
+    }
+    
+    // Generate a 6-digit code for the user
+    const timeoutCode = generateTimeoutCode();
+    
+    // Navigate to thank you page with the code
+    navigate('/thank_you', {
+      state: {
+        bonusCode: timeoutCode,
+        role: 'timeout',
+        name: username || 'User',
+        user_id: username || 'Unknown',
+        message: 'Thank you for your patience! Unfortunately, we could not find another participant within the time limit. Here is your participation code.',
+        canParticipateAgain: true
+      }
+    });
   };
 
   const handleStart = async () => {
@@ -186,21 +255,45 @@ function HomePage() {
       });
 
       const result = await response.json();
-      console.log('Server response:', result);
-
-      if (result.status === 'waiting') {
+      console.log('Server response:', result);      if (result.status === 'waiting') {
         setStatus('Waiting for another user to connect...');
+        
+        // Record when waiting started
+        const startTime = Date.now();
+        setWaitingStartTime(startTime);
+        setWaitingElapsedTime(0);
+        
+        // Start 30-minute timeout (30 * 60 * 1000 = 1800000 milliseconds)
+        const timeoutId = setTimeout(handleWaitingTimeout, 30 * 60 * 1000);
+        setWaitingTimeoutId(timeoutId);
+        console.log('Started 30-minute waiting timeout');
+        
       } else if (result.status === 'paired') {
           // Navigation is now handled by the 'paired' socket event listener
-          setStatus(`Paired! Joining chat room...`);
-      } else if (result.status === 'error') {
+          setStatus(`Paired! Joining chat room...`);      } else if (result.status === 'error') {
         setStatus(result.message);
         setIsSubmitting(false);
+        
+        // Clear waiting timeout if there's an error
+        if (waitingTimeoutId) {
+          clearTimeout(waitingTimeoutId);
+          setWaitingTimeoutId(null);
+          setWaitingStartTime(null);
+          setWaitingElapsedTime(0);
+        }
       }
     } catch (error) {
       console.error('Error:', error);
       setStatus('Error: Unable to connect. Please try again.');
       setIsSubmitting(false);
+      
+      // Clear waiting timeout if there's an error
+      if (waitingTimeoutId) {
+        clearTimeout(waitingTimeoutId);
+        setWaitingTimeoutId(null);
+        setWaitingStartTime(null);
+        setWaitingElapsedTime(0);
+      }
     }
   };
 
@@ -283,16 +376,7 @@ function HomePage() {
                     <option value="Advanced">Advanced</option>
                   </select>
                 </label>
-              </form>
-              <div className="agreement-checkbox" style={{
-                backgroundColor: 'rgba(255, 255, 255, 255)', // Slightly transparent red
-                padding: '10px', // Increased size
-                borderRadius: '5px', // Optional for better aesthetics
-                width: '40%', // Full width
-                margin: '0 auto', // Centered
-                fontSize: '1.1rem', // text size increased
-                border: '2px solid rgba(0, 0, 0, 0.2)', // cyclic border without color
-              }}>
+              </form>              <div className="agreement-checkbox">
                 <label>
                   <input
                       type="checkbox"
@@ -309,12 +393,21 @@ function HomePage() {
               >
                 Start
               </button>
-            </>
-        )}
-        <p className="status-message">{status}</p>
-        <p className={`status-message ${socketConnected ? 'status-connected' : 'status-connecting'}`}>
-          {socketConnected ? 'Connected to server' : 'Connecting to server...'}
-        </p>
+            </>        )}        <div className={`status-message-container ${socketConnected ? 'container-connected' : 'container-connecting'}`}>
+          <p className={`status-message ${socketConnected ? 'status-connected' : 'status-connecting'}`}>
+            <span className="connection-status">
+              {socketConnected ? 'Connected to server' : 'Connecting to server...'}
+            </span>
+            {status && (
+              <span className="status-text"> - {status}</span>
+            )}
+            {waitingStartTime && isSubmitting && (
+              <span className="waiting-time-display">
+                <br />Waiting time: {formatElapsedTime(waitingElapsedTime)} / 30:00
+              </span>
+            )}
+          </p>
+        </div>
       </div>
   );
 }

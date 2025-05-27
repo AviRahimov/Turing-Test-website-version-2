@@ -71,15 +71,18 @@
 }
 
 .status-connected {
-  color: green;
+  color: #28a745;
+  font-weight: bold;
 }
 
 .status-connecting {
-  color: red;
+  color: #dc3545;
+  font-weight: bold;
 }
 
 .status-warning {
   color: orange;
+  font-weight: bold;
 }
 
 .blocked-overlay {
@@ -134,6 +137,88 @@
 .agreement-checkbox {
     font-weight: bold;
     margin: 20px 0;
+    background-color: rgba(255, 255, 255, 1);
+    padding: 10px;
+    border-radius: 5px;
+    width: 40%;
+    margin: 20px auto;
+    font-size: 1.1rem;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+/* Status message container with white background box */
+.status-message-container {
+    background-color: white;
+    border: 2px solid rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin: 15px auto;
+    max-width: 500px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.status-message-container:hover {
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.status-message {
+    margin: 0;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+}
+
+/* Conditional coloring based on connection status */
+.status-message.status-connected {
+    color: #28a745 !important;
+}
+
+.status-message.status-connecting {
+    color: #dc3545 !important;
+}
+
+/* Conditional border coloring for the container */
+.status-message-container.container-connected {
+    border-color: rgba(40, 167, 69, 0.3);
+    /* background-color: rgba(245, 241, 241, 0.02); */
+}
+
+.status-message-container.container-connecting {
+    border-color: rgba(220, 53, 69, 0.3);
+    background-color: rgba(255, 249, 249, 0.02);
+}
+
+/* Waiting time display */
+.waiting-time-display {
+    display: block;
+    margin-top: 10px;
+    font-size: 1.0em;
+    color: #d68910;
+    font-weight: bold;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, rgba(255, 248, 220, 1) 0%, rgba(255, 245, 200, 1) 100%);
+    border: 1px solid rgba(255, 165, 0, 0.4);
+    border-radius: 6px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 4px 8px rgba(255, 165, 0, 0.2);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
 }
 
 button[disabled] {

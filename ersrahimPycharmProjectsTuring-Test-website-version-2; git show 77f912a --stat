@@ -1,0 +1,10 @@
+[33mcad1ea6[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mAdvanced_Test[m[33m, [m[1;31morigin/Advanced_Test[m[33m)[m add the gpt 4.5 model
+[33m754ab9d[m A new working version generated with the help of copilot
+[33m73190cb[m Changed the prompt to match the paper
+[33ma20ca97[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m API handling moved to the backend - prompt still needs to be changed
+[33m77f912a[m Updated chat page
+[33mde6c7d9[m Changed the Instructions and the Quiz
+[33mac6d68f[m Add instructions and an educational level in the demographic
+[33m6a5deb6[m Fixed the overlay and guessing phase
+[33mf687362[m Working on prompt and model after the shuffle- Not done yet
+[33m79e7308[m Changed the demographic information
