@@ -26,7 +26,8 @@ load_dotenv()
 MONGODB_URI = os.getenv("MONGODB_URI")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-BOT_MODEL = "meta-llama/llama-3.1-405b-instruct"
+# BOT_MODEL = "meta-llama/llama-3.1-405b-instruct"
+BOT_MODEL = "openai/gpt-4.5-preview"
 
 # MongoDB connection
 client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
@@ -723,7 +724,36 @@ def on_disconnect(data):
                     break
 
 
+def get_credits():
+    """
+    Fetches the number of credits remaining in the OpenRouter account.
+
+    Parameters:
+        api_key (str): Your OpenRouter API key.
+
+    Returns:
+        float: The number of remaining credits.
+
+    Raises:
+        Exception: If the API call fails or credits info is unavailable.
+    """
+    url = "https://openrouter.ai/api/v1/credits"
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}"
+    }
+
+    response = requests.get(url, headers=headers)
+
+    if response.status_code != 200:
+        raise Exception(f"API request failed with status code {response.status_code}: {response.text}")
+
+    data = response.json()
+    print("------------------------------------------------")
+    print(f"You have {data['data']['total_credits'] - data['data']['total_usage']} credits remaining.")
+    print("------------------------------------------------")
+
 if __name__ == "__main__":
+    get_credits()
     socketio.run(app,
                  debug=True,
                  host='0.0.0.0',  # Disable for testing locally
