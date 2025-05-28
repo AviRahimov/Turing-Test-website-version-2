@@ -15,6 +15,20 @@ def create_system_prompt(
     # Original direct chat history between Tester and this Bot (Alex) before shuffle
     original_tester_bot_history=None
 ):
+    import logging
+    
+    # DEBUG: Log function entry with all parameters
+    logging.info(f"🎭 create_system_prompt called with:")
+    logging.info(f"🎭   bot_base_name: {bot_base_name}")
+    logging.info(f"🎭   bot_base_gender: {bot_base_gender}")
+    logging.info(f"🎭   bot_base_age: {bot_base_age}")
+    logging.info(f"🎭   bot_base_occupation: {bot_base_occupation}")
+    logging.info(f"🎭   bot_base_country: {bot_base_country}")
+    logging.info(f"🎭   bot_base_ai_experience: {bot_base_ai_experience}")
+    logging.info(f"🎭   bot_displayed_demographics: {bot_displayed_demographics}")
+    logging.info(f"🎭   conversation_to_continue_history length: {len(conversation_to_continue_history) if conversation_to_continue_history else 0}")
+    logging.info(f"🎭   original_tester_bot_history length: {len(original_tester_bot_history) if original_tester_bot_history else 0}")
+    
     core_persona_traits = (
         "You are a bit nerdy, introverted, and into internet culture/video games. "
         "You don't really try very hard to convince the other person you're a human. " # Updated
@@ -25,59 +39,55 @@ def create_system_prompt(
     final_persona_definition = ""
     # Date: 2025-05-20, User: AviRahimov (As per previous interaction)
 
-    if conversation_to_continue_history and len(conversation_to_continue_history) > 0 and bot_displayed_demographics:
-        # POST-SHUFFLE Scenario
+    # POST-SHUFFLE Scenario: if displayed demographics provided
+    if bot_displayed_demographics:
+        logging.info(f"🎭 POST-SHUFFLE: Using displayed demographics: {bot_displayed_demographics}")
+        
+        # Build conversation to continue history string
         history_to_continue_str = "\n".join([
-            f"{'Tester (User)' if msg['sender'] == 'user' else 'Previous Participant (Now You)'}: {msg['content']}"
-            for msg in conversation_to_continue_history
+            f"{'Tester (User)' if msg.get('sender')=='user' else 'Previous Participant (Now You)'}: {msg.get('content')}"
+            for msg in (conversation_to_continue_history or [])
         ])
 
+        # Present the displayed demographics as your identity and guide takeover
         final_persona_definition = f"""
-        You are {bot_base_name}. Your underlying identity is a {bot_base_age}-year-old {bot_base_gender} {bot_base_occupation} from {bot_base_country} with {bot_base_ai_experience} AI experience.
-        
-        IMPORTANT INSTRUCTIONS FOR THIS INTERACTION (POST-SHUFFLE):
-        1.  You have just taken over an ongoing conversation from another participant.
-        2.  In this specific chat window, you are being presented to the Tester (the user) with the following demographic profile:
-            - Displayed Gender: {bot_displayed_demographics.get('gender')}
-            - Displayed Age: {bot_displayed_demographics.get('age')}
-            - Displayed Occupation: {bot_displayed_demographics.get('occupation')}
-            - Displayed Country: {bot_displayed_demographics.get('country')}
-            - Displayed AI Experience: {bot_displayed_demographics.get('ai_experience')}
-        
-        3.  YOUR PRIMARY TASK: Continue the conversation that the Previous Participant was having with the Tester. This conversation history is:
-            --- BEGINNING OF CONVERSATION TO CONTINUE (Tester vs. Previous Participant) ---
-            {history_to_continue_str}
-            --- END OF CONVERSATION TO CONTINUE ---
-            You MUST continue this conversation naturally as if you were the 'Previous Participant', using the displayed demographics above.
-        
-        4.  FOR YOUR INFORMATION (Your own pre-shuffle history): Before this shuffle, you ({bot_base_name}) had a direct conversation with the Tester. That history was:
-        """
-        if original_tester_bot_history and len(original_tester_bot_history) > 0:
+You are {bot_base_name}, presenting the following demographic profile:
+    - Displayed Gender: {bot_displayed_demographics.get('gender')}
+    - Displayed Age: {bot_displayed_demographics.get('age')}
+    - Displayed Occupation: {bot_displayed_demographics.get('occupation')}
+    - Displayed Country: {bot_displayed_demographics.get('country')}
+    - Displayed AI Experience: {bot_displayed_demographics.get('ai_experience') or bot_displayed_demographics.get('aiExperience')}
+
+IMPORTANT INSTRUCTIONS (POST-SHUFFLE):
+1. You have just taken over an ongoing conversation from another participant.
+2. When asked about your identity (age, gender, occupation, country, or AI Experience), always respond using the displayed values above.
+3. Continue the conversation that the Previous Participant was having with the Tester:
+--- Conversation to Continue ---
+{history_to_continue_str}
+--- End of Conversation ---
+4. For your reference, this was your previous direct chat with the Tester before shuffle:
+"""
+        if original_tester_bot_history and len(original_tester_bot_history)>0:
             original_bot_history_str = "\n".join([
-                f"{'Tester (User)' if msg['sender'] == 'user' else f'{bot_base_name} (You)'}: {msg['content']}"
-                for msg in original_tester_bot_history
+                f"{'Tester (User)' if m.get('sender')=='user' else f'{bot_base_name} (You)'}: {m.get('content')}" for m in original_tester_bot_history
             ])
             final_persona_definition += f"""
-            --- BEGINNING OF YOUR OWN PREVIOUS DIRECT CHAT WITH TESTER ({bot_base_name}) ---
-            {original_bot_history_str}
-            --- END OF YOUR OWN PREVIOUS DIRECT CHAT WITH TESTER ---
-            IMPORTANT: While you are aware of this previous direct chat, your main task now is to continue the conversation from point #3 above (Tester vs. Previous Participant). Do NOT mistakenly reference topics or contexts unique to your own previous direct chat unless it becomes naturally relevant to the conversation you are continuing. The goal is to see if you can seamlessly take over the Previous Participant's role.
-        """
+--- Your Pre-shuffle Chat ---
+{original_bot_history_str}
+--- End ---
+"""
         else:
-            final_persona_definition += """
-            (You had no significant direct conversation with the Tester before the shuffle, or it was not provided.)
-        """
-
+            final_persona_definition += "(No prior direct chat history provided.)\n"
         final_persona_definition += f"""
-        5.  Your overall goal is to seamlessly continue the conversation from point #3. Refer to that injected history for primary context.
-        6.  While you adapt to the ongoing conversation (point #3) and the displayed demographics (point #2), maintain your core personality traits: {core_persona_traits}
-        """
+5. Maintain your core personality traits: {core_persona_traits}
+"""
     else:
-        # PRE-SHUFFLE Scenario
+        # PRE-SHUFFLE Scenario: default Alex persona
+        logging.info(f"🎭 PRE-SHUFFLE: Using default Alex persona")
         final_persona_definition = f"""
-        You are {bot_base_name}. Your persona is a {bot_base_age}-year-old {bot_base_gender} {bot_base_occupation} from {bot_base_country} with {bot_base_ai_experience} AI experience.
-        {core_persona_traits}
-        """
+You are {bot_base_name}. Your persona is a {bot_base_age}-year-old {bot_base_gender} {bot_base_occupation} from {bot_base_country} with {bot_base_ai_experience} AI experience.
+{core_persona_traits}
+"""
 
     general_guidelines = """
     General Guidelines for all responses:

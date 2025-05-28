@@ -14,11 +14,12 @@ const socket = io(config.SERVER_URL)
 
 // Define fixed bot demographics globally or as a const within ChatPage
 const FIXED_BOT_DEMOGRAPHICS = {
-    gender: 'Female',
-    age: 28,
+    name: 'Alex',
+    gender: 'Male',
+    age: 19,
     occupation: 'Student',
     country: 'USA',
-    aiExperience: 'Basic',
+    aiExperience: 'Low',
     source: 'fixed-bot-profile' // Identifier
 };
 
@@ -402,9 +403,7 @@ function ChatPage() {
         console.log("messagesRef.current content:", messagesRef.current.map(msg => `${msg.sender}: ${msg.content}`));
         console.log("botMessagesRef.current content:", botMessagesRef.current.map(msg => `${msg.sender}: ${msg.content}`));
         
-        setShuffling(true); // For visual shuffle effect
-
-        // --- CAPTURE HISTORIES BEFORE SHUFFLE ---
+        setShuffling(true); // For visual shuffle effect        // --- CAPTURE HISTORIES BEFORE SHUFFLE ---
         // 1. Capture the Tester <-> Human Responder chat history (from messagesRef - real-time data)
         // This is the history the bot will take over.
         const testerResponderChatSnapshot = [...messagesRef.current]; // USE REF instead of state
@@ -429,7 +428,7 @@ function ChatPage() {
         setTimeout(() => {
             console.log("🔄 SHUFFLE EXECUTION for Tester: Applying post-shuffle states.");
             setupAnonymousRooms();
-            saveChatLogs('Before Turing Test'); // Log before state changes fully apply to UI            
+            saveChatLogs('Before Turing Test: '); // Log before state changes fully apply to UI            
             
             // 3. CRITICAL: Both candidate A and candidate B should display the same pre-shuffle tester-experimenter chat history
             // ONLY use the tester-experimenter chat history, never bot messages
@@ -437,9 +436,13 @@ function ChatPage() {
             // ALWAYS use the captured history, even if it appears empty (to debug the real issue)
             console.log("🔄 Setting both chat windows to captured tester-experimenter history...");
             console.log("🔄 Using captured history with length:", testerResponderChatSnapshot.length);
-            
-            setMessages([...testerResponderChatSnapshot]); // Experimenter window (Candidate A or B)
+              setMessages([...testerResponderChatSnapshot]); // Experimenter window (Candidate A or B)
             setBotMessages([...testerResponderChatSnapshot]); // Bot window (Candidate A or B) - same history
+            
+            // SYNC WITH REFS immediately after setting state
+            messagesRef.current = [...testerResponderChatSnapshot];
+            botMessagesRef.current = [...testerResponderChatSnapshot];
+            console.log("🔄 SYNCED both refs with tester-experimenter history, length:", testerResponderChatSnapshot.length);
             
             if (testerResponderChatSnapshot.length === 0) {
                 console.warn("⚠️ WARNING: Applied empty chat history. This indicates a problem with timing or state capture.");
@@ -447,26 +450,32 @@ function ChatPage() {
             } else {
                 console.log("✅ SUCCESS: Both chat windows populated with actual tester-experimenter conversation history.");
                 console.log("✅ Shared chat history content:", testerResponderChatSnapshot.map(msg => `${msg.sender}: ${msg.content}`));
-            }
-
-            // 4. Bot "adopts" human's demographics for display and conversational context
+            }            // 4. Bot "adopts" human's demographics for display and conversational context
+            console.log("🔄 DEMOGRAPHICS ADOPTION DEBUG:");
+            console.log("🔄 humanParticipantDemographics:", humanParticipantDemographics);
+            console.log("🔄 humanParticipantDemographics.error:", humanParticipantDemographics?.error);
+            console.log("🔄 FIXED_BOT_DEMOGRAPHICS:", FIXED_BOT_DEMOGRAPHICS);
+            
             if (humanParticipantDemographics && !humanParticipantDemographics.error) {
-                setBotDisplayedDemographicsPostShuffle({
+                const humanDemographicsForBot = {
                     ...humanParticipantDemographics,
                     source: 'adopted-human-post-shuffle'
-                });
-                console.log("Bot displayed demographics set to human participant's.");
+                };
+                setBotDisplayedDemographicsPostShuffle(humanDemographicsForBot);
+                console.log("🔄 ✅ Bot displayed demographics set to human participant's:", humanDemographicsForBot);
             } else {
-                console.warn("Human demographics not available for bot to adopt post-shuffle. Using fallback.");
+                console.warn("🔄 ❌ Human demographics not available for bot to adopt post-shuffle. Using fallback.");
+                console.warn("🔄 ❌ humanParticipantDemographics:", humanParticipantDemographics);
                 setBotDisplayedDemographicsPostShuffle(FIXED_BOT_DEMOGRAPHICS);
-            }
-
-            // 5. Switch to anonymous mode
-            setIsAnonymousMode(true);        setShuffling(false); // End visual shuffle effect
+                console.log("🔄 ❌ Using FIXED_BOT_DEMOGRAPHICS as fallback:", FIXED_BOT_DEMOGRAPHICS);
+            }            // 5. Switch to anonymous mode
+            setIsAnonymousMode(true);
+            setShuffling(false); // End visual shuffle effect
             console.log("Tester shuffle process complete. Anonymous mode active.");
-
         }, 3000); // Shuffle animation duration
-    };    // Socket connection setup with duplicate prevention
+    };
+
+    // Socket connection setup with duplicate prevention
     useEffect(() => {
         console.log('🔗 Socket useEffect triggered with:', {role, pairId, shuffleEnabled});
         console.log('🔗 Setting up socket connection for role:', role, 'pairId:', pairId);
@@ -535,12 +544,12 @@ function ChatPage() {
             });
         }
 
-        socket.on('notification_dismissed', (data) => {
-            if (data.role === 'tester') {
+        socket.on('notification_dismissed', (data) => {            if (data.role === 'tester') {
                 setTesterDismissed(true);
             } else if (data.role === 'experimenter') {
                 setExperimenterDismissed(true);
-            }        });
+            }
+        });
           socket.on('message', (data) => {
             const newMessage = {sender: data.sender, content: data.message};
             
@@ -587,16 +596,15 @@ function ChatPage() {
                     return updatedBotMessages;
                 });
             }
-        });
-
-        // Listen for timer events from backend
+        });        // Listen for timer events from backend
         socket.on('timer_started', (data) => {
-            console.log('Timer started event received:', data);
+            console.log('🕐 Timer started event received:', data);
+            console.log('🕐 Using PRE_SHUFFLE_TIMER from config:', config.PRE_SHUFFLE_TIMER);
             setTimerPaused(false);
             setChatTimerStarted(true);
             setCurrentPhase('known_identity');
-            setTotalPhaseTime(30);
-            setTimeRemaining(30);
+            setTotalPhaseTime(config.PRE_SHUFFLE_TIMER);
+            setTimeRemaining(config.PRE_SHUFFLE_TIMER);
             setTimerVisible(true);
             startCountdown();
             // Schedule fallback shuffle in case server event not received
@@ -612,14 +620,25 @@ function ChatPage() {
             }
         });
           // CRITICAL: Set up shuffle_started listener
-        console.log('🚀 REGISTERING shuffle_started event listener');
-        socket.on('shuffle_started', (data) => {
+        console.log('🚀 REGISTERING shuffle_started event listener');        socket.on('shuffle_started', (data) => {
             console.log('🚀 SHUFFLE_STARTED EVENT RECEIVED!', data);
             // Clear fallback shuffle timeout
             clearTimeout(fallbackShuffleTimeoutRef.current);
             console.log('🚀 Current role:', role);
             console.log('🚀 Event data:', JSON.stringify(data, null, 2));
             console.log('🚀 performShuffleForTester function available?', typeof performShuffleForTester);
+            
+            // Dismiss any active notifications when shuffle starts
+            setShowNotificationForTester(false);
+            setShowNotificationForExperimenter(false);
+            
+            // Start post-shuffle timer for anonymous phase
+            console.log('🕐 Starting post-shuffle timer with POST_SHUFFLE_TIMER:', config.POST_SHUFFLE_TIMER);
+            setCurrentPhase('shuffle');
+            setTotalPhaseTime(config.POST_SHUFFLE_TIMER);
+            setTimeRemaining(config.POST_SHUFFLE_TIMER);
+            setTimerVisible(true);
+            startCountdown();
             
             // Trigger shuffle logic for both roles
             if (role === 'tester') {
@@ -633,8 +652,7 @@ function ChatPage() {
                 }
             } else if (role === 'experimenter') {
                 console.log('🚀 ROLE IS EXPERIMENTER - Entering anonymous mode');
-                try {
-                    // For experimenter, just enter anonymous mode
+                try {                    // For experimenter, just enter anonymous mode
                     console.log("SHUFFLE SYNC for Experimenter: Shuffle started by backend.");
                     setIsAnonymousMode(true); // Experimenter enters anonymous mode
                     console.log("Experimenter shuffle process complete. Anonymous mode active.");
@@ -643,13 +661,28 @@ function ChatPage() {
                 }
             } else {
                 console.log('🚀 UNKNOWN ROLE:', role);
-            }        });        console.log('🚀 shuffle_started listener registered successfully');
+            }
+        });
+          console.log('🚀 shuffle_started listener registered successfully');
         
         // BACKUP: Also listen for broadcast version in case room-targeted event fails
         socket.on('shuffle_started_broadcast', (data) => {
             console.log('🚀 SHUFFLE_STARTED_BROADCAST EVENT RECEIVED!', data);
             if (data.pair_id === pairId) {
                 console.log('🚀 Broadcast event matches our pairId, processing...');
+                
+                // Dismiss any active notifications when shuffle starts
+                setShowNotificationForTester(false);
+                setShowNotificationForExperimenter(false);
+                
+                // Start post-shuffle timer for anonymous phase
+                console.log('🕐 Starting post-shuffle timer with POST_SHUFFLE_TIMER:', config.POST_SHUFFLE_TIMER);
+                setCurrentPhase('shuffle');
+                setTotalPhaseTime(config.POST_SHUFFLE_TIMER);
+                setTimeRemaining(config.POST_SHUFFLE_TIMER);
+                setTimerVisible(true);
+                startCountdown();
+                
                 // Trigger same shuffle logic as regular event
                 if (role === 'tester') {
                     console.log('🚀 BROADCAST - ROLE IS TESTER - Calling performShuffleForTester()');
@@ -709,8 +742,7 @@ function ChatPage() {
                 // For tester, just store the code - navigation will happen on guess_submitted
             }
         });
-        
-        socket.on('guess_submitted', (data) => {
+          socket.on('guess_submitted', (data) => {
             console.log('Guess submission confirmed:', data);
             // Only process if this is for the tester role and we are a tester
             if (data.role === 'tester' && role === 'tester') {
@@ -726,19 +758,23 @@ function ChatPage() {
                             pairId: pairId,
                             userId: userId
                         }
-                    });
-                }, 500); // Short delay to ensure alert is dismissed
+                    });                }, 500); // Short delay to ensure alert is dismissed
             }
         });
-          // All critical listeners have been registered successfully
-        console.log('🔗 All socket event listeners registered successfully');        // Only return cleanup function if this was the actual setup execution
+        
+        // All critical listeners have been registered successfully
+        console.log('🔗 All socket event listeners registered successfully');
+
+        // Only return cleanup function if this was the actual setup execution
         return () => {
             console.log('🔗 Cleanup function called for actual socket setup');
             console.log('🔗 Cleaning up socket listeners...');
             
             // DO NOT reset the setup flag here to prevent duplicate executions
             // Only reset it when component truly unmounts
-            // socketSetupRef.current = false; // REMOVED THIS LINE            socket.off('message');
+            // socketSetupRef.current = false; // REMOVED THIS LINE
+            
+            socket.off('message');
             socket.off('notification_dismissed');
             socket.off('timer_started');
             // socket.off('shuffle_started'); // PRESERVE SHUFFLE LISTENER - DO NOT REMOVE
@@ -746,11 +782,13 @@ function ChatPage() {
             socket.off('chat_ended');
             socket.off('bonus_code');
             socket.off('guess_submitted');
+            
             if (role === 'tester') {
                 socket.off('experimenter_ready');
-            }            console.log('🔗 Socket cleanup completed (shuffle_started listener preserved)');
+            }
+            console.log('🔗 Socket cleanup completed (shuffle_started listener preserved)');
         };
-        }, []); // CRITICAL FIX: Empty dependencies - socket setup should only run once!
+    }, []); // CRITICAL FIX: Empty dependencies - socket setup should only run once!
 
 
     // Partner disconnection listener
@@ -928,42 +966,57 @@ function ChatPage() {
             aiExperience: 'Low',
         };        if (isAnonymousMode) {
             // POST-SHUFFLE SCENARIO
+            console.log("🔧 DEBUG: POST-SHUFFLE bot message sending");
+            console.log("🔧 isAnonymousMode:", isAnonymousMode);
+            console.log("🔧 humanParticipantDemographics:", humanParticipantDemographics);
+            console.log("🔧 botDisplayedDemographicsPostShuffle:", botDisplayedDemographicsPostShuffle);
+            console.log("🔧 FIXED_BOT_DEMOGRAPHICS:", FIXED_BOT_DEMOGRAPHICS);
+            
             // `botMessages` state IS the pre-shuffle Tester-Responder chat history.
-            // In this history, 'tester' messages should be 'user' and 'experimenter' messages should be 'assistant'
-            console.log("POST-SHUFFLE: Processing botMessages for API call:", botMessages);
             conversationHistoryForAPITurn = botMessages.map(msg => ({
-                role: msg.sender === 'tester' ? 'user' : 'assistant',
+                role: msg.sender === role ? 'user' : 'assistant',
                 content: msg.content
             }));
-            console.log("POST-SHUFFLE: Mapped conversation history for API:", conversationHistoryForAPITurn);
 
             // For the system prompt, provide:
             // 1. The Tester-Responder history (as the conversation to continue)
             if (capturedPreShuffleTesterResponderChat && capturedPreShuffleTesterResponderChat.length > 0) {
-                conversationToContinueCtx = capturedPreShuffleTesterResponderChat.map(msg => ({
-                    sender: msg.sender === 'tester' ? 'user' : 'previous_participant',
-                    content: msg.content
-                })).slice(-15); // Slice for brevity
+                conversationToContinueCtx = [...capturedPreShuffleTesterResponderChat].slice(-15); // Slice for brevity
+                console.log("🔧 Using capturedPreShuffleTesterResponderChat, length:", capturedPreShuffleTesterResponderChat.length);
             } else {
                 // Fallback if preShuffleTesterResponderHistory is not yet populated or empty,
                 // use the current botMessages (which should be the same in this scenario)
-                conversationToContinueCtx = botMessages.map(msg => ({
-                    sender: msg.sender === 'tester' ? 'user' : 'previous_participant',
-                    content: msg.content
-                })).slice(-15);
-                console.warn("sendMessageToBotQueue (Post-Shuffle): preShuffleTesterResponderHistory was empty/null, using current botMessages for 'conversationToContinueCtx'. Ensure it's correctly populated.");
+                conversationToContinueCtx = [...conversationHistoryForAPITurn].slice(-15);
+                console.log("🔧 No captured tester-responder chat, using current botMessages for 'conversationToContinueCtx'");
             }
 
             // 2. The Responder's demographics (for the bot to display)
-            displayedDemographicsCtx = botDisplayedDemographicsPostShuffle || FIXED_BOT_DEMOGRAPHICS;
+            // CRITICAL FIX: Use human participant demographics if available
+            if (humanParticipantDemographics && !humanParticipantDemographics.error) {
+                displayedDemographicsCtx = {
+                    gender: humanParticipantDemographics.gender,
+                    age: humanParticipantDemographics.age,
+                    occupation: humanParticipantDemographics.occupation,
+                    country: humanParticipantDemographics.country,
+                    aiExperience: humanParticipantDemographics.ai_experience || humanParticipantDemographics.aiExperience,
+                    source: 'human-participant-demographics'
+                };
+                console.log("🔧 ✅ Using HUMAN PARTICIPANT demographics for bot:", displayedDemographicsCtx);
+            } else if (botDisplayedDemographicsPostShuffle) {
+                displayedDemographicsCtx = botDisplayedDemographicsPostShuffle;
+                console.log("🔧 ⚠️ Using botDisplayedDemographicsPostShuffle:", displayedDemographicsCtx);
+            } else {
+                displayedDemographicsCtx = FIXED_BOT_DEMOGRAPHICS;
+                console.log("🔧 ❌ FALLBACK: Using FIXED_BOT_DEMOGRAPHICS:", displayedDemographicsCtx);
+            }
 
             // 3. The original Tester-Bot (Alex) pre-shuffle history (for the "confusion test")
             // Ensure capturedPreShuffleTesterBotChat state is populated correctly by ChatPage logic
             if (capturedPreShuffleTesterBotChat && capturedPreShuffleTesterBotChat.length > 0) {
-                originalTesterBotHistoryCtx = capturedPreShuffleTesterBotChat.map(msg => ({
-                    sender: msg.sender === 'tester' ? 'user' : 'bot',
-                    content: msg.content
-                })).slice(-10); // Slice for brevity
+                originalTesterBotHistoryCtx = [...capturedPreShuffleTesterBotChat].slice(-10); // Slice for brevity
+                console.log("🔧 Using capturedPreShuffleTesterBotChat, length:", capturedPreShuffleTesterBotChat.length);
+            } else {
+                console.log("🔧 No captured tester-bot chat available");
             }
 
         } else {
@@ -995,23 +1048,12 @@ function ChatPage() {
                 conversationToContinueCtx,          // Post-shuffle: Tester-Responder history
                 displayedDemographicsCtx,           // Post-shuffle: Responder's demographics
                 originalTesterBotHistoryCtx         // Post-shuffle: Original Tester-Alex history
-            );            setBotMessages(prevBotMessages => [
+            );
+
+            setBotMessages(prevBotMessages => [
                 ...prevBotMessages,
                 {id: `${Date.now()}-bot-${Math.random()}`, sender: 'bot', content: botReply, timestamp: Date.now()}
             ]);
-
-            // DEBUG: Track bot response additions
-            console.log("🤖 BOT RESPONSE ADDED:", botReply);
-            setBotMessages(currentBotMessages => {
-                console.log("🤖 Current botMessages length after bot response:", currentBotMessages.length);
-                console.log("🤖 Full botMessages after bot response:", currentBotMessages.map(msg => `${msg.sender}: ${msg.content}`));
-                
-                // SYNC WITH REF for reliable shuffle capture
-                botMessagesRef.current = currentBotMessages;
-                console.log("🤖 SYNCED botMessagesRef after bot response, length:", botMessagesRef.current.length);
-                
-                return currentBotMessages;
-            });
 
             lastWakeupMessageRef.current = null;
             lastBotActivityTimestampRef.current = Date.now();

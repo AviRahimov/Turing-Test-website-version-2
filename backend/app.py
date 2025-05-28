@@ -137,13 +137,32 @@ def chat_with_bot():
     enable_prompt_flag = BOT_ENABLE_PROMPT  # Using backend config    # Contextual histories for system prompt generation
     conversation_to_continue = data.get('conversationToContinueHistory')
     original_tester_bot_chat = data.get('originalTesterBotHistory')
-    displayed_demographics = data.get('displayedDemographicsForSystemPrompt')
-
-    # Debug logging
-    logging.info(f"chat_with_bot: Received conversation_messages_for_api_turn length: {len(conversation_messages_for_api_turn) if conversation_messages_for_api_turn else 0}")
-    logging.info(f"chat_with_bot: conversation_to_continue length: {len(conversation_to_continue) if conversation_to_continue else 0}")
-    logging.info(f"chat_with_bot: original_tester_bot_chat length: {len(original_tester_bot_chat) if original_tester_bot_chat else 0}")
-    logging.info(f"chat_with_bot: displayed_demographics: {displayed_demographics}")
+    displayed_demographics = data.get('displayedDemographicsForSystemPrompt')    # Debug logging    logging.info(f"🔍 chat_with_bot: Received conversation_messages_for_api_turn length: {len(conversation_messages_for_api_turn) if conversation_messages_for_api_turn else 0}")
+    logging.info(f"🔍 chat_with_bot: conversation_to_continue length: {len(conversation_to_continue) if conversation_to_continue else 0}")
+    logging.info(f"🔍 chat_with_bot: original_tester_bot_chat length: {len(original_tester_bot_chat) if original_tester_bot_chat else 0}")
+    logging.info(f"🔍 chat_with_bot: displayed_demographics: {displayed_demographics}")
+    logging.info(f"🔍 chat_with_bot: bot_base_persona_details: {bot_base_persona_details}")
+    
+    # Determine if this is post-shuffle based on displayed_demographics
+    is_post_shuffle = displayed_demographics is not None
+    logging.info(f"🔍 chat_with_bot: is_post_shuffle: {is_post_shuffle}")
+    
+    # NEW DEBUG: Check if displayed_demographics contains human data
+    if displayed_demographics:
+        logging.info(f"🔧 DEMOGRAPHICS DEBUG: Source = {displayed_demographics.get('source', 'unknown')}")
+        if displayed_demographics.get('source') == 'human-participant-demographics':
+            logging.info(f"🔧 ✅ RECEIVED HUMAN DEMOGRAPHICS: {displayed_demographics}")
+        elif displayed_demographics.get('source') == 'fixed-bot-profile':
+            logging.info(f"🔧 ❌ RECEIVED FIXED BOT DEMOGRAPHICS (THIS IS THE PROBLEM): {displayed_demographics}")
+        else:
+            logging.info(f"🔧 ⚠️ RECEIVED UNKNOWN DEMOGRAPHICS SOURCE: {displayed_demographics}")
+    else:
+        logging.info(f"🔧 No displayed_demographics provided (likely pre-shuffle)")
+    
+    # Debug the original data types
+    logging.info(f"🔧 conversation_to_continue type: {type(conversation_to_continue)}")
+    logging.info(f"🔧 original_tester_bot_chat type: {type(original_tester_bot_chat)}")
+    logging.info(f"🔧 displayed_demographics type: {type(displayed_demographics)}")
 
     if not conversation_messages_for_api_turn or not isinstance(conversation_messages_for_api_turn, list):
         return jsonify({"error": "Missing or invalid 'conversationMessages'"}), 400
