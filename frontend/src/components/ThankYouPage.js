@@ -37,12 +37,11 @@ const ThankYouPage = () => {
     } else {
       // Try to retrieve from localStorage (after refresh)
       const storedData = localStorage.getItem('thankYouPageData');
-      if (storedData) {
-        try {
+      if (storedData) {        try {
           const parsedData = JSON.parse(storedData);
           setPageData(parsedData);
         } catch (error) {
-          console.error('Error parsing stored thank you page data:', error);
+          // Error parsing stored thank you page data
           // Fallback to experimenterBonus if available
           const fallbackCode = localStorage.getItem('experimenterBonus');
           if (fallbackCode) {
@@ -74,7 +73,6 @@ const ThankYouPage = () => {
 
   const { bonusCode, role, name, user_id, message, canParticipateAgain } = pageData;
   const isSevenDigitCode = bonusCode && bonusCode.length === 7;
-  console.log("bonus_code", bonusCode);
 
   return (
     <div style={styles.container}>

@@ -6,59 +6,74 @@ body {
 .chat-container {
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  gap: 25px;
-  width: 100%;
-  max-width: 1100px;
-  margin: 30px auto;
+  padding: 5px;
+  gap: 10px;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
   box-sizing: border-box;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: #f5f5f5;
+}
+
+/* When submission area is visible, adjust container to make room */
+.chat-container.with-submission {
+  height: calc(100vh - 80px); /* Reserve space for submission area */
 }
 
 .chat-boxes {
   display: flex;
   justify-content: center;
-  gap: 25px;
+  gap: 15px;
   width: 100%;
-  position: relative; /* Retained from your original for positioning stability */
+  flex: 1; /* Changed from height: 100% to flex: 1 */
+  position: relative;
+  align-items: stretch;
+  min-height: 0; /* Prevent flex item from growing beyond container */
 }
 
 /* Individual chat windows */
 .chat-window {
   flex: 1;
-  min-width: 400px;
-  max-width: 520px;
-  height: 500px;
-  min-height: 500px;
-  max-height: 750px;
-  border: 1px solid #dce1e6; /* Softer border color */
-  border-radius: 12px; /* More rounded corners */
+  min-width: 350px;
+  max-width: none;
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
+  border: 1px solid #dce1e6;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
-  background-color: #ffffff; /* Clean white background for chat area */
-  overflow: hidden; /* Important for border-radius on children and scroll */
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08); /* Softer, more diffused shadow */
+  background-color: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
 }
 
 /* For the header of each chat window */
 .chat-header {
-  background-color: #4caf50; /* Changed from #2196f3 to green */
+  background-color: #4caf50;
   color: white;
-  padding: 15px; /* Increased padding for better spacing */
+  padding: 8px 12px;
   text-align: center;
-  font-size: 20px; /* Increased font size */
+  font-size: 16px;
   font-weight: bold;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
+  flex-shrink: 0;
 }
 
 /* Demographics Info Area Styling */
 .demographics-info {
-  padding: 10px 18px;
-  background-color: #f7f8fa; /* Slightly off-white, distinct from chat messages bg */
+  padding: 6px 12px;
+  background-color: #f7f8fa;
   border-bottom: 1px solid #e9ecef;
-  font-size: 0.8rem; /* Smaller font for secondary info */
-  color: #4b5563; /* Muted text color */
-  line-height: 1.5;
+  font-size: 0.75rem;
+  color: #4b5563;
+  line-height: 1.4;
+  flex-shrink: 0;
 }
 
 .demographics-info p {
@@ -73,11 +88,12 @@ body {
 
 /* Message container */
 .chat-messages {
-  flex: 1; /* Takes up available space */
-  padding: 15px;
-  overflow-y: auto; /* Enables scrolling for messages */
+  flex: 1;
+  padding: 10px 15px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 /* Individual messages */
@@ -113,10 +129,11 @@ body {
 .chat-input {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
-  border-top: 1px solid #dce1e6; /* Separator line */
-  background-color: #f8f9fa; /* Slightly different background for input area */
-  gap: 8px;
+  padding: 8px 10px;
+  border-top: 1px solid #dce1e6;
+  background-color: #f8f9fa;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .input-box {
@@ -195,37 +212,80 @@ body {
 /* Media query for responsiveness */
 @media (max-width: 768px) {
     .chat-container {
-        padding: 10px;
-        gap: 15px;
-        margin: 15px auto;
+        padding: 5px;
+        gap: 8px;
     }
+    
+    /* Adjust for submission area on mobile */
+    .chat-container.with-submission {
+        height: calc(100vh - 90px); /* Slightly more space for mobile */
+    }
+    
     .chat-boxes {
         flex-direction: column;
-        align-items: center;
-        gap: 15px;
+        align-items: stretch;
+        gap: 8px;
+        height: 100%;
     }
     .chat-window {
         width: 100%;
-        max-width: none;
-        height: auto;
-        min-height: 60vh;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+        min-width: 0;
+        height: 48%;
+        min-height: 200px;
+        max-height: 48%;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     }
     .message {
         max-width: 85%;
         font-size: 0.9rem;
+        padding: 8px 12px;
     }
     .input-box, .send-button {
         font-size: 0.9rem;
-        padding: 9px 12px;
+        padding: 8px 10px;
     }
     .chat-header {
-        font-size: 1rem;
-        padding: 10px 15px;
+        font-size: 14px;
+        padding: 6px 10px;
     }
     .demographics-info {
+        font-size: 0.7rem;
+        padding: 4px 10px;
+    }
+    .experimenter-header {
+        padding: 4px 8px;
+        margin-bottom: 5px;
+    }
+    .experimenter-header h3 {
+        font-size: 1rem;
+    }
+    .experimenter-header .subtitle {
         font-size: 0.75rem;
-        padding: 8px 15px;
+    }    .timer-component {
+        position: fixed;
+        top: 5px;
+        right: 5px;
+        padding: 8px;
+        min-width: 160px;
+        max-width: 200px;
+    }
+    
+    /* Mobile submission area styles */
+    .submission-area {
+        padding: 12px 15px;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .submission-area .waiting-message {
+        font-size: 14px;
+        text-align: center;
+    }
+    
+    .submission-area .submit-button {
+        min-width: 150px;
+        padding: 10px 20px;
+        font-size: 16px;
     }
 }
 
@@ -297,25 +357,26 @@ body {
 /* Experimenter Styling */
 .experimenter-header {
   background-color: #f8f9fa;
-  padding: 10px 15px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
 }
 
 .experimenter-header h3 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   color: #333;
 }
 
 .experimenter-header .subtitle {
-  margin: 5px 0 0;
-  font-size: 0.9rem;
+  margin: 2px 0 0;
+  font-size: 0.8rem;
   color: #666;
 }
 
-/* Styling for the submit button */
+/* Styling for the submit button (general) */
 .submit-button {
   width: 100%;
   padding: 10px 20px;
@@ -326,7 +387,8 @@ body {
   cursor: pointer;
   font-size: 16px;
   transition: background-color 0.3s, transform 0.2s;
-  margin-top: -5px; /* Add some margin to separate it from other elements */}
+  margin-top: -5px; /* Add some margin to separate it from other elements */
+}
 
 .submit-button:hover {
   background-color: #388e3c; /* Darker green */
@@ -362,6 +424,51 @@ body {
   padding: 20px;
   color: #666;
   font-size: 16px;
+}
+
+/* Submission area styling - appears when chat ends for testers */
+.submission-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #ffffff;
+  border-top: 2px solid #4caf50;
+  padding: 15px 20px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.submission-area .waiting-message {
+  margin: 0;
+  padding: 0;
+  color: #666;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.submission-area .submit-button {
+  width: auto;
+  min-width: 200px;
+  padding: 12px 30px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.submission-area .submit-button:hover {
+  background-color: #388e3c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
 }
 
 /* Add to ChatPage.css */
@@ -612,17 +719,17 @@ body {
 /* Timer Component Styles */
 .timer-component {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 10px;
+    right: 10px;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border: 2px solid #e0e0e0;
     border-radius: 12px;
-    padding: 16px;
+    padding: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     z-index: 1001;
-    min-width: 220px;
-    max-width: 280px;
+    min-width: 200px;
+    max-width: 250px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 

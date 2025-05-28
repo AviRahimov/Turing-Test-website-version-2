@@ -36,20 +36,7 @@ client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
 db = client['advanced_turing_test_db']  # database name
 
 # Flask app setup
-allowed = [
-    "http://localhost:5000",
-    "http://localhost:3000",
-    "https://localhost:5000",
-    "https://localhost:3000",
-    "http://0.0.0.0:5000",
-    "http://0.0.0.0:3000",
-    "https://0.0.0.0:5000",
-    "https://0.0.0.0:3000",
-    "http://54.89.200.237:5000",
-    "http://54.89.200.237:3000",
-    "https://54.89.200.237:5000",
-    "https://54.89.200.237:3000"
-]
+allowed = ["http://54.89.200.237:5000", "*"]
 app = Flask(__name__, static_folder="build", static_url_path='/')
 
 CORS(app, resources={
@@ -99,8 +86,8 @@ user_lock = Lock()
 # Timer state for each pair
 pair_timers = {}
 pair_quiz_status = {}  # Track quiz completion status for each pair
-SHUFFLE_TIMER_DURATION = 30  # 1 minute shuffle timer (3 minutes in production)
-REAL_TEST_DURATION = 40  # 70 seconds real test timer (8 minutes in production)
+SHUFFLE_TIMER_DURATION = 180  # 30 seconds shuffle timer (3 minutes in production)
+REAL_TEST_DURATION = 480  # 40 seconds real test timer (8 minutes in production)
 
 
 @socketio.on('check_ip')
@@ -663,7 +650,7 @@ def save_chat():
 
     pair_id = chat_data.get("pairId")
     title = chat_data.get("title")
-
+    print(f"Received chat data to save: {chat_data}")  # DEBUG LINE
     try:
         # Create new chat log
         new_log = {
@@ -701,9 +688,7 @@ def save_feedback():
         "username": data.get("username") if data else None,
         "userId": data.get("userId") if data else None,
         "pairId": data.get("pairId") if data else None,
-        "experience": data.get("experience") if data else None,
         "comments": data.get("comments") if data else None,
-        "improvements": data.get("improvements") if data else None,
         "guessCandidateA": data.get("guessCandidateA") if data else None,
         "guessCandidateB": data.get("guessCandidateB") if data else None,
         "realIdentityA": real_identity_a,

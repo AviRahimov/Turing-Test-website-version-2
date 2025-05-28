@@ -9,19 +9,37 @@ const FeedbackPage = () => {
   
   const location = useLocation();
   const {realIdentityA, realIdentityB, guessCandidateA, guessCandidateB, userId, code, role, pairId, username } = location.state || {};
+  
+  // DEBUG: Log the received values to identify empty data issues
+  console.log('🔍 FEEDBACK DEBUG - Received navigation state:', {
+    realIdentityA,
+    realIdentityB,
+    guessCandidateA,
+    guessCandidateB,
+    userId,
+    code,
+    role,
+    pairId,
+    username,
+    fullLocationState: location.state
+  });
+  
+  // Check for critical empty values
+  if (!guessCandidateA || !guessCandidateB) {
+    console.error('❌ CRITICAL: Empty guess values detected in FeedbackPage!', {
+      guessCandidateA,
+      guessCandidateB,
+      navigationState: location.state
+    });
+  }
+  
   // Always use the string username as userId for backend calls
   const effectiveUserId = username;
 
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    experience: '',
-    comments: '',
-    improvements: '',
+    comments: ''
   });
-
-  useEffect(() => {
-    console.log("The user id in the feedback page is", effectiveUserId);
-  }, [effectiveUserId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -49,12 +67,11 @@ const FeedbackPage = () => {
 
       const result = await response.json();
       if (result.status === 'success') {
-        navigate('/thank_you', { state: { role: 'tester', bonusCode: code } });
-      } else {
+        navigate('/thank_you', { state: { role: 'tester', bonusCode: code } });      } else {
         alert('Failed to submit feedback. Please try again.');
       }
     } catch (error) {
-      console.error('Error submitting feedback:', error);
+      // Error submitting feedback
     }
   };
   
@@ -63,32 +80,13 @@ const FeedbackPage = () => {
       <h1 style={styles.header}>Feedback Form</h1>
       <form style={styles.form} onSubmit={handleSubmit}>
         <label style={styles.label}>
-          How would you describe your overall experience?
-          <textarea
-            name="experience"
-            value={formData.experience}
-            onChange={handleChange}
-            style={styles.textarea}
-            required
-          />
-        </label>
-        <label style={styles.label}>
-          Do you have any comments about the conversation?
+          Do you have any comments about the experiment?
           <textarea
             name="comments"
             value={formData.comments}
             onChange={handleChange}
             style={styles.textarea}
             required
-          />
-        </label>
-        <label style={styles.label}>
-          What could be improved in this experiment?
-          <textarea
-            name="improvements"
-            value={formData.improvements}
-            onChange={handleChange}
-            style={styles.textarea}
           />
         </label>
         <button type="submit" style={styles.button}>

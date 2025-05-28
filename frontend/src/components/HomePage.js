@@ -30,36 +30,30 @@ function HomePage() {
     education: '',
     country: '',
     aiExperience: ''
-  });
-  const [agreedToParticipate, setAgreedToParticipate] = useState(false);
+  });  const [agreedToParticipate, setAgreedToParticipate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [socketConnected, setSocketConnected] = useState(socket.connected);
-  const [status, setStatus] = useState('');  const [userID, setUserID] = useState(null); // This is the numerical ID
-  const [username, setUsername] = useState(''); // This is the "user_X" string  const [isBlocked, setIsBlocked] = useState(false);
+  const [status, setStatus] = useState('');
+  const [userID, setUserID] = useState(null); // This is the numerical ID
+  const [username, setUsername] = useState(''); // This is the "user_X" string
+  const [isBlocked, setIsBlocked] = useState(false);
   const [waitingTimeoutId, setWaitingTimeoutId] = useState(null); // Track timeout ID for cleanup
   const [waitingStartTime, setWaitingStartTime] = useState(null); // Track when waiting started
   const [waitingElapsedTime, setWaitingElapsedTime] = useState(0); // Elapsed waiting time in seconds
-  const [isBlocked, setIsBlocked] = useState(false);
+  const [showWaitingTimer, setShowWaitingTimer] = useState(false); // Show timer only after 2 minutes
 
   useEffect(() => {
     // Clear any previous disconnection state when starting fresh
-    sessionStorage.removeItem('wasDisconnected');
-
-    const handleConnect = () => {
-      console.log('Socket connected');
+    sessionStorage.removeItem('wasDisconnected');    const handleConnect = () => {
       setSocketConnected(true);
       setStatus('');
       socket.emit('register_user', {});
-    };
-
-    const handleDisconnect = () => {
-      console.log('Socket disconnected');
+    };    const handleDisconnect = () => {
       setSocketConnected(false);
       setStatus('Disconnected from server. Reconnecting...');
     };
 
     const handleConnectError = (error) => {
-      console.error('Connection error:', error);
       setSocketConnected(false);
       setStatus('Connection error. Retrying...');
     };
@@ -70,20 +64,16 @@ function HomePage() {
     socket.on('disconnect', handleDisconnect);
     socket.on('connect_error', handleConnectError);
 
-    socket.on('user_registered', (data) => {
-      setUserID(data.user_id);
+    socket.on('user_registered', (data) => {      setUserID(data.user_id);
       setUsername(data.username);
-      console.log('User registered:', data);
-    });    socket.on('paired', (data) => {
-      if (!isBlocked) {
-        console.log('Paired event received:', data);
-          // Clear the waiting timeout since user is now paired
+    });socket.on('paired', (data) => {
+      if (!isBlocked) {        // Clear the waiting timeout since user is now paired
         if (waitingTimeoutId) {
           clearTimeout(waitingTimeoutId);
           setWaitingTimeoutId(null);
           setWaitingStartTime(null);
           setWaitingElapsedTime(0);
-          console.log('Cleared waiting timeout - user successfully paired');
+          setShowWaitingTimer(false);
         }
         
         // Pass necessary data to ChatPage, including own username for demographics
@@ -104,47 +94,25 @@ function HomePage() {
       setIsBlocked(true);
       setIsSubmitting(false);
       setStatus(message);
-    });
-
-    if (!socket.connected) {
+    });    if (!socket.connected) {
       socket.connect();
     }
 
-    // Perform IP check on page load
-    const checkIP = async () => {
-      try {
-        const ipResponse = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipResponse.json();
-        const userIp = ipData.ip;
-
-        // Emit the check_ip event to the server
-        socket.emit('check_ip', { ip: userIp });
-      } catch (error) {
-        console.error('Error checking IP:', error);
-        setStatus('Error checking IP. Please try again.');
-      }
-    };
-
-    if (config.CHECK_IP){
-        checkIP();
-    }    return () => {
+    return () => {
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
       socket.off('connect_error', handleConnectError);
       socket.off('user_registered');
-      socket.off('paired');
-      socket.off('ip_blocked');
+      socket.off('paired');      socket.off('ip_blocked');
         // Clear waiting timeout if component unmounts
       if (waitingTimeoutId) {
         clearTimeout(waitingTimeoutId);
         setWaitingTimeoutId(null);
         setWaitingStartTime(null);
         setWaitingElapsedTime(0);
-        console.log('Cleared waiting timeout on component unmount');
       }
     };
   }, [navigate, isBlocked, userID, username, waitingTimeoutId]);
-
   // useEffect to update elapsed waiting time every second
   useEffect(() => {
     let interval;
@@ -153,6 +121,11 @@ function HomePage() {
       interval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - waitingStartTime) / 1000);
         setWaitingElapsedTime(elapsed);
+        
+        // Show waiting timer display after 2 minutes (120 seconds)
+        if (elapsed >= 120 && !showWaitingTimer) {
+          setShowWaitingTimer(true);
+        }
       }, 1000);
     }
     
@@ -160,8 +133,25 @@ function HomePage() {
       if (interval) {
         clearInterval(interval);
       }
+    };  }, [waitingStartTime, isSubmitting, showWaitingTimer]);
+
+  // IP check useEffect - runs only once on component mount
+  useEffect(() => {
+    const checkIP = async () => {
+      try {
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        const userIp = ipData.ip;
+        socket.emit('check_ip', { ip: userIp });
+      } catch (error) {
+        setStatus('Error checking IP. Please try again.');
+      }
     };
-  }, [waitingStartTime, isSubmitting]);
+
+    if (config.CHECK_IP) {
+      checkIP();
+    }
+  }, []); // Empty dependency array ensures this runs only once
 
   const handleCheckboxChange = (e) => {
       if (!agreedToParticipate) {
@@ -183,16 +173,15 @@ function HomePage() {
   // Function to generate a 6-digit code for timeout scenario
   const generateTimeoutCode = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
-  };
-
-  // Function to handle timeout and navigate to thank you page
+  };  // Function to handle timeout and navigate to thank you page
   const handleWaitingTimeout = () => {
-    console.log('Waiting timeout reached - navigating to thank you page');
-    
     // Clear any existing timeout
     if (waitingTimeoutId) {
       clearTimeout(waitingTimeoutId);
       setWaitingTimeoutId(null);
+      setWaitingStartTime(null);
+      setWaitingElapsedTime(0);
+      setShowWaitingTimer(false);
     }
     
     // Generate a 6-digit code for the user
@@ -238,10 +227,7 @@ function HomePage() {
         setStatus('You have already participated.');
         setIsSubmitting(false);
         return;
-      }
-
-      const payloadToSave = { user_id: username, ...formData, age: ageNum };
-      console.log("Saving demographics payload:", payloadToSave); // DEBUG LINE
+      }      const payloadToSave = { user_id: username, ...formData, age: ageNum };
       await fetch(server_url + '/api/save_demographics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -252,21 +238,18 @@ function HomePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username, user_id: userID, ...formData, age: ageNum }),
-      });
-
-      const result = await response.json();
-      console.log('Server response:', result);      if (result.status === 'waiting') {
+      });      const result = await response.json();
+      if (result.status === 'waiting') {
         setStatus('Waiting for another user to connect...');
         
         // Record when waiting started
         const startTime = Date.now();
         setWaitingStartTime(startTime);
         setWaitingElapsedTime(0);
-        
-        // Start 30-minute timeout (30 * 60 * 1000 = 1800000 milliseconds)
+        setShowWaitingTimer(false); // Reset timer display state
+          // Start 30-minute timeout (30 * 60 * 1000 = 1800000 milliseconds)
         const timeoutId = setTimeout(handleWaitingTimeout, 30 * 60 * 1000);
         setWaitingTimeoutId(timeoutId);
-        console.log('Started 30-minute waiting timeout');
         
       } else if (result.status === 'paired') {
           // Navigation is now handled by the 'paired' socket event listener
@@ -280,10 +263,9 @@ function HomePage() {
           setWaitingTimeoutId(null);
           setWaitingStartTime(null);
           setWaitingElapsedTime(0);
-        }
-      }
+          setShowWaitingTimer(false);
+        }      }
     } catch (error) {
-      console.error('Error:', error);
       setStatus('Error: Unable to connect. Please try again.');
       setIsSubmitting(false);
       
@@ -293,6 +275,7 @@ function HomePage() {
         setWaitingTimeoutId(null);
         setWaitingStartTime(null);
         setWaitingElapsedTime(0);
+        setShowWaitingTimer(false);
       }
     }
   };
@@ -397,13 +380,12 @@ function HomePage() {
           <p className={`status-message ${socketConnected ? 'status-connected' : 'status-connecting'}`}>
             <span className="connection-status">
               {socketConnected ? 'Connected to server' : 'Connecting to server...'}
-            </span>
-            {status && (
+            </span>            {status && (
               <span className="status-text"> - {status}</span>
             )}
-            {waitingStartTime && isSubmitting && (
+            {waitingStartTime && isSubmitting && showWaitingTimer && (
               <span className="waiting-time-display">
-                <br />Waiting time: {formatElapsedTime(waitingElapsedTime)} / 30:00
+                <br />Maximum waiting time: {formatElapsedTime(waitingElapsedTime)} / 30:00
               </span>
             )}
           </p>
