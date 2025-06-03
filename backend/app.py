@@ -30,13 +30,14 @@ OPENROUTER_MODEL = "meta-llama/llama-3.1-405b-instruct"
 # OPENROUTER_MODEL = "deepseek/deepseek-r1:free"
 # OPENROUTER_MODEL = "openai/gpt-4.5-preview"
 BOT_ENABLE_PROMPT = True
+SHUFFLE_ENABLED = False  # Should match frontend config - set to False to skip shuffle phase
 
 # MongoDB connection
 client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
 db = client['advanced_turing_test_db']  # database name
 
 # Flask app setup
-allowed = ["http://54.89.200.237:5000", "*"]
+allowed = ["http://localhost:3000", "http://54.89.200.237:5000", "*"]
 app = Flask(__name__, static_folder="build", static_url_path='/')
 
 CORS(app, resources={
@@ -86,6 +87,7 @@ user_lock = Lock()
 # Timer state for each pair
 pair_timers = {}
 pair_quiz_status = {}  # Track quiz completion status for each pair
+pair_review_status = {}  # Track conversation review completion status for each pair
 SHUFFLE_TIMER_DURATION = 180  # 30 seconds shuffle timer (3 minutes in production)
 REAL_TEST_DURATION = 480  # 40 seconds real test timer (8 minutes in production)
 
@@ -416,23 +418,36 @@ def handle_quiz_completed(data):
     pair_quiz_status[pair_id][role] = True
     logging.info(f"🎯 Marked {role} as completed for pair {pair_id}")
     logging.info(f"🎯 Current quiz status for pair {pair_id}: {pair_quiz_status[pair_id]}")
-    
-    # Emit to the pair that this role completed
+      # Emit to the pair that this role completed
     emit('quiz_completed', {'role': role}, to=pair_id)
     logging.info(f"🎯 Emitted quiz_completed event for {role} to room {pair_id}")
-      # Check if both users have completed the quiz
+    
+    # Check if both users have completed the quiz
     tester_completed = pair_quiz_status[pair_id]['tester']
     experimenter_completed = pair_quiz_status[pair_id]['experimenter']
     
     logging.info(f"🎯 Quiz completion check - Tester: {tester_completed}, Experimenter: {experimenter_completed}")
     
     if tester_completed and experimenter_completed:
-        logging.info(f"🎯 ✅ BOTH USERS COMPLETED QUIZ for pair {pair_id}, starting shuffle timer")
-        # Both completed, start the shuffle timer
-        start_shuffle_timer(pair_id)
-        # Emit timer started event to both users
-        emit('timer_started', {'pair_id': pair_id, 'shuffle_duration': SHUFFLE_TIMER_DURATION}, to=pair_id)
-        logging.info(f"🎯 Emitted timer_started event to room {pair_id}")
+        logging.info(f"🎯 ✅ BOTH USERS COMPLETED QUIZ for pair {pair_id}")
+        
+        if SHUFFLE_ENABLED:
+            logging.info(f"🎯 Shuffle enabled, starting shuffle timer for pair {pair_id}")
+            # Both completed, start the shuffle timer
+            start_shuffle_timer(pair_id)
+            # Emit timer started event to both users
+            emit('timer_started', {'pair_id': pair_id, 'shuffle_duration': SHUFFLE_TIMER_DURATION}, to=pair_id)
+            logging.info(f"🎯 Emitted timer_started event to room {pair_id}")
+        else:
+            logging.info(f"🎯 Shuffle disabled, skipping directly to real test timer for pair {pair_id}")
+            # Skip shuffle phase, go directly to real test
+            start_real_test_timer(pair_id)
+            # Emit shuffle_started event immediately to trigger frontend anonymous mode
+            emit('shuffle_started_broadcast', {
+                'pair_id': pair_id,
+                'message': 'Shuffle phase skipped - starting test phase'
+            }, to=pair_id)
+            logging.info(f"🎯 Emitted shuffle_started_broadcast (skipped) event to room {pair_id}")
     else:
         logging.info(f"🎯 ⏳ WAITING for other user - Tester completed: {tester_completed}, Experimenter completed: {experimenter_completed}")
 
@@ -847,6 +862,78 @@ def handle_message(data):
     emit("message", {"sender": sender, "message": message}, to=pair_id)
 
 
+@socketio.on('conversation_review_completed')
+def handle_conversation_review_completed(data):
+    """
+    Handle when a participant completes their conversation review.
+    Track completion status and coordinate synchronization between participants.
+    """
+    pair_id = data.get('pair_id')
+    role = data.get('role')
+    username = data.get('username')
+    review_time_seconds = data.get('review_time_seconds', 0)
+    total_conversations = data.get('total_conversations', 0)
+    correct_guesses = data.get('correct_guesses', 0)
+    
+    logging.info(f"User {username} ({role}) completed conversation review for pair {pair_id}")
+    logging.info(f"Review stats - Time: {review_time_seconds}s, Total: {total_conversations}, Correct: {correct_guesses}")
+    
+    # Initialize pair review status if not exists
+    if pair_id not in pair_review_status:
+        pair_review_status[pair_id] = {
+            'tester_completed': False,
+            'experimenter_completed': False,
+            'tester_data': None,
+            'experimenter_data': None
+        }
+    
+    # Mark this participant as completed and store their data
+    if role == 'tester':
+        pair_review_status[pair_id]['tester_completed'] = True
+        pair_review_status[pair_id]['tester_data'] = {
+            'username': username,
+            'review_time_seconds': review_time_seconds,
+            'total_conversations': total_conversations,
+            'correct_guesses': correct_guesses
+        }
+    elif role == 'experimenter':
+        pair_review_status[pair_id]['experimenter_completed'] = True
+        pair_review_status[pair_id]['experimenter_data'] = {
+            'username': username,
+            'review_time_seconds': review_time_seconds,
+            'total_conversations': total_conversations,
+            'correct_guesses': correct_guesses
+        }
+    
+    # Check if both participants have completed their review
+    review_status = pair_review_status[pair_id]
+    if review_status['tester_completed'] and review_status['experimenter_completed']:
+        logging.info(f"Both participants completed conversation review for pair {pair_id}, starting test phase")
+        
+        # Emit synchronization event to start the anonymous test phase
+        socketio.emit('conversation_review_sync', {
+            'action': 'start_test_phase',
+            'message': 'Both participants have completed the conversation review. Starting the anonymous testing phase.',
+            'tester_data': review_status['tester_data'],
+            'experimenter_data': review_status['experimenter_data']
+        }, to=pair_id)
+        
+        # Clean up the review status for this pair
+        del pair_review_status[pair_id]
+        logging.info(f"Cleaned up conversation review status for pair {pair_id}")
+    else:
+        # Notify the other participant that this user has completed
+        waiting_role = 'experimenter' if role == 'tester' else 'tester'
+        socketio.emit('conversation_review_sync', {
+            'action': 'partner_completed',
+            'message': f'Your partner has completed their conversation review. Waiting for you to finish.',
+            'completed_role': role,
+            'waiting_role': waiting_role
+        }, to=pair_id)
+        
+        logging.info(f"Notified pair {pair_id} that {role} completed review, waiting for {waiting_role}")
+
+
 @socketio.on('disconnect')
 def on_disconnect(*args):
     """ Handle user disconnections. """
@@ -885,12 +972,15 @@ def on_disconnect(*args):
                         timer_thread = pair_timers.pop(timer_key, None)
                         if timer_thread and hasattr(timer_thread, 'cancel'):
                             timer_thread.cancel()
-                        logging.info(f"Cleaned up timer: {timer_key}")
-
-                    # Clean up quiz status for this pair
+                        logging.info(f"Cleaned up timer: {timer_key}")                    # Clean up quiz status for this pair
                     if pair_id in pair_quiz_status:
                         del pair_quiz_status[pair_id]
-                        logging.info(f"Cleaned up quiz status for pair {pair_id}")                    # Handle the remaining user
+                        logging.info(f"Cleaned up quiz status for pair {pair_id}")
+                    
+                    # Clean up conversation review status for this pair
+                    if pair_id in pair_review_status:
+                        del pair_review_status[pair_id]
+                        logging.info(f"Cleaned up conversation review status for pair {pair_id}")                    # Handle the remaining user
                     if other_user_id and other_user in user_sockets:
                         logging.info(f"Generating 6-digit code for remaining user {other_user} due to partner disconnection")
                         
@@ -910,20 +1000,37 @@ def on_disconnect(*args):
                             })
                             logging.info(f"Saved disconnection code {code} for user {other_user}")
                         except Exception as e:
-                            logging.error(f"Error saving disconnection code: {e}")                        # Notify the remaining user with 6-digit code and redirect to thank you page
-                        logging.info(f"About to emit partner_disconnected to socket {other_user_id} for user {other_user}")
-                        socketio.emit('partner_disconnected',
-                                      {
-                                          'message': 'Your partner has disconnected. You will be redirected to the completion page.',
-                                          'redirect_to_thank_you': True,
-                                          'bonus_code': code,
-                                          'role': other_user_role,
-                                          'username': other_user,
-                                          'user_id': other_user
-                                      },
-                                      to=pair_id)
-                        
-                        logging.info(f"Notified {other_user} about partner disconnection with code {code} and redirect to thank you page")
+                            logging.error(f"Error saving disconnection code: {e}")
+
+                        # Check if disconnection happened during conversation review phase
+                        if pair_id in pair_review_status:
+                            # Disconnection during conversation review - send specific event
+                            logging.info(f"Partner disconnected during conversation review for pair {pair_id}")
+                            socketio.emit('partner_conversation_review_disconnect',
+                                          {
+                                              'message': 'Your partner disconnected during the conversation review. You will be redirected to the completion page.',
+                                              'bonus_code': code,
+                                              'role': other_user_role,
+                                              'username': other_user,
+                                              'user_id': other_user,
+                                              'disconnect_phase': 'conversation_review'
+                                          },
+                                          to=pair_id)
+                            logging.info(f"Sent conversation review disconnect notification to {other_user}")
+                        else:
+                            # Standard disconnection handling
+                            logging.info(f"About to emit partner_disconnected to socket {other_user_id} for user {other_user}")
+                            socketio.emit('partner_disconnected',
+                                          {
+                                              'message': 'Your partner has disconnected. You will be redirected to the completion page.',
+                                              'redirect_to_thank_you': True,
+                                              'bonus_code': code,
+                                              'role': other_user_role,
+                                              'username': other_user,
+                                              'user_id': other_user
+                                          },
+                                          to=pair_id)
+                            logging.info(f"Notified {other_user} about partner disconnection with code {code} and redirect to thank you page")
                     else:
                         logging.warning(f"Could not find socket for remaining user {other_user}")
 

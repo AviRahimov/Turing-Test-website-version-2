@@ -289,6 +289,326 @@ body {
     }
 }
 
+/* Responsive design for conversation review */
+@media (max-width: 1024px) {
+    .conversation-review-container {
+        padding: 15px;
+    }
+    
+    .conversation-pair {
+        gap: 15px;
+        padding: 0 5px;
+    }
+    
+    .conversation-window {
+        min-height: 350px;
+        max-height: calc(100vh - 280px);
+    }
+    
+    .conversation-review-header {
+        padding: 20px 15px;
+        margin-bottom: 20px;
+    }
+    
+    .conversation-review-header h2 {
+        font-size: clamp(20px, 5vw, 28px);
+    }
+    
+    .conversation-review-header p {
+        font-size: clamp(12px, 3vw, 16px);
+    }
+}
+
+@media (max-width: 768px) {
+    .conversation-review-container {
+        padding: 10px;
+    }
+    
+    .conversation-pair {
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .conversation-window {
+        width: 100%;
+        min-height: 300px;
+        max-height: 45vh;
+        border-width: 2px;
+    }
+    
+    .conversation-window h3 {
+        padding: 12px 15px;
+        font-size: clamp(14px, 4vw, 18px);
+    }
+    
+    .conversation-messages {
+        padding: 15px;
+    }
+    
+    .conversation-message {
+        padding: 12px 15px;
+        margin-bottom: 12px;
+        font-size: clamp(12px, 3vw, 14px);
+    }
+    
+    .conversation-message.participant-msg {
+        margin-left: 10px;
+        margin-right: 2px;
+    }
+    
+    .conversation-message.other-msg {
+        margin-right: 10px;
+        margin-left: 2px;
+    }
+    
+    .conversation-guess {
+        padding: 20px;
+    }
+    
+    .conversation-guess label {
+        font-size: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .conversation-guess select {
+        padding: 12px 15px;
+        font-size: 15px;
+        border-width: 2px;
+    }
+    
+    .conversation-feedback {
+        padding: 20px;
+        font-size: 15px;
+    }
+    
+    .conversation-feedback p {
+        font-size: 15px;
+        margin: 10px 0;
+    }
+    
+    .conversation-review-controls {
+        padding: 25px;
+    }
+    
+    .submit-guess-button, .next-conversation-button {
+        padding: 15px 35px;
+        font-size: 18px;
+        min-width: 200px;
+        border-radius: 25px;
+    }
+    
+    .experimenter-waiting-container {
+        padding: 20px;
+        min-height: 50vh;
+    }
+    
+    .experimenter-waiting-message {
+        padding: 30px 25px;
+        border-radius: 15px;
+    }
+    
+    .experimenter-waiting-message h2 {
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    
+    .experimenter-waiting-message p {
+        font-size: 14px;
+        margin-bottom: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .conversation-review-container {
+        padding: 8px;
+    }
+    
+    .conversation-review-header {
+        padding: 15px 10px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+    }
+    
+    .conversation-review-header h2 {
+        font-size: clamp(18px, 6vw, 24px);
+        margin-bottom: 8px;
+    }
+    
+    .conversation-review-header p {
+        font-size: clamp(11px, 3.5vw, 14px);
+        margin: 6px 0;
+    }
+    
+    .conversation-pair {
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .conversation-window {
+        border-radius: 8px;
+        min-height: 280px;
+        max-height: 40vh;
+    }
+    
+    .conversation-window h3 {
+        padding: 10px 12px;
+        font-size: clamp(12px, 4.5vw, 16px);
+        letter-spacing: 0.5px;
+    }
+    
+    .conversation-messages {
+        padding: 12px;
+    }
+    
+    .conversation-message {
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        font-size: clamp(11px, 3.5vw, 13px);
+        line-height: 1.5;
+    }
+    
+    .conversation-message:hover {
+        transform: none; /* Disable hover effects on small screens */
+    }
+    
+    .conversation-message strong {
+        font-size: clamp(10px, 3vw, 12px);
+        margin-bottom: 6px;
+    }
+    
+    .conversation-guess {
+        padding: 15px;
+        border-radius: 8px;
+    }
+    
+    .conversation-guess label {
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+    
+    .conversation-guess select {
+        padding: 10px 12px;
+        font-size: 14px;
+        border-radius: 8px;
+    }
+    
+    .conversation-feedback {
+        padding: 15px;
+        font-size: 14px;
+        border-radius: 8px;
+    }
+    
+    .conversation-feedback p {
+        font-size: 14px;
+        margin: 8px 0;
+    }
+    
+    .conversation-review-controls {
+        padding: 20px;
+        border-radius: 8px;
+    }
+    
+    .submit-guess-button, .next-conversation-button {
+        padding: 12px 25px;
+        font-size: 16px;
+        min-width: 180px;
+        border-radius: 20px;
+        letter-spacing: 0.5px;
+    }
+    
+    .experimenter-waiting-container {
+        padding: 15px;
+        min-height: 45vh;
+    }
+    
+    .experimenter-waiting-message {
+        padding: 25px 20px;
+        border-radius: 12px;
+    }
+    
+    .experimenter-waiting-message h2 {
+        font-size: 20px;
+        margin-bottom: 12px;
+    }
+    
+    .experimenter-waiting-message p {
+        font-size: 13px;
+        margin-bottom: 10px;
+        line-height: 1.5;
+    }
+    
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border-width: 3px;
+    }
+}
+
+/* High DPI and retina display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .conversation-window {
+        border-width: 1.5px;
+    }
+    
+    .conversation-message {
+        border-left-width: 3px;
+    }
+    
+    .conversation-review-header, .conversation-guess, .conversation-feedback {
+        border-width: 2px;
+    }
+}
+
+/* Dark mode compatibility (if needed in future) */
+@media (prefers-color-scheme: dark) {
+    .conversation-review-container {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        color: #e8e8e8;
+    }
+    
+    .conversation-window {
+        background-color: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    .conversation-message {
+        color: #e8e8e8;
+    }
+    
+    .conversation-message.participant-msg {
+        background: linear-gradient(135deg, #2c5282 0%, #2a4365 100%);
+    }
+    
+    .conversation-message.other-msg {
+        background: linear-gradient(135deg, #276749 0%, #22543d 100%);
+    }
+}
+
+/* Print styles for conversation review */
+@media print {
+    .conversation-review-container {
+        background: white;
+        padding: 20px;
+        position: static;
+    }
+    
+    .conversation-review-controls, .submit-guess-button, .next-conversation-button {
+        display: none;
+    }
+    
+    .conversation-window {
+        break-inside: avoid;
+        border: 2px solid #000;
+        margin-bottom: 20px;
+    }
+    
+    .conversation-message {
+        break-inside: avoid;
+    }
+}
+
 /* Shuffle Animation */
 .chat-container.shuffling .chat-window {
   animation: flip 7s ease-in-out forwards;
@@ -825,4 +1145,649 @@ body {
 @keyframes timer-blink {
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0.5; }
+}
+
+/* Conversation Review Styles */
+.conversation-review-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    background-image: url("background_image.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    padding: 15px;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-sizing: border-box;
+}
+
+.conversation-review-header {
+    text-align: center;
+    margin-bottom: 15px;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+    border: 2px solid #fff;
+}
+
+.conversation-review-header:hover {
+    transform: translateY(-2px);
+}
+
+.conversation-review-header h2 {
+    margin: 0 0 8px 0;
+    font-size: clamp(20px, 4vw, 26px);
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    color: #ffffff;
+}
+
+.conversation-review-header p {
+    margin: 4px 0;
+    font-size: clamp(12px, 2.5vw, 16px);
+    opacity: 0.95;
+    line-height: 1.3;
+    font-weight: 600;
+    color: #f1f8e9;
+}
+
+/* Conversation Review Timer Styles */
+.conversation-review-timer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.conversation-review-timer .timer-label {
+    font-size: clamp(12px, 2.5vw, 14px);
+    font-weight: 600;
+    color: #e8f5e8;
+    opacity: 0.9;
+}
+
+.conversation-review-timer .timer-value {
+    font-size: clamp(14px, 3vw, 18px);
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    min-width: 60px;
+    text-align: center;
+}
+
+.conversation-pair {
+    display: flex;
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+    margin-bottom: 15px;
+    padding: 0 10px;
+}
+
+.conversation-window {
+    flex: 1;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(255, 255, 255, 0.95);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 123, 255, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    min-height: 400px;
+    max-height: calc(100vh - 220px);
+}
+
+.conversation-window:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 25px rgba(0, 123, 255, 0.3);
+    border-color: #28a745;
+}
+
+.conversation-window h3 {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    margin: 0;
+    padding: 12px 20px;
+    text-align: center;
+    font-size: clamp(14px, 3vw, 18px);
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(0, 123, 255, 0.2);
+}
+
+.conversation-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-bottom: 1px solid #f8f9fa;
+    max-height: none;
+}
+
+.conversation-message {
+    margin-bottom: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    line-height: 1.4;
+    font-size: clamp(12px, 1.8vw, 14px);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.conversation-message:hover {
+    transform: translateX(2px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
+.conversation-message.participant-msg {
+    background: linear-gradient(135deg, #74eb25 0%, #bbeb84 100%);
+    color: #4a148c;
+    margin-left: 150px;
+    margin-right: 3px;
+}
+
+.conversation-message.other-msg {
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    color: #4a148c;
+    margin-right: 150px;
+    margin-left: 3px;
+    box-shadow: 0 2px 8px rgba(156, 39, 176, 0.15);
+}
+
+.conversation-message strong {
+    color: #2c3e50;
+    font-weight: 800;
+    font-size: clamp(12px, 2vw, 14px);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 1px;
+    display: block;
+    opacity: 0.8;
+}
+
+.conversation-guess {
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-top: 3px solid #dee2e6;
+}
+
+.conversation-guess label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: clamp(14px, 2.5vw, 16px);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.conversation-guess select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    font-size: clamp(14px, 2.5vw, 16px);
+    background-color: #fff;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.conversation-guess select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.conversation-guess select:hover {
+    border-color: #6c757d;
+    transform: translateY(-1px);
+}
+
+.conversation-feedback {
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-top: 3px solid #dee2e6;
+    font-size: clamp(14px, 2.5vw, 16px);
+    border-radius: 0 0 16px 16px;
+}
+
+.conversation-feedback.correct {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border-left: 4px solid #28a745;
+    border-top-color: #28a745;
+}
+
+.conversation-feedback.incorrect {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    border-left: 4px solid #dc3545;
+    border-top-color: #dc3545;
+}
+
+.conversation-feedback p {
+    margin: 8px 0;
+    font-weight: 600;
+    font-size: clamp(14px, 2.5vw, 16px);
+}
+
+.conversation-review-controls {
+    text-align: center;
+    padding: 25px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-top: 3px solid #dee2e6;
+    border-radius: 0 0 16px 16px;
+    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.submit-guess-button, .next-conversation-button {
+    padding: 12px 30px;
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: clamp(14px, 2.5vw, 16px);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    min-width: 180px;
+}
+
+.submit-guess-button:hover, .next-conversation-button:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+}
+
+.submit-guess-button:disabled {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    opacity: 0.6;
+}
+
+.left-conversation {
+    margin-right: 15px;
+}
+
+.right-conversation {
+    margin-left: 15px;
+}
+
+/* Experimenter Waiting Styles */
+.experimenter-waiting-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 40px;
+}
+
+.experimenter-waiting-message {
+    text-align: center;
+    max-width: 600px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 20px;
+    padding: 50px 40px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    border: 2px solid #dee2e6;
+}
+
+.experimenter-waiting-message h2 {
+    color: #495057;
+    margin-bottom: 20px;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.experimenter-waiting-message p {
+    color: #6c757d;
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.waiting-spinner {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #dee2e6;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive design for conversation review */
+@media (max-width: 1024px) {
+    .conversation-review-container {
+        padding: 15px;
+    }
+    
+    .conversation-pair {
+        gap: 15px;
+        padding: 0 5px;
+    }
+    
+    .conversation-window {
+        min-height: 350px;
+        max-height: calc(100vh - 280px);
+    }
+    
+    .conversation-review-header {
+        padding: 20px 15px;
+        margin-bottom: 20px;
+    }
+    
+    .conversation-review-header h2 {
+        font-size: clamp(20px, 5vw, 28px);
+    }
+    
+    .conversation-review-header p {
+        font-size: clamp(12px, 3vw, 16px);
+    }
+}
+
+@media (max-width: 768px) {
+    .conversation-review-container {
+        padding: 10px;
+    }
+    
+    .conversation-pair {
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .conversation-window {
+        width: 100%;
+        min-height: 300px;
+        max-height: 45vh;
+        border-width: 2px;
+    }
+    
+    .conversation-window h3 {
+        padding: 12px 15px;
+        font-size: clamp(14px, 4vw, 18px);
+    }
+    
+    .conversation-messages {
+        padding: 15px;
+    }
+    
+    .conversation-message {
+        padding: 12px 15px;
+        margin-bottom: 12px;
+        font-size: clamp(12px, 3vw, 14px);
+    }
+    
+    .conversation-guess {
+        padding: 20px;
+    }
+    
+    .conversation-guess label {
+        font-size: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .conversation-guess select {
+        padding: 12px 15px;
+        font-size: 15px;
+        border-width: 2px;
+    }
+    
+    .conversation-feedback {
+        padding: 20px;
+        font-size: 15px;
+    }
+    
+    .conversation-feedback p {
+        font-size: 15px;
+        margin: 10px 0;
+    }
+    
+    .conversation-review-controls {
+        padding: 25px;
+    }
+    
+    .submit-guess-button, .next-conversation-button {
+        padding: 15px 35px;
+        font-size: 18px;
+        min-width: 200px;
+        border-radius: 25px;
+    }
+    
+    .experimenter-waiting-container {
+        padding: 20px;
+        min-height: 50vh;
+    }
+    
+    .experimenter-waiting-message {
+        padding: 30px 25px;
+        border-radius: 15px;
+    }
+    
+    .experimenter-waiting-message h2 {
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    
+    .experimenter-waiting-message p {
+        font-size: 14px;
+        margin-bottom: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .conversation-review-container {
+        padding: 8px;
+    }
+    
+    .conversation-review-header {
+        padding: 15px 10px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+    }
+    
+    .conversation-review-header h2 {
+        font-size: clamp(18px, 6vw, 24px);
+        margin-bottom: 8px;
+    }
+    
+    .conversation-review-header p {
+        font-size: clamp(11px, 3.5vw, 14px);
+        margin: 6px 0;
+    }
+    
+    .conversation-pair {
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .conversation-window {
+        border-radius: 8px;
+        min-height: 280px;
+        max-height: 40vh;
+    }
+    
+    .conversation-window h3 {
+        padding: 10px 12px;
+        font-size: clamp(12px, 4.5vw, 16px);
+        letter-spacing: 0.5px;
+    }
+    
+    .conversation-messages {
+        padding: 12px;
+    }
+    
+    .conversation-message {
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        font-size: clamp(11px, 3.5vw, 13px);
+        line-height: 1.5;
+    }
+    
+    .conversation-message:hover {
+        transform: none; /* Disable hover effects on small screens */
+    }
+    
+    .conversation-message strong {
+        font-size: clamp(10px, 3vw, 12px);
+        margin-bottom: 6px;
+    }
+    
+    .conversation-guess {
+        padding: 15px;
+        border-radius: 8px;
+    }
+    
+    .conversation-guess label {
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+    
+    .conversation-guess select {
+        padding: 10px 12px;
+        font-size: 14px;
+        border-radius: 8px;
+    }
+    
+    .conversation-feedback {
+        padding: 15px;
+        font-size: 14px;
+        border-radius: 8px;
+    }
+    
+    .conversation-feedback p {
+        font-size: 14px;
+        margin: 8px 0;
+    }
+    
+    .conversation-review-controls {
+        padding: 20px;
+        border-radius: 8px;
+    }
+    
+    .submit-guess-button, .next-conversation-button {
+        padding: 12px 25px;
+        font-size: 16px;
+        min-width: 180px;
+        border-radius: 20px;
+        letter-spacing: 0.5px;
+    }
+    
+    .experimenter-waiting-container {
+        padding: 15px;
+        min-height: 45vh;
+    }
+    
+    .experimenter-waiting-message {
+        padding: 25px 20px;
+        border-radius: 12px;
+    }
+    
+    .experimenter-waiting-message h2 {
+        font-size: 20px;
+        margin-bottom: 12px;
+    }
+    
+    .experimenter-waiting-message p {
+        font-size: 13px;
+        margin-bottom: 10px;
+        line-height: 1.5;
+    }
+    
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border-width: 3px;
+    }
+}
+
+/* High DPI and retina display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .conversation-window {
+        border-width: 1.5px;
+    }
+    
+    .conversation-message {
+        border-left-width: 3px;
+    }
+    
+    .conversation-review-header, .conversation-guess, .conversation-feedback {
+        border-width: 2px;
+    }
+}
+
+/* Dark mode compatibility (if needed in future) */
+@media (prefers-color-scheme: dark) {
+    /* .conversation-review-container {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        color: #e8e8e8;
+    } */
+    
+    .conversation-window {
+        background-color: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    .conversation-message {
+        color: #e8e8e8;
+    }
+}
+
+/* Print styles for conversation review */
+@media print {
+    .conversation-review-container {
+        background: white;
+        padding: 20px;
+        position: static;
+    }
+    
+    .conversation-review-controls, .submit-guess-button, .next-conversation-button {
+        display: none;
+    }
+    
+    .conversation-window {
+        break-inside: avoid;
+        border: 2px solid #000;
+        margin-bottom: 20px;
+    }
+    
+    .conversation-message {
+        break-inside: avoid;
+    }
 }

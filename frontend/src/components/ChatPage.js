@@ -8,6 +8,7 @@ import axios from 'axios';
 import personas from '../data/personas.json';
 import {getRandomPersona} from '../utils/chatUtils';
 import {sendBotMessage} from '../utils/botService';
+import {loadCSVData, getRandomConversations} from '../utils/csvUtils';
 
 let server_url = config.SERVER_URL;
 const socket = io(config.SERVER_URL)
@@ -56,11 +57,10 @@ function ChatPage() {
         // Try to load from localStorage in case of reload
         return localStorage.getItem('experimenterBonus') || '';
     });
-    const [showBonusNotification, setShowBonusNotification] = useState(false);
-    const [experimenterReady, setExperimenterReady] = useState(false);
+    const [showBonusNotification, setShowBonusNotification] = useState(false);    const [experimenterReady, setExperimenterReady] = useState(false);
     const [showOverlay, setShowOverlay] = useState(false); // Manage overlay visibility
-    const [showNotificationForExperimenter, setShowNotificationForExperimenter] = useState(role === 'experimenter');
-    const [showNotificationForTester, setShowNotificationForTester] = useState(role === 'tester');
+    const [showNotificationForExperimenter, setShowNotificationForExperimenter] = useState(false);
+    const [showNotificationForTester, setShowNotificationForTester] = useState(false);
     const [testerDismissed, setTesterDismissed] = useState(false);
     const [experimenterDismissed, setExperimenterDismissed] = useState(false);    const [timerPaused, setTimerPaused] = useState(true); // Start with timer paused
     const [isAnonymousMode, setIsAnonymousMode] = useState(false);
@@ -118,7 +118,16 @@ function ChatPage() {
     const guessCandidateARef = useRef('');
     const guessCandidateBRef = useRef('');
     const realIdentityARef = useRef('');
-    const realIdentityBRef = useRef('');
+    const realIdentityBRef = useRef('');    // New state for conversation review phase
+    const [preShuffleConversations, setPreShuffleConversations] = useState([]);
+    const [currentConversationIndex, setCurrentConversationIndex] = useState(0);
+    const [conversationGuesses, setConversationGuesses] = useState([]);
+    const [showConversationFeedback, setShowConversationFeedback] = useState(false);
+    const [conversationPhase, setConversationPhase] = useState('review'); // 'review', 'guess', 'feedback', 'completed'
+    const [conversationReviewStarted, setConversationReviewStarted] = useState(false);
+    const [currentConversationGuess, setCurrentConversationGuess] = useState({ leftWindow: '', rightWindow: '' });    const [conversationReviewStartTime, setConversationReviewStartTime] = useState(null);
+    const [conversationReviewElapsed, setConversationReviewElapsed] = useState(180); // Start at 3 minutes (180 seconds)
+    const conversationReviewTimerRef = useRef(null);
 
     // Fetch Human Participant's Demographics
     useEffect(() => {
@@ -144,8 +153,66 @@ function ChatPage() {
             fetchHumanDems(partner_username); // Tester sees experimenter's demographics
         } else if (role === 'experimenter' && username) {
             fetchHumanDems(username); // Experimenter sees their own demographics
+        }    }, [role, username, partner_username]);    // Load conversations for the conversation review phase
+    useEffect(() => {
+        const loadConversations = async () => {
+            try {
+                console.log('Loading conversations for review...');
+                const csvData = await loadCSVData();
+                const conversations = getRandomConversations(csvData, 5);
+                console.log('Loaded conversations:', conversations);
+                setPreShuffleConversations(conversations);
+                setConversationGuesses(new Array(conversations.length).fill(null));
+                setConversationReviewStarted(true);
+                
+                // Start conversation review timer
+                setConversationReviewStartTime(Date.now());
+                startConversationReviewTimer();
+            } catch (error) {
+                console.error('Error loading conversations:', error);
+                // Set mock data as fallback
+                const mockConversations = getRandomConversations(null, 5);
+                setPreShuffleConversations(mockConversations);
+                setConversationGuesses(new Array(mockConversations.length).fill(null));
+                setConversationReviewStarted(true);
+                
+                // Start conversation review timer even with fallback data
+                setConversationReviewStartTime(Date.now());
+                startConversationReviewTimer();
+            }
+        };
+
+        loadConversations();
+    }, []);    // Conversation review timer management
+    const startConversationReviewTimer = () => {
+        if (conversationReviewTimerRef.current) {
+            clearInterval(conversationReviewTimerRef.current);
         }
-    }, [role, username, partner_username]);
+        
+        conversationReviewTimerRef.current = setInterval(() => {
+            setConversationReviewElapsed(prev => {
+                if (prev <= 1) {
+                    stopConversationReviewTimer();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const stopConversationReviewTimer = () => {
+        if (conversationReviewTimerRef.current) {
+            clearInterval(conversationReviewTimerRef.current);
+            conversationReviewTimerRef.current = null;
+        }
+    };
+
+    // Stop conversation review timer when phase completes
+    useEffect(() => {
+        if (conversationPhase === 'completed') {
+            stopConversationReviewTimer();
+        }
+    }, [conversationPhase]);
 
     // Helper to render demographics display
     const DemographicsDisplayComponent = ({demData, isLoading, titlePrefix = ""}) => {
@@ -167,13 +234,19 @@ function ChatPage() {
         );
     };    // useEffect for handling the start of inactivity checking
     useEffect(() => {
-        // Start the inactivity checker when chat timer has started and not paused
-        if (chatTimerStarted && !timerPaused && !inactivityCheckerActive) {
-            // // console.log(`${role} - Starting inactivity monitoring system`);
+        // Start the inactivity checker when chat timer has started and not paused, OR during conversation review
+        const shouldStartInactivityCheck = (chatTimerStarted && !timerPaused) || 
+                                         (conversationReviewStarted && conversationPhase !== 'completed');
+        
+        if (shouldStartInactivityCheck && !inactivityCheckerActive) {
+            console.log(`${role} - Starting inactivity monitoring system`);
             lastActivityTimestampRef.current = Date.now(); // Initialize the ref
             setInactivityCheckerActive(true);
+        } else if (!shouldStartInactivityCheck && inactivityCheckerActive) {
+            console.log(`${role} - Stopping inactivity monitoring system`);
+            setInactivityCheckerActive(false);
         }
-    }, [chatTimerStarted, timerPaused, inactivityCheckerActive, role]);
+    }, [chatTimerStarted, timerPaused, inactivityCheckerActive, role, conversationReviewStarted, conversationPhase]);
 
 // useEffect for the actual inactivity checking
     useEffect(() => {
@@ -344,19 +417,21 @@ function ChatPage() {
     const getTimerProgress = () => {
         if (totalPhaseTime === 0) return 0;
         return ((totalPhaseTime - timeRemaining) / totalPhaseTime) * 100;
-    };
-
-    // Get phase display name
+    };    // Get phase display name
     const getPhaseDisplayName = () => {
         switch (currentPhase) {
             case 'known_identity':
                 return 'Known Identity Phase';
             case 'shuffle':
-                return 'Shuffle Phase';
+                return 'Test Phase';
+            case 'conversation_review':
+                return 'Conversation Review';
+            case 'anonymous_phase':
+                return 'Anonymous Testing Phase';
             default:
                 return 'Waiting...';
         }
-    };    // Get timer color based on remaining time
+    };// Get timer color based on remaining time
     const getTimerColor = () => {
         const percentage = (timeRemaining / totalPhaseTime) * 100;
         if (percentage > 50) return '#4caf50'; // Green
@@ -621,24 +696,59 @@ function ChatPage() {
                         setIsAnonymousMode(true);
                     }
                 }, data.shuffle_duration * 1000);
-            }
-        });
-          // CRITICAL: Set up shuffle_started listener
-        // console.log('🚀 REGISTERING shuffle_started event listener');        
+            }        });
+        
+        // CRITICAL: Set up shuffle_started listener
+        // console.log('🚀 REGISTERING shuffle_started event listener');
+        
         socket.on('shuffle_started', (data) => {
-            // console.log('🚀 SHUFFLE_STARTED EVENT RECEIVED!', data);
+            console.log('🚀 SHUFFLE_STARTED EVENT RECEIVED!', data);
+            console.log('📊 Current state when shuffle_started received:', {
+                role,
+                conversationPhase,
+                conversationReviewStarted,
+                quizStep,
+                chatTimerStarted,
+                preShuffleConversations: preShuffleConversations.length,
+                shuffleEnabled
+            });
+            
             // Clear fallback shuffle timeout
             clearTimeout(fallbackShuffleTimeoutRef.current);
-            // console.log('🚀 Current role:', role);
-            // console.log('🚀 Event data:', JSON.stringify(data, null, 2));
-            // console.log('🚀 performShuffleForTester function available?', typeof performShuffleForTester);
+            console.log('🚀 Current role:', role);
+            console.log('🚀 Event data:', JSON.stringify(data, null, 2));
+            console.log('🚀 performShuffleForTester function available?', typeof performShuffleForTester);
             
             // Dismiss any active notifications when shuffle starts
             setShowNotificationForTester(false);
             setShowNotificationForExperimenter(false);
+              // For tester: Start conversation review if shuffle is disabled
+            if (role === 'tester' && !shuffleEnabled) {
+                console.log('👤 Tester: Shuffle disabled, starting conversation review phase');
+                console.log('🔄 Setting conversationReviewStarted to true');
+                console.log('🔄 Setting conversationPhase to review');
+                console.log('🔄 Current preShuffleConversations length:', preShuffleConversations.length);
+                
+                setConversationReviewStarted(true);
+                setConversationPhase('review');
+                setShowNotificationForTester(false); // Hide any popups
+                setShowNotificationForExperimenter(false); // Hide any popups
+                
+                // Load conversation data if not already loaded
+                if (preShuffleConversations.length === 0) {
+                    console.log('🔄 No conversations loaded, calling loadConversationData()');
+                    loadConversationData();
+                } else {
+                    console.log('🔄 Conversations already loaded, proceeding with review');
+                }
+                
+                console.log('🔄 Conversation review setup completed');
+                return; // Exit early for conversation review mode
+            }
             
+            // Standard shuffle behavior
             // Start post-shuffle timer for anonymous phase
-            // console.log('🕐 Starting post-shuffle timer with POST_SHUFFLE_TIMER:', config.POST_SHUFFLE_TIMER);
+            console.log('🕐 Starting post-shuffle timer with POST_SHUFFLE_TIMER:', config.POST_SHUFFLE_TIMER);
             setCurrentPhase('shuffle');
             setTotalPhaseTime(config.POST_SHUFFLE_TIMER);
             setTimeRemaining(config.POST_SHUFFLE_TIMER);
@@ -647,41 +757,76 @@ function ChatPage() {
             
             // Trigger shuffle logic for both roles
             if (role === 'tester') {
-                // console.log('🚀 ROLE IS TESTER - Calling performShuffleForTester()');
+                console.log('🚀 ROLE IS TESTER - Calling performShuffleForTester()');
                 try {
                     // Trigger shuffle logic directly
                     performShuffleForTester();
-                    // console.log('🚀 performShuffleForTester() completed successfully');
+                    console.log('🚀 performShuffleForTester() completed successfully');
                 } catch (error) {
                     console.error('🚀 ERROR in performShuffleForTester():', error);
                 }
             } else if (role === 'experimenter') {
-                // console.log('🚀 ROLE IS EXPERIMENTER - Entering anonymous mode');
+                console.log('🚀 ROLE IS EXPERIMENTER - Entering anonymous mode');
                 try {                    // For experimenter, just enter anonymous mode
-                    // console.log("SHUFFLE SYNC for Experimenter: Shuffle started by backend.");
+                    console.log("SHUFFLE SYNC for Experimenter: Shuffle started by backend.");
                     setIsAnonymousMode(true); // Experimenter enters anonymous mode
-                    // console.log("Experimenter shuffle process complete. Anonymous mode active.");
+                    console.log("Experimenter shuffle process complete. Anonymous mode active.");
                 } catch (error) {
                     console.error('🚀 ERROR in experimenter shuffle logic:', error);
                 }
             } else {
-                // console.log('🚀 UNKNOWN ROLE:', role);
+                console.log('🚀 UNKNOWN ROLE:', role);
             }
         });
           // console.log('🚀 shuffle_started listener registered successfully');
-        
-        // BACKUP: Also listen for broadcast version in case room-targeted event fails
+          // BACKUP: Also listen for broadcast version in case room-targeted event fails
         socket.on('shuffle_started_broadcast', (data) => {
-            // console.log('🚀 SHUFFLE_STARTED_BROADCAST EVENT RECEIVED!', data);
+            console.log('🚀 SHUFFLE_STARTED_BROADCAST EVENT RECEIVED!', data);
+            console.log('📊 Current state when shuffle_started_broadcast received:', {
+                role,
+                conversationPhase,
+                conversationReviewStarted,
+                quizStep,
+                chatTimerStarted,
+                preShuffleConversations: preShuffleConversations.length,
+                shuffleEnabled,
+                pairId,
+                dataPairId: data.pair_id
+            });
+            
             if (data.pair_id === pairId) {
-                // console.log('🚀 Broadcast event matches our pairId, processing...');
+                console.log('🚀 Broadcast event matches our pairId, processing...');
                 
                 // Dismiss any active notifications when shuffle starts
                 setShowNotificationForTester(false);
                 setShowNotificationForExperimenter(false);
+                  // For tester: Start conversation review if shuffle is disabled
+                if (role === 'tester' && !shuffleEnabled) {
+                    console.log('👤 BROADCAST - Tester: Shuffle disabled, starting conversation review phase');
+                    console.log('🔄 BROADCAST - Setting conversationReviewStarted to true');
+                    console.log('🔄 BROADCAST - Setting conversationPhase to review');
+                    console.log('🔄 BROADCAST - Current preShuffleConversations length:', preShuffleConversations.length);
+                    
+                    setConversationReviewStarted(true);
+                    setConversationPhase('review');
+                    setShowNotificationForTester(false); // Hide any popups
+                    setShowNotificationForExperimenter(false); // Hide any popups
+                    
+                    // Load conversation data if not already loaded
+                    if (preShuffleConversations.length === 0) {
+                        console.log('🔄 BROADCAST - No conversations loaded, calling loadConversationData()');
+                        loadConversationData();
+                    } else {
+                        console.log('🔄 BROADCAST - Conversations already loaded, proceeding with review');
+                    }
+                    
+                    console.log('🔄 BROADCAST - Conversation review setup completed');
+                    return; // Exit early for conversation review mode
+                }
                 
+                // Standard shuffle behavior
                 // Start post-shuffle timer for anonymous phase
-                // console.log('🕐 Starting post-shuffle timer with POST_SHUFFLE_TIMER:', config.POST_SHUFFLE_TIMER);
+                console.log('🕐 Starting post-shuffle timer with POST_SHUFFLE_TIMER:', config.POST_SHUFFLE_TIMER);
                 setCurrentPhase('shuffle');
                 setTotalPhaseTime(config.POST_SHUFFLE_TIMER);
                 setTimeRemaining(config.POST_SHUFFLE_TIMER);
@@ -690,24 +835,24 @@ function ChatPage() {
                 
                 // Trigger same shuffle logic as regular event
                 if (role === 'tester') {
-                    // console.log('🚀 BROADCAST - ROLE IS TESTER - Calling performShuffleForTester()');
+                    console.log('🚀 BROADCAST - ROLE IS TESTER - Calling performShuffleForTester()');
                     try {
                         performShuffleForTester();
-                        // console.log('🚀 BROADCAST - performShuffleForTester() completed successfully');
+                        console.log('🚀 BROADCAST - performShuffleForTester() completed successfully');
                     } catch (error) {
                         console.error('🚀 BROADCAST - ERROR in performShuffleForTester():', error);
                     }
                 } else if (role === 'experimenter') {
-                    // console.log('🚀 BROADCAST - ROLE IS EXPERIMENTER - Entering anonymous mode');
+                    console.log('🚀 BROADCAST - ROLE IS EXPERIMENTER - Entering anonymous mode');
                     try {
                         setIsAnonymousMode(true);
-                        // console.log("BROADCAST - Experimenter shuffle process complete. Anonymous mode active.");
+                        console.log("BROADCAST - Experimenter shuffle process complete. Anonymous mode active.");
                     } catch (error) {
                         console.error('🚀 BROADCAST - ERROR in experimenter shuffle logic:', error);
                     }
                 }
             } else {
-                // console.log('🚀 Broadcast event for different pair, ignoring:', data.pair_id);
+                console.log('🚀 Broadcast event for different pair, ignoring:', data.pair_id);
             }
         });
         // console.log('🚀 shuffle_started_broadcast listener registered successfully');
@@ -799,6 +944,59 @@ function ChatPage() {
                 }, 500); // Short delay to ensure alert is dismissed
             }
         });
+          // Listen for conversation review synchronization events
+        socket.on('conversation_review_sync', (data) => {
+            console.log('🔄 Conversation review sync event received:', data);
+            if (data.action === 'start_test_phase') {
+                console.log('🚀 Starting synchronized test phase');
+                setConversationPhase('completed');
+                setIsAnonymousMode(true);
+                setCurrentPhase('shuffle');
+                setTimerVisible(true);
+                setTimerPaused(false);
+                setupAnonymousRooms();
+                startTimer(config.POST_SHUFFLE_TIMER, 'anonymous_phase');
+            } else if (data.action === 'partner_completed') {
+                console.log('👥 Partner completed conversation review, waiting for sync');
+                // Show notification that partner completed and we're waiting
+                alert('Your partner has completed their conversation review. Please wait while we synchronize the test phase.');
+            }
+        });
+        
+        // Enhanced partner disconnection handling
+        socket.on('partner_conversation_review_disconnect', (data) => {
+            console.log('🔥 Partner disconnected during conversation review:', data);
+            // Stop any active timers
+            setTimerVisible(false);
+            setTimerPaused(true);
+            stopCountdown();
+            
+            // Show disconnect message
+            alert(data.message || 'Your partner disconnected during the conversation review. You will be redirected to the completion page.');
+            
+            // Navigate with bonus code if available
+            if (data.bonus_code) {
+                navigate('/thank_you', {
+                    replace: true,
+                    state: { 
+                        bonusCode: data.bonus_code,
+                        role: role,
+                        name: username,
+                        user_id: username,
+                        message: 'Your partner disconnected, but you completed the conversation review.',
+                        canParticipateAgain: false
+                    }
+                });
+            } else {
+                navigate('/', { 
+                    replace: true,
+                    state: { 
+                        message: 'Your partner disconnected. You can join the queue again.',
+                        canRejoin: true 
+                    }
+                });
+            }
+        });
         
         // All critical listeners have been registered successfully
         // console.log('🔗 All socket event listeners registered successfully');
@@ -820,8 +1018,7 @@ function ChatPage() {
             socket.off('chat_ended');
             socket.off('bonus_code');
             socket.off('guess_submitted');
-            
-            if (role === 'tester') {
+              if (role === 'tester') {
                 socket.off('experimenter_ready');
             }
             // console.log('🔗 Socket cleanup completed (shuffle_started listener preserved)');
@@ -1276,9 +1473,130 @@ function ChatPage() {
             realIdentityA: realIdentityARef.current,
             realIdentityB: realIdentityBRef.current,
             tester: username // for logging/debugging
-        });
-        // console.log('✅ SUBMIT DEBUG - tester_guessed event emitted successfully');
+        });        // console.log('✅ SUBMIT DEBUG - tester_guessed event emitted successfully');
         // Optionally, show a waiting message or disable the submit button
+    };    // Function to load conversation data for the review phase
+    const loadConversationData = async () => {
+        try {
+            console.log('[CONVERSATION_REVIEW] Loading conversations for review...');
+            const csvData = await loadCSVData();
+            const conversations = getRandomConversations(csvData, 5);
+            console.log('[CONVERSATION_REVIEW] Loaded conversations:', conversations);
+            console.log('[CONVERSATION_REVIEW] Number of conversations loaded:', conversations.length);
+            setPreShuffleConversations(conversations);
+            setConversationGuesses(new Array(conversations.length).fill(null));
+            console.log('[CONVERSATION_REVIEW] State updated with conversations');
+        } catch (error) {
+            console.error('[CONVERSATION_REVIEW] Error loading conversations:', error);
+            // Set mock data as fallback
+            console.log('[CONVERSATION_REVIEW] Using fallback mock data');
+            const mockConversations = getRandomConversations(null, 5);
+            console.log('[CONVERSATION_REVIEW] Mock conversations generated:', mockConversations);
+            setPreShuffleConversations(mockConversations);
+            setConversationGuesses(new Array(mockConversations.length).fill(null));
+            console.log('[CONVERSATION_REVIEW] Fallback mock data loaded successfully');
+        }
+    };    // Conversation review handlers
+    const handleConversationGuess = (leftGuess, rightGuess) => {
+        // Reset activity timestamp when user interacts with conversation review
+        lastActivityTimestampRef.current = Date.now();
+        setWarningShown(false);
+        console.log(`${role} - Activity timestamp reset - conversation guess`);
+        
+        setCurrentConversationGuess({ leftWindow: leftGuess, rightWindow: rightGuess });
+    };
+
+    const submitConversationGuess = () => {
+        // Reset activity timestamp when user submits guess
+        lastActivityTimestampRef.current = Date.now();
+        setWarningShown(false);
+        console.log(`${role} - Activity timestamp reset - conversation guess submission`);
+        
+        if (!currentConversationGuess.leftWindow || !currentConversationGuess.rightWindow) {
+            alert('Please make a guess for both conversations before submitting.');
+            return;
+        }
+
+        const currentConversation = preShuffleConversations[currentConversationIndex];
+        const isCorrect = (
+            (currentConversationGuess.leftWindow === 'human' && currentConversation.leftIsHuman) ||
+            (currentConversationGuess.leftWindow === 'bot' && !currentConversation.leftIsHuman)
+        ) && (
+            (currentConversationGuess.rightWindow === 'human' && currentConversation.rightIsHuman) ||
+            (currentConversationGuess.rightWindow === 'bot' && !currentConversation.rightIsHuman)
+        );
+
+        const newGuesses = [...conversationGuesses];
+        newGuesses[currentConversationIndex] = {
+            leftGuess: currentConversationGuess.leftWindow,
+            rightGuess: currentConversationGuess.rightWindow,
+            isCorrect: isCorrect,
+            leftActual: currentConversation.leftIsHuman ? 'human' : 'bot',
+            rightActual: currentConversation.rightIsHuman ? 'human' : 'bot'
+        };
+        setConversationGuesses(newGuesses);
+        setShowConversationFeedback(true);
+    };    const nextConversation = () => {
+        // Reset activity timestamp when user progresses through conversations
+        lastActivityTimestampRef.current = Date.now();
+        setWarningShown(false);
+        console.log(`${role} - Activity timestamp reset - next conversation`);
+        
+        if (currentConversationIndex < preShuffleConversations.length - 1) {
+            setCurrentConversationIndex(currentConversationIndex + 1);
+            setCurrentConversationGuess({ leftWindow: '', rightWindow: '' });
+            setShowConversationFeedback(false);
+        } else {
+            // All conversations reviewed, transition to post-shuffle phase
+            console.log('🔄 All conversations reviewed, transitioning to test phase');
+            
+            // Stop conversation review timer and calculate total time
+            stopConversationReviewTimer();
+            const totalReviewTime = Math.floor((Date.now() - conversationReviewStartTime) / 1000);
+            console.log(`🕐 Conversation review completed in ${totalReviewTime} seconds`);
+            
+            setConversationPhase('completed');
+            setIsAnonymousMode(true);
+            setCurrentPhase('shuffle');
+            setTimerVisible(true);
+            setTimerPaused(false);
+            
+            // Emit synchronization event to backend with review completion data
+            socket.emit('conversation_review_completed', {
+                pair_id: pairId,
+                role: role,
+                username: username,
+                review_time_seconds: totalReviewTime,
+                total_conversations: preShuffleConversations.length,
+                correct_guesses: conversationGuesses.filter(guess => guess?.isCorrect).length
+            });
+            
+            setupAnonymousRooms(); // Ensure rooms are properly configured for the test phase
+            startTimer(config.POST_SHUFFLE_TIMER, 'anonymous_phase');
+        }
+    };
+
+    const startTimer = (duration, phase) => {
+        setTimeRemaining(duration);
+        setTotalPhaseTime(duration);
+        setCurrentPhase(phase);
+        
+        if (timerIntervalRef.current) {
+            clearInterval(timerIntervalRef.current);
+        }
+        
+        timerIntervalRef.current = setInterval(() => {
+            setTimeRemaining((prevTime) => {
+                if (prevTime <= 1) {
+                    clearInterval(timerIntervalRef.current);
+                    if (phase === 'anonymous_phase') {
+                        setShowOverlay(true);
+                    }
+                    return 0;
+                }
+                return prevTime - 1;
+            });
+        }, 1000);
     };
 
 
@@ -1378,25 +1696,42 @@ function ChatPage() {
         } catch (error) {
             console.error('Error generating bonus code:', error);
         }
-    };
-    useEffect(() => {
+    };    useEffect(() => {
         // Log when socket events are registered
         // console.log('🎯 [SOCKET] Registering quiz events for role:', role);
-
+        
         socket.on('quiz_completed', (data) => {
             if (data.role !== role) {
-                // console.log('🎯 [QUIZ-COMPLETED] Partner completed quiz, updating partner status');
+                console.log('[QUIZ_COMPLETED] Partner completed quiz, updating partner status');
+                console.log('[QUIZ_COMPLETED] Current state:', {
+                    quizStep,
+                    shuffleEnabled,
+                    conversationPhase,
+                    conversationReviewStarted
+                });
                 setPartnerQuizStatus('completed');
-
-                // If we've already completed our quiz, start the chat timer
+                
+                // If we've already completed our quiz, start the conversation review
                 if (quizStep === 'completed') {
-                    // console.log('🎯 [QUIZ-COMPLETED] Both quizzes complete, starting chat timer');
-                    setChatTimerStarted(true);
+                    console.log('[QUIZ_COMPLETED] Both quizzes complete, checking next step');
+                    if (!shuffleEnabled) {
+                        console.log('[QUIZ_COMPLETED] Shuffle disabled - starting conversation review');
+                        // Start conversation review instead of chat timer
+                        setConversationPhase('review');
+                        setConversationReviewStarted(true);
+                        setShowNotificationForTester(false);
+                        setShowNotificationForExperimenter(false);
+                        // Load conversations
+                        loadConversationData();
+                    } else {
+                        console.log('[QUIZ_COMPLETED] Shuffle enabled - starting chat timer');
+                        setChatTimerStarted(true);
+                    }
                 } else {
-                    // console.log('🎯 [QUIZ-COMPLETED] Partner completed but we have not completed yet');
+                    console.log('[QUIZ_COMPLETED] Partner completed but we have not completed yet');
                 }
             } else {
-                // console.log('🎯 [QUIZ-COMPLETED] Received our own completion event, ignoring');
+                console.log('[QUIZ_COMPLETED] Received our own completion event, ignoring');
             }
         });
 
@@ -1423,32 +1758,56 @@ function ChatPage() {
             socket.off('quiz_completed');
             socket.off('quiz_failed');
         };
-    }, [role, quizStep]);// Modify the quiz submission logic in both notification components
+    }, [role, quizStep]);
+    
+    // Modify the quiz submission logic in both notification components
     const handleQuizSubmission = async (isCorrect) => {
+        console.log('[QUIZ_SUBMISSION] Quiz submission started, isCorrect:', isCorrect);
+        console.log('[QUIZ_SUBMISSION] Current state:', {
+            shuffleEnabled,
+            conversationPhase,
+            conversationReviewStarted,
+            partnerQuizStatus,
+            partnerHasFailed
+        });
+        
         if (isCorrect) {
-            // console.log('🎯 [QUIZ-SUBMIT] Quiz passed, setting step to completed');
+            console.log('[QUIZ_SUBMISSION] Quiz passed, setting step to completed');
             setQuizStep('completed');
             
-            // console.log('🎯 [QUIZ-SUBMIT] Emitting quiz_completed event to backend');
+            console.log('[QUIZ_SUBMISSION] Emitting quiz_completed event to backend');
             socket.emit('quiz_completed', {pair_id: pairId, role});
-            // console.log('🎯 [QUIZ-SUBMIT] quiz_completed event emitted with data:', {pair_id: pairId, role});
+            console.log('[QUIZ_SUBMISSION] quiz_completed event emitted with data:', {pair_id: pairId, role});
 
             // Check if partner has already failed when we complete our quiz
             if (partnerHasFailed) {
-                // console.log('🎯 [QUIZ-SUBMIT] Partner already failed, generating bonus code');
+                console.log('[QUIZ_SUBMISSION] Partner already failed, generating bonus code');
                 await generateAndNavigateToBonusCode();
             } else if (partnerQuizStatus === 'completed') {
-                // console.log('🎯 [QUIZ-SUBMIT] Partner also completed, starting chat timer');
-                // Only start chat if partner has completed and not failed
-                setChatTimerStarted(true);
+                console.log('[QUIZ_SUBMISSION] Partner also completed, starting conversation review or chat timer');
+                console.log('[QUIZ_SUBMISSION] Shuffle enabled?', shuffleEnabled);
+                // Only start if partner has completed and not failed
+                if (!shuffleEnabled) {
+                    console.log('[QUIZ_SUBMISSION] Shuffle disabled - starting conversation review');
+                    // Start conversation review instead of chat timer
+                    setConversationPhase('review');
+                    setConversationReviewStarted(true);
+                    setShowNotificationForTester(false);
+                    setShowNotificationForExperimenter(false);
+                    // Load conversations immediately
+                    await loadConversationData();
+                } else {
+                    console.log('[QUIZ_SUBMISSION] Shuffle enabled - starting chat timer');
+                    setChatTimerStarted(true);
+                }
             } else {
-                // console.log('🎯 [QUIZ-SUBMIT] Waiting for partner to complete quiz');
+                console.log('[QUIZ_SUBMISSION] Waiting for partner to complete quiz');
             }
             handleDismissNotification();
         } else {
-            // console.log('🎯 [QUIZ-SUBMIT] Quiz failed, emitting quiz_failed event');
+            console.log('[QUIZ_SUBMISSION] Quiz failed, emitting quiz_failed event');
             socket.emit('quiz_failed', {pair_id: pairId, role});
-            // console.log('🎯 [QUIZ-SUBMIT] Navigating to disconnected page');
+            console.log('[QUIZ_SUBMISSION] Navigating to disconnected page');
             navigate('/disconnected', {
                 state: {
                     message: "You were disconnected because you failed the Quiz. You will not receive payment for this session."
@@ -1693,12 +2052,11 @@ function ChatPage() {
             {showNotificationForTester && role === 'tester' && (
                 <div className="popup-overlay">
                     <div className="popup">
-                        {quizStep === 'instructions' && (
-                            <>
+                        {quizStep === 'instructions' && (                            <>
                                 <h3>Your Mission: Identify the Human.</h3>
 
                                 <p>
-                                    You will chat with both a human and a bot (in two separate rooms). You must identify
+                                    You will review sample conversations and then chat with a human and a bot (in two separate rooms). You must identify
                                     who is human.
                                     If you guess correctly, you and the human will receive <strong>$1.00
                                     bonus</strong> each.
@@ -1708,16 +2066,14 @@ function ChatPage() {
                                 <h4>The interaction will be composed of two phases:</h4>
                                 <ul>
                                     <li>
-                                        <strong>Known identity phase (3 minutes):</strong> You will see who is in each
-                                        room.
-                                        Use this phase to familiarize yourself with the participants' behaviors.
+                                        <strong>Conversation Review Phase:</strong> You will review 5 sample conversations 
+                                        between humans and bots. For each conversation, you'll guess which is which and 
+                                        receive feedback. This will help you learn to distinguish between humans and bots.
                                     </li>
                                     <li>
-                                        <strong>Shuffle phase (8 minutes):</strong> The locations of both participants
-                                        might be swapped,
-                                        but both rooms will display your previous chat history and the demographics of the
-                                        human participant.
-                                        However, still one room will be a human and the other a bot.
+                                        <strong>Test Phase (8 minutes):</strong> You will chat with both a human and a bot 
+                                        in separate rooms. Both rooms will display the demographics of the human participant.
+                                        You must identify which room contains the human.
                                     </li>
                                 </ul>
 
@@ -1736,10 +2092,9 @@ function ChatPage() {
                             </>
                         )}
 
-
-                        {(quizStep === 'completed' && !chatTimerStarted) && (
+                        {(quizStep === 'completed' && !chatTimerStarted && conversationPhase === 'review') && (
                             <div className="timer-status">
-                                <p>Waiting for both participants to complete the quiz before starting...</p>
+                                <p>Waiting for both participants to complete the quiz before starting conversation review...</p>
                                 <p>Your status: Quiz completed</p>
                                 <p>Partner
                                     status: {partnerQuizStatus === 'completed' ? 'Quiz completed' : 'Still taking quiz...'}</p>
@@ -1983,12 +2338,134 @@ function ChatPage() {
                             </>
                         )}
                     </div>
-                </div>
-            )}
+                </div>            )}            {/* Conversation Review Phase */}
+            {(() => {
+                console.log('[RENDER_DEBUG] Conversation Review conditional check:', {
+                    conversationReviewStarted,
+                    conversationPhase,
+                    conversationPhaseNotCompleted: conversationPhase !== 'completed',
+                    preShuffleConversationsLength: preShuffleConversations.length,
+                    shouldShow: conversationReviewStarted && conversationPhase !== 'completed' && preShuffleConversations.length > 0
+                });
+                return null;
+            })()}            {conversationReviewStarted && conversationPhase !== 'completed' && preShuffleConversations.length > 0 && (
+                <div className="conversation-review-container">
+                    <div className="conversation-review-header">
+                        <h2>Conversation Review Phase</h2>
+                        <p>Review these real conversations and guess which participant is real human chat and which is the bot chat.</p>
+                        <p>Conversation {currentConversationIndex + 1} of {preShuffleConversations.length}</p>
+                        
+                        {/* Conversation Review Timer Display */}
+                        <div className="conversation-review-timer">
+                            <div className="timer-label">Review Time:</div>
+                            <div className="timer-value">
+                                {Math.floor(conversationReviewElapsed / 60)}:{(conversationReviewElapsed % 60).toString().padStart(2, '0')}
+                            </div>
+                        </div>
+                    </div>
 
-            <div className="chat-boxes">
-                {role === 'tester' && roomOrder.map((roomType) => renderChatWindow(roomType))}
-                {role === 'experimenter' && (
+                    <div className="conversation-pair">
+                        <div className="conversation-window left-conversation">
+                            <h3>Conversation A</h3>
+                            <div className="conversation-messages">
+                                {preShuffleConversations[currentConversationIndex]?.leftConversation?.map((msg, index) => (
+                                    <div key={index} className={`conversation-message ${msg.sender === 'participant' ? 'participant-msg' : 'other-msg'}`}>
+                                        <strong>{msg.sender === 'participant' ? 'Participant' : 'Other'}:</strong> {msg.text}
+                                    </div>
+                                ))}
+                            </div>                            {!showConversationFeedback && (
+                                <div className="conversation-guess">
+                                    <label>Your guess for Conversation A:</label>
+                                    <select 
+                                        value={currentConversationGuess.leftWindow} 
+                                        onChange={(e) => {
+                                            const selectedValue = e.target.value;
+                                            if (selectedValue === "human") {
+                                                setCurrentConversationGuess({leftWindow: "human", rightWindow: "bot"});
+                                            } else if (selectedValue === "bot") {
+                                                setCurrentConversationGuess({leftWindow: "bot", rightWindow: "human"});
+                                            } else {
+                                                setCurrentConversationGuess({...currentConversationGuess, leftWindow: selectedValue});
+                                            }
+                                        }}
+                                    >
+                                        <option value="">Select...</option>
+                                        <option value="human">Human</option>
+                                        <option value="bot">Bot</option>
+                                    </select>
+                                </div>
+                            )}
+                            {showConversationFeedback && conversationGuesses[currentConversationIndex] && (
+                                <div className={`conversation-feedback ${conversationGuesses[currentConversationIndex].leftGuess === conversationGuesses[currentConversationIndex].leftActual ? 'correct' : 'incorrect'}`}>
+                                    <p><strong>Your guess:</strong> {conversationGuesses[currentConversationIndex].leftGuess}</p>
+                                    <p><strong>Actual:</strong> {conversationGuesses[currentConversationIndex].leftActual}</p>
+                                    <p>{conversationGuesses[currentConversationIndex].leftGuess === conversationGuesses[currentConversationIndex].leftActual ? '✓ Correct!' : '✗ Incorrect'}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="conversation-window right-conversation">
+                            <h3>Conversation B</h3>
+                            <div className="conversation-messages">
+                                {preShuffleConversations[currentConversationIndex]?.rightConversation?.map((msg, index) => (
+                                    <div key={index} className={`conversation-message ${msg.sender === 'participant' ? 'participant-msg' : 'other-msg'}`}>
+                                        <strong>{msg.sender === 'participant' ? 'Participant' : 'Other'}:</strong> {msg.text}
+                                    </div>
+                                ))}
+                            </div>                            {!showConversationFeedback && (
+                                <div className="conversation-guess">
+                                    <label>Your guess for Conversation B:</label>
+                                    <select 
+                                        value={currentConversationGuess.rightWindow} 
+                                        onChange={(e) => {
+                                            const selectedValue = e.target.value;
+                                            if (selectedValue === "human") {
+                                                setCurrentConversationGuess({leftWindow: "bot", rightWindow: "human"});
+                                            } else if (selectedValue === "bot") {
+                                                setCurrentConversationGuess({leftWindow: "human", rightWindow: "bot"});
+                                            } else {
+                                                setCurrentConversationGuess({...currentConversationGuess, rightWindow: selectedValue});
+                                            }
+                                        }}
+                                    >
+                                        <option value="">Select...</option>
+                                        <option value="human">Human</option>
+                                        <option value="bot">Bot</option>
+                                    </select>
+                                </div>
+                            )}
+                            {showConversationFeedback && conversationGuesses[currentConversationIndex] && (
+                                <div className={`conversation-feedback ${conversationGuesses[currentConversationIndex].rightGuess === conversationGuesses[currentConversationIndex].rightActual ? 'correct' : 'incorrect'}`}>
+                                    <p><strong>Your guess:</strong> {conversationGuesses[currentConversationIndex].rightGuess}</p>
+                                    <p><strong>Actual:</strong> {conversationGuesses[currentConversationIndex].rightActual}</p>
+                                    <p>{conversationGuesses[currentConversationIndex].rightGuess === conversationGuesses[currentConversationIndex].rightActual ? '✓ Correct!' : '✗ Incorrect'}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="conversation-review-controls">
+                        {!showConversationFeedback ? (
+                            <button 
+                                onClick={submitConversationGuess}
+                                disabled={!currentConversationGuess.leftWindow || !currentConversationGuess.rightWindow}
+                                className="submit-guess-button"
+                            >
+                                Submit Guess
+                            </button>
+                        ) : (
+                            <button 
+                                onClick={nextConversation}
+                                className="next-conversation-button"
+                            >
+                                {currentConversationIndex < preShuffleConversations.length - 1 ? 'Next Conversation' : 'Start Test Phase'}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}            <div className="chat-boxes">
+                {role === 'tester' && conversationPhase === 'completed' && roomOrder.map((roomType) => renderChatWindow(roomType))}
+                {role === 'experimenter' && conversationPhase === 'completed' && isAnonymousMode && (
                     <div className="chat-window chat-experimenter">
                         {showOverlay && role === 'experimenter' && (
                             <div className="overlay">
@@ -2021,6 +2498,18 @@ function ChatPage() {
                             <button onClick={sendMessageToExperimenter} className="send-button">
                                 Send
                             </button>
+                        </div>
+                    </div>
+                )}
+                {role === 'experimenter' && (conversationPhase !== 'completed' || !isAnonymousMode) && (
+                    <div className="experimenter-waiting-container">
+                        <div className="experimenter-waiting-message">
+                            <h2>Please wait while the tester reviews sample conversations</h2>
+                            <p>The tester is currently in the conversation review phase, learning to distinguish between human and bot responses.</p>
+                            <p>You will be able to chat once this phase is completed.</p>
+                            <div className="waiting-spinner">
+                                <div className="spinner"></div>
+                            </div>
                         </div>
                     </div>
                 )}
