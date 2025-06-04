@@ -710,6 +710,7 @@ def save_feedback():
         "realIdentityB": real_identity_b,
         "correctGuessA": (data.get("guessCandidateA") == real_identity_a) if data else False,
         "correctGuessB": (data.get("guessCandidateB") == real_identity_b) if data else False,
+        "chatBotModel": OPENROUTER_MODEL,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     }
 
