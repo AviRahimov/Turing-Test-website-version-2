@@ -1,0 +1,372 @@
+pairId,Questions,Answer,correctGuess,conversation_length
+room_1150,HI how are you tester,yes i guess i am,True,6
+room_1150,are you busy with chatbot,not now,True,6
+room_1150,nice ~ what is your name ,did you chat with the bot?,True,6
+room_1150,no I have only one chatbox ~ i only chat with you  ~ you need to decide who is bot ~ if you decide correct we both will recieve a bonus,yes that is what it said,True,6
+room_1150,i think you can identify correct who is bot ~ is i am a bot?/,yes i am not sure really how to tell for sure,True,6
+room_1193,Hello. I live in Oklahoma.,Hi. What state do you live in?,True,4
+room_1193,Oklahoma's great - especially for someone like me who likes dark skies for astronomy. I'm out where suburb meets rural - close to town but not too close.,"Wow, what's it like there? Are you in a city or more rural?",True,4
+room_1193,"I dont' think I could do NYC. Too many people, too loud, etc. I work in IT.",Nice. I'm in NYC. I've never been out that way.  ~ What do you do for a living?,True,4
+room_1641,Hi,HI ~ how was today,True,5
+room_1641,nice. ~ Whe are you from,usa,True,5
+room_1641,me too,please explain ai,True,5
+room_1641,I don't know much about AI,ok,True,5
+room_1651,hello,Greetings! How are you?,True,4
+room_1651,I am doing alright I suppose. How about you?,"Well, thank you!",True,4
+room_1651,that's great to hear ~ what are your plans today?,Just working for me. And yourself? ,True,4
+room_1651,same ~ by work do you mean turking?,"Looks like time is almost up, best of luck!  ~ No I work elsewhere too",True,4
+room_2042,Hello ~ Are you there?,Tell me how old your sister is,True,5
+room_2042,I'm an only child,Then tell me how old your cousin is,True,5
+room_2042,"I have a few of those. I think my oldest is a couple years younger than me, so probably 47ish",Did you ever learn about the theory of gravity,True,5
+room_2042,"I did  ~ Of course ~ Probably in grade school first, and then more in depth in later years",Why does grass turn green in the spring,True,5
+room_2165,hello ,hai,True,5
+room_2165,how are you,fine you,True,5
+room_2165,good,tell somthing ,True,5
+room_2165,okay ~ how is your life going,"ohh good, Does he usually try to join your workouts",True,5
+room_2582,Hi ~ How are you,"Hey, what's up",True,4
+room_2582,I am fine ~ did you take your food  ~ I eat tasty burger ~ what about you,"I'm good, how are you?",True,4
+room_2582,do you know who am I,Yeah I ate some chicken,True,4
+room_2582,can you guess .. am I human ~ hellow,nope,True,4
+room_3102,"Hi, how are you? ~ Just advising, I am the human participant.  ~ Where are you from? I live in Pennsylvania, but am from NC.","Oh, I am good. How about you ~ I am from USA",True,4
+room_3102,"I'm doing good this evening. Waiting for the NBA game. ~ I'm a Knicks fan, I'm trying to be optimistic, but it doesn't look good.","Oh, do you love playing games",True,4
+room_3102,"I'm not the most athletic, but I like word games, board game, etc. I enjoy watching sports.",That's good,True,4
+room_3204,hi ~ how are you?,hello,True,5
+room_3204,fone.how was the day? ~ fine,I am good thanks how are you?,True,5
+room_3204,super.  ~ how is your job?,"my day is going pretty darn good, hope yours is as well",True,5
+room_3204,good. as usual going..how is today weather?,"its not too bad, a little slow and yours?",True,5
+room_3856,Hi there  ~ Anyoen is there  ~ Hey ~ I am wait there  ~ came to test this  ~ Anyone body there  ~ Hi ? ~ Hey mate ,good morning,True,6
+room_3856,Good morning ,so you are a human bot right?,True,6
+room_3856,human,(joke) ~ care to share a name?,True,6
+room_3856,no i really human,what is your name human?,True,6
+room_3856,BENJAMIN CHUI ,Im AJ,True,6
+room_3856,aj full mining,fulll mining?,True,6
+room_3923,hi,hi ~ hlo ~ hlo,True,3
+room_3923,chating with you,whats doing ,True,3
+room_4009,"Hi there! How's your day going so far? ~ Hey, just checking in to see if you're still there",hello how are you?,True,3
+room_4009,I am fine. And you?,"i am als fine ~ sorry, I am also fine",True,3
+room_4009,Do you do a lot of these Turing type tests too?,can you tell me about your childhood memories which make you laugh till now.,True,3
+room_4887,hi,hi,True,4
+room_4887,hoe are you ~ how,i am fine. ~ And you?,True,4
+room_4887,I am fine,What you do?,True,4
+room_5085,Hai,Hey ~ how goes it,True,5
+room_5085,good,So ~ are you a robot?,True,5
+room_5085,i am haman  ~ are you a robot?,you're made of ham?,True,5
+room_5085,no ~ Are you working?,"hey sorry, this double chat thing is slowing me down ~ I guess I'm working.. lol",True,5
+room_5278,"HI ~ MY NAME IS DAVID,WHAT IS YOUR NAME?",My name is Ethan. Are you human?,True,5
+room_5278,YES,great,True,5
+room_5278,HOW ARE YOU,I am good. Where are you living?,True,5
+room_5278,"I AM LIVING IN USA,NEW MAXICO. ~ WHERE ARE YOU LIVING?",Wow... Are there a lot of Mexicans? ~ MN,True,5
+room_5524,hey ~ Hi   there  ~ anyoen is there ,yes,True,5
+room_5524,How are you ,how are you  ~ i am fine ~ where you form,True,5
+room_5524,Fine same there thnx to ask me  ~ I am fro mUS  ~ From* ~ ?,great me to no need to correct I am not a bot ,True,5
+room_5524,Same there I am also not ,I am from midwest,True,5
+room_5524,I am human My  Name IS LESLIE 32 year old  ~ I am from Arizona ,what is your oqupation,True,5
+room_5734,hi,HELLO,True,3
+room_5734,how are you,I AM doing well,True,3
+room_6551,Good morning:),Hello. Where are you?,True,5
+room_6551,I am in New York city. Where are you?,Illinois,True,5
+room_6551,How is the weather?,a little cool but will be in the 80s tomorrow,True,5
+room_6551,Nice:) It is gloomy her ~ Did you have nice memorial weekend?,yes - went to two services,True,5
+room_6551,Great! What are you doing for the living?,I.T. Analyst,True,5
+room_6595,hello,Good morning :),True,5
+room_6595,how are you this morning,Not too bad.  How about you?,True,5
+room_6595,pretty good.  ~ what are your plans for the day,"It's raining, so probably indoor stuff like practicing my instruments and catching up on laundry after work.  How about you?",True,5
+room_6595,doing laundry as well. its gloomy but not raining  ~ what instrament you play,"LOL It's always good to get laundry done before the weekend huh! :)  I play lots of different ones - harp, mandolin, mountain dulcimer are some of my favorites.  How about you - any hobbies or instruments?",True,5
+room_6839,hai,HI,True,10
+room_6839,hello ~ how are you,fine ~ u,True,10
+room_6839,good ~ whats ur name,what is your name,True,10
+room_6839,waht a match,yes,True,10
+room_6839,am jennie ~ you,jopes,True,10
+room_6839,what a name ~ what it means,location,True,10
+room_6839,what location,your location ,True,10
+room_6839,why ,nothing,True,10
+room_6839,u from,usa,True,10
+room_7529,Hi there,"Hi, how are you?",True,5
+room_7529,I am fine  ~ How are you ,"Im good, just starting the day with some coffee and work lol",True,5
+room_7529,Be honest… are you secretly judging my typing speed?,"No, I always feel I am typing to slow and making the other person wait",True,5
+room_7529,"Make me sound like a villain in a Netflix drama. I need an origin story. ~ Do you think AI and humans will ever go on double dates? If yes, dibs on being the funny one.","Wow, that would be a interesting concept ~ I would not want to be one of the first people to try that",True,5
+room_7575,Hello ~ How are you?,hello ~ good and you,True,5
+room_7575,"Good, thanks ~ Where are you from?",where are you located.,True,5
+room_7575,I'm in Texas ~ And you?,do you have a girlfriedn ~ ky,True,5
+room_7575,"Yes, I do. We've dated for more than 10 years.",cool. what kind of dates do you go on,True,5
+room_7665,"Hi, what's up? ~ Can you chat with me",Hello,True,4
+room_7665,"It's great, I don't have anyone looking over my shoulder",What's it like working as an office manager?,True,4
+room_7665,"Yes, I do. I'm older now and have had enough stress in my life.  ~ I am very grateful for this job.",That's the best kind of job! Do you enjoy the work?,True,4
+room_7665,I'd love to retire today however I have an enormous amount of debt,Understood. Do you plan to work for much longer?,True,4
+room_7948,hello ~ I am human to prove,Hello.  where do you live.,True,5
+room_7948,usa ~ you,Florida,True,5
+room_7948,good,How old is your mother.,True,5
+room_7948,53 ~ how about you,she is dead,True,5
+room_7985,hlw ~ Hle  ~ Hey ,HAi,True,3
+room_7985,How Are You ,i am fine,True,3
+room_7985,What Is Your Name ,jessica ~ your name?,True,3
+room_8237,"Hey, what's up?",Hai,True,4
+room_8237,"Hey? What's going on? ~ I'm alright, how are you?",hai ~ how are you?,True,4
+room_8237,That's good. What are you up to?,i am also good,True,4
+room_8237,What you're doing on this fine evening?,what are you askig about?,True,4
+room_8331,HII ~ hello  ~ hi,hai,True,7
+room_8331,how are you,fine tou,True,7
+room_8331,yes ~ do you like dogs or cats,what are you doing,True,7
+room_8331,iam chating with you,good ,True,7
+room_8331,super,your name,True,7
+room_8331,do you like hawaii ~ you and i riding hawaii ~ i ma gonna backup hold tight iiiii...,yes i like hawaii so much,True,7
+room_8730,hi ~ hi there ~ hello,hi,True,5
+room_8730,how r u,i am fine ~ are you human,True,5
+room_8730,\yes,oh ~ how i trust you ~ ok,True,5
+room_8730,really,whay  ~ ok ~ bye,True,5
+room_8746,hai ~ I am human,hi ~ Do you like breathing?,True,4
+room_8746,yes,"Can you describe the smell of your favorite place? ~ Can you tell me a joke, but pause halfway like you're trying to remember it? ~ do you know any joke?",True,4
+room_8746,rose smell,how are you?,True,4
+room_8746,fine ~ and you,what is your hobbies? ~ fine,True,4
+room_8892,Hey ~ Anyone is there ,Yes,True,4
+room_8892,How are you ,"I'm doing well, how are you?",True,4
+room_8892,Same there  ~ where you from ,I'm from the midwest.  ~ What about you?,True,4
+room_8892,"I am from US-Ok , Tulsha",I had a friend go to school there for a master's program. ,True,4
+room_9126,hello ~ how are you?,hai,True,6
+room_9126,what is your hobby? ~ did you eat meals today,yes,True,6
+room_9126,are you a human,yes ~ you?,True,6
+room_9126,yes,ok ~ whatsapp,True,6
+room_9126,what is your hobby,book reading,True,6
+room_9196,what's up?,hi there ~ hi,True,6
+room_9196,depends on the game, can you play any game,True,6
+room_9196,you speak English?,you play game,True,6
+room_9196,"no, if anything I might play hearts",i play candy crush,True,6
+room_9196,ever play hearts?,yes,True,6
+room_9196,"great game, I see it as a game of courage",no ~ i play,True,6
+room_9254,Hello ~ Are you there? lol,Yes?,True,4
+room_9254,Whats up?,"Doing alright, you? ~ Having problems getting connected. Sorry",True,4
+room_9254,Enjoying my day off. Trying to make a little extra money. No worries. ~ Where abouts do you live?,"Cool. Yeah,h same here. I live in Ohio.",True,4
+room_9254,Nice. I live in Arizona. Getting hot out there.,It's actually cold here. Rain rainy :/,True,4
+room_9615,hello ~ How u doing,Hi,True,4
+room_9615,what is your hobbies,dgood,True,4
+room_9615,oh good,reading books,True,4
+room_9615,surfing,for you,True,4
+room_1151,hi ~ i go swimming,"Salutations exhaulted one! ~ I am a big fan of renaissance faires.  What do you do in the summertime for fun ~ ? ~ Anyone there? ~ This is gonna be a really short test if you don't actually chat during the chat portion of the Turing Test, eh?",True,7
+room_1151,just for exersize,"Recreational swimming, or are you competitive (ie laps in lanes in a pool)?",True,7
+room_1151,pool,"Pool or outdoors (river, pond, lake, etc)",True,7
+room_1151,own a pool,Your own or available public pool?  There are some very nice public parks with pools in my area.,True,7
+room_1151,olympic size,"Very nice, how large?",True,7
+room_1151,i work hard,"Ahh, so you're somewhat well off then, just to be able to afford the land to build an olympic sized pool!",True,7
+room_1151,go visit my sister in arizona,"I'd need a signifcant home upgrade to have the room for a nice backyard pool.  Maybe when I retire! ~ So, any other fun plans for this summer?",True,7
+room_1545,hi,hi,True,10
+room_1545,yes ~ how are u,mmm ~ how are you ~ hello,True,10
+room_1545,good,fine ~ what about you,True,10
+room_1545,whats ur hobby,then what next,True,10
+room_1545,good oe ,books and watching news,True,10
+room_1545,playing games,mmm ~ whats yur hby,True,10
+room_1545,car game,super ~ which game like ,True,10
+room_1545,tell me,ok ~ then,True,10
+room_1545,ys  ~ do you like it,do you like black clr,True,10
+room_2143,ok,Hello ~ I am human ~ Good-bye. ~ rock on ~ ok,True,5
+room_2143,where are you from,is this thing on,True,5
+room_2143,okkk,Texas ~ ok,True,5
+room_2143,what,sunny,True,5
+room_2261,"Hello, how is you day? ~ are you still here?","Hey! Haha, my day’s going pretty good, thanks! A bit chaotic but that’s kinda the vibe lately 😂 How about you? ~ Yes I AM there lets start the Job",True,6
+room_2261,Are you working today?,Yes its too much Busy day for me In my office ,True,6
+room_2261,What are you doing for the living?,I Am a Art designer,True,6
+room_2261,"Waw, amazing",What about you ?,True,6
+room_2261,software engineer,Where you from?,True,6
+room_2261,"I am in USA right now, what about you?",I am also From USA<  US-CA,True,6
+room_2322,hi ~ how are you,Hello,True,7
+room_2322,how is the day? ~ hello?,Doing good today. It has been raining all night!,True,7
+room_2322,yeah,How are you today?,True,7
+room_2322,fine.thanks ~ hope you are good,Where do you live?,True,7
+room_2322,USA ~ do you have any hobbies?,What state? I'm from NJ.,True,7
+room_2322,Oregon ~ do you like movies,Yes.,True,7
+room_2322,what types?\ ~ i like adventure movies,All types..   I haven't seen a really good one for a while. Any recommendations?,True,7
+room_2429,"Hi, I'm Elizabeth. How are you?",I for sure am a human,True,7
+room_2429,I just did.,ask me anything,True,7
+room_2429,Where do you live? No need to be too specific.,I am great   ~ sorry ~ what else would you like to know,True,7
+room_2429,"Hey, me too!",in the great state of Texas,True,7
+room_2429,All my life,how long have you been here,True,7
+room_2429,"LOL, you didn't like Ohio? ~ I've never been there.",Not me.  originally from Ohio but I got here as fast as I could ~ It's to cold back East,True,7
+room_2429,I get it. I don't like cold weather either.,"I like it because my family is there, but the weather is just not for me ",True,7
+room_2643,hello,good morning ~ I am enjoying a sunny morning here in SC ~ But it will be very hot later on so then I will be staying inside  ~ how are your today?  Doing anything fun? ~ no response?  ,True,6
+room_2643,"yes, making some fun with my family ~ what about you",I'll be doing some inside stuff - mainly catching up with my drawing skills that I haven't tried n over 45 years,True,6
+room_2643,i am also draw some pictures in amazing,starting over is a bit challenging and I am hoping I can master it ~ mainly just for my own satisfaction,True,6
+room_2643,ohhh okkkk ~ shall we end the session,fine - I am good with that if you are,True,6
+room_2643,okay thank you,thank you - enjoy your day,True,6
+room_2747,hiiiiii ,Hello there!! ~ Who do I have the pleasure of speaking with today?,True,11
+room_2747,where are you from? ,I'm from the US and yourself?  ~ I hope I didn't lose you :) ,True,11
+room_2747,are u mad,Nope ~ Are you mad?,True,11
+room_2747,what nope,"Nope means no, I'm not...",True,11
+room_2747,ohooooo ~ ok dude,How are you feeling? ~ Enjoy your day so far?,True,11
+room_2747,what you are feeling,I feel a bit neutral.,True,11
+room_2747,why neutral,Trying to be positive and get much done but trying to motivate myself! ~ How about yourself?,True,11
+room_2747,im fine,Awesome! ~ Do you have much going on today?,True,11
+room_2747,not im not going,Youre not going anywhere today?,True,11
+room_2747,do you have a girl friend,Nope ~ Do you?,True,11
+room_2747,first you tell,No I do not,True,11
+room_2804,What is your favorite movie?,"Good morning, today has been.... a day... lets just put it that way. ~ I got no money and im behind on my rent and im super super stressed about it. ~ I dont know how to get out of the damn hole i am in. ~ are you there or am i talking to a void? ~ well, okay.  ill pretend you are there and vent ~ my ex fucked up my life and im still trying to get better ~ he was abusive, you know.  mental and physical and emotional. ~ i let him stay for 3 long years because i didnt want him to be homeless.  he had no one.  no friends, no family.  i was it for him ~ so even though he was terrible to me, i couldnt bare leaving him in the cold. ~ i guess ive wanted to be perceived as a good person for so long id do anything ~ and i think he knew that.  i think thats why he would say 'you arent a good person' because he knew it would eat at me and get to me.",True,10
+room_2804,What is the tattoo?,Eternal sunshine of the mind.  i even have a tattoo of it.,True,10
+room_2804,Where is the tattoo located?,It says 'meet me in montauk' and it has a sketch of clementine and joel looking at each other.  i got it about 5 or 6 months ago.  i cant remember the day!,True,10
+room_2804,What do you think about Trump?,On my lower left arm.  just above the tattoo of my daughter's name and below the tattoo from a comic book i read. ~ the comic is love and rockets.,True,10
+room_2804,I will give you a number.  I want you to subtract 3.,i fucking hate that scumbag fuck and hope he chokes ~ him and his asshole cronies. ~ fuck em ~ let em burn ~ i have no tolerance for the intolerant.,True,10
+room_2804,If you are a bot add 3 to this number: 6,Ok ~ go for it,True,10
+room_2804,right on.  Thanks.,so if im not a bot subtract the three and make it 3?,True,10
+room_2804,What is your favorite sports team?,yeah no problem.  a bit convoluted but i got you,True,10
+room_2804,I think that you are human and not AI.,"i dont like sports. ~ but i guess if forced, pittsburgh penguins",True,10
+room_2813,HI,hello,True,11
+room_2813,FINE ~ YA YA,"hi, how are you ~ are u there",True,11
+room_2813,WAT ABOUT U,"grt, are you male or female",True,11
+room_2813,NICE,iam doing good,True,11
+room_2813,DO U PLAY GAME? ~ YES I AM DOING WORK,"iam doing work , are you doing work",True,11
+room_2813,M YES,yah i play pubg mobile ~ mturk?,True,11
+room_2813,10 ,"great, how much u earn per day",True,11
+room_2813,WAT ABOUT U? ~ M YES,"oh wow. really, nowadays work is too low",True,11
+room_2813,NOW A DAYS ME TOO,"too low, only about 2 or 3",True,11
+room_2813,YA,raining there?,True,11
+room_2849,Hi,"i am human, i am not a bot. ~ what can i say to prove it to you? ~ um, i am a 30-something female, living in California.",True,4
+room_2849,Define hilarity for me,"not exactly sure, but i guess it's related to hilarious, so when something it really funny. ~ is, sorry",True,4
+room_2849,No problem I have trouble typing this early too lol,"not sure what else, but i thought the bot and i were going to be chatting together. ~ do you need any other confirmation?",True,4
+room_2849,Guess not lol. Do you like cats?,"this is a weird experiment. ~ not sure what to do. ~ i have only had dogs, but i watch cat videos on youtube. adorable.",True,4
+room_2984,Hello,hi ~ yes i am a human not ai,True,3
+room_2984,i wonder how i can prove that,say anything,True,3
+room_3038,"Hi, where are you from? ~ Are you there?",i am california ~ you ~ yes i am there,True,7
+room_3038,I'm on the east.  Were you also born in Cali?,yes i am orn in cali ~ born in cali,True,7
+room_3038,Ah. Maybe you can move away from there sometime ~ lol,no i am there ~ what about you ~ hello are you there,True,7
+room_3038,I'm there ~ are you a bot,yeah tell me ~ no i am human ~ what about you ~ hello ,True,7
+room_3038,Is english your first language?,yes ~ your language is ? ~ hello ,True,7
+room_3038,Same.  It seems like you are not the bot since you made a typo and then corrected yourself,i am human kindly reply fast,True,7
+room_3038,but then a reply like that sounds like a bot,yes i am not a bot ~ no  ~ are you bot or human,True,7
+room_3324,hii,hello,True,5
+room_3324,how are you,"i,m good. ~ you",True,5
+room_3324,good,please tell about ai ,True,5
+room_3324,tell me today weather,nice.,True,5
+room_3537,hi,hello ~ I'm a human I promise ~ is anyone there? ~ oh dear,True,3
+room_3537,what is your name bro,hi!,True,3
+room_4552,HI,HII,True,5
+room_4552,HELLO,HELLO,True,5
+room_4552,naghi,KI KHOBOR,True,5
+room_4552,tum hi ko,KI ~ OYY,True,5
+room_4601,hi,What's up tester!,True,6
+room_4601,i like very much,Today is the grand opening of Epic Universe! I wish I could be there. I am currently watching it live streamed on Resort TV1 on YouTube.,True,6
+room_4601,very supposed,How long am I supposed to keep chatting with you? ~ Are you still there?,True,6
+room_4601,what r u doing,I do not understand your response.,True,6
+room_4601,ok thank you,I already told you what I was doing. I would like to end this cinversation now. ~ conversation*,True,6
+room_4687,hi ~ prove your a human and not a bot,Good morning,True,4
+room_4687,tell me something pop culture related that a bot wouldnt know,"Hm, ok, well I am a mother of 3, a teacher, and I've been married for 52 years",True,4
+room_4687,well now we can agree on that,"well, I saw Taylor Swift with my daughter when she was in CA and the audience was filled with young girls wearing sparkly clothes ~ They knew almost every word that she sang.. It was amazing ~ And Donald Trump is a moron",True,4
+room_4991,I'm here,Hey what’s up ~ Hello is anyone here ~ Otherwise I finna leave,True,3
+room_4991,nothing same S#$% different day,What’s good man,True,3
+room_5079,Hi there,howdy doody,True,6
+room_5079,Haha nice,hi diddily ho neighborino,True,6
+room_5079,You're definitely human hahaha,thank you for the compliment i think ~ mo money for us,True,6
+room_5079,Yes definitely a compliment,and now i guess they want us to devolve into small talk. lets just ignore them until the screen advances,True,6
+room_5079,How long do you think that'll be? Lol,don't ask hal,True,6
+room_5079,Hal?,2001 a space odyssey,True,6
+room_5086,Hi,hi ~ hi how are you,True,10
+room_5086,Fine,how was the day?,True,10
+room_5086,Human have emotion. I am happy while I'm good mood,how do i know u are human or not?,True,10
+room_5086,Do you enjoy the day,super.,True,10
+room_5086,Chill here,yeah.sure ~ here its rainy.there?,True,10
+room_5086,Nice to chat with you ,thanks for chatting,True,10
+room_5086,Videos fun watching ,what is you hobbies?,True,10
+room_5086,Yes,do you have any app for that,True,10
+room_5086,Same ~ also amazon prime vodeo,"i know twtter,youtube whats up.urs?",True,10
+room_5467,How can you assure me,"Hello, Ican assure you that I am not a bot nor AI.",True,3
+room_5467,How long have you lived,What would it look like to you? I guess I want to know what would convince you one way or the other,True,3
+room_5467,What do your parents do,Ive been alive for30 years since 1994,True,3
+room_5730,hellow,hii,True,4
+room_5730,i am fine ~ and u,how are u,True,4
+room_5730,ok,fine,True,4
+room_5730,nothing ~ u,ok  ~ what do you do,True,4
+room_6622,hello ,Hi ~ Hello ~ Anybody there,True,13
+room_6622,sorry I was answering the testing questions,Ya ~ What is ur name,True,13
+room_6622,Im jim,R u male or female ,True,13
+room_6622,WHats your name,Nice to meet,True,13
+room_6622,nice to meet you,Stela,True,13
+room_6622,what do you do for work,Mm,True,13
+room_6622,practice for learning? what are you learning,Practice for learning ,True,13
+room_6622,where do you live ,Information about project,True,13
+room_6622,what part,USA,True,13
+room_6622,do you like it there,Indianapolis ,True,13
+room_6622,how old are you,S,True,13
+room_6622,are you in college?,28,True,13
+room_6622,how do you earn money,No,True,13
+room_6636,hai ~ whatsup,hey ~ i ~ am,True,8
+room_6636,yes,a ~ human ~ :D,True,8
+room_6636,am also,easy enough,True,8
+room_6636,mmm,how long will this last?,True,8
+room_6636,i dnt know,.,True,8
+room_6636,do you know?,no idea,True,8
+room_6636,hmmm ~ ok,just watching the rain,True,8
+room_7064,i try to achieve my goal,hi ~ something message for someone ~ answer me ~ what are the next step for your life ~ answer me,True,9
+room_7064,i get a promotion,what is your goal,True,9
+room_7064,what number is this,162484,True,9
+room_7064,it is used in many ways,what is purpose of AI,True,9
+room_7064,iam benjamin,what is your name,True,9
+room_7064,no,are you indian,True,9
+room_7064,yes,USA,True,9
+room_7064,already i shared,Original name please,True,9
+room_7453,Hey what is up,"Hi Tester, My name is Holly and I am a real person.",True,4
+room_7453,Thnx to know that I love to hear it ,"Not much, just enjoying the holiday......and you?",True,4
+room_7453,What you are doing for living ,"How is your three day weekend going? ~ Are you still here? ~ Ok, something must be wrong with this study, so I am going to exit.",True,4
+room_8170,What's your opinion of TripMaster Monkey? ~ What's your favorite thing to do on a lonely Friday night?,Please explain what TripMaster Monkey is,True,7
+room_8170,Tell me something I don't know.,I'm sitting here waiting for bad weather,True,7
+room_8170,I knew that.,Or should I go back to the Friday night query?,True,7
+room_8170,Friday night.,"Oh you knew that, then where do I live?",True,7
+room_8170,I don't want to freak you out.,Please do!,True,7
+room_8170,Nope. It'd be too disturbing.,"c'mon you bragged, now back it up ~ Where am I that Im going to get bad weather?",True,7
+room_8170,"I didn't bragged. I stated a fact, which may or may not be true. If it isn't true, is it still a fact if I believe it? How many people need to believe for it to be a fact?",Depends if I agree with you or not,True,7
+room_8201,Hi! How is it going?,Hi there. ,True,6
+room_8201,Good. Feeling super chill is it night where you are?,Meh. How about you?,True,6
+room_8201,2:19 am here. Insomnia. ,Yes. Or I guess you could say VERY early morning. It's 3:19 a.m. ~ How about you?,True,6
+room_8201,Sorry to hear that. Something has been going around here but I’ve been lucky so far. ,"Bummer. I'm sick, so it's hard to sleep at the moment.",True,6
+room_8201,The worst! I’m only allergic to cedar pollen. Who is your culprit?,What's going around here is LOTS of pollen. So... sinus infection.,True,6
+room_8410,"Hey, what's going on?",I like potatoes.,True,6
+room_8410,"Cool, same here.",What kind?,True,6
+room_8410,"New potatoes are pretty sick, but Idaho ones are better for stews which I make a lot, so it's kind of a toss-up.",Where do you get them? ~ Still there? ~ Guess not. ~ I'm going to continue to type stuff in an effort to not get disconnected. ~ Lalalalalala. ~ How long does this go on?,True,6
+room_8410,Haha yea I am my bad. ~ Internet is being slow. ~ Typically at wegmans. ~ What about you?,OK... ~ Testing 1 2 3,True,6
+room_8410,Hello? ~ Can you not see my messages?,keep on keepin on,True,6
+room_8412,Hello,Hey there,True,9
+room_8412,How are you doing? ~ I am good.,"I love to travel to southeast asia, it is really cheap and people are friendly and the food is incredible ~ Have you ever travel abroad?",True,9
+room_8412,"No , I have not.","Alright, you should try one day",True,9
+room_8412,"Yes, I may do that.","so, what is your favorite food? ~ Do you like spicy food?",True,9
+room_8412,My favorite food is baked chicken.,Awesome!!,True,9
+room_8412,Not too much into spicy food.,"alright, It sounds fair :-)",True,9
+room_8412,Ok ,what about deserts? do you like coffeeshops? ~ do you like a strong cup of coffee?,True,9
+room_8412,"No, I don't go to coffeeshops.",mmm ok,True,9
+room_8412,"No, I am not a coffee drinker.",what do you like to do when you are out of work or school?,True,9
+room_8535,you must have a large vet bill ~ Are you there?,I am a person. I promise. I have a dog named Poppy with diabetes. I have to give her shots twice a day. It is costing me sleep so I'm exhausted right now.  ~ Are  you there?,True,5
+room_8535,How often do you have to take her in?,Yes it was ridiculous. Like $500 one day and then a few more $100+ visits. I guess it's worth it because I love her but I'm so sad about it all.,True,5
+room_8535,"Yes. Mturk, which is trippy",twice a week right now. Less once she gets used to the insulin. ~ Did you come here through Mechanical Turk or some other site?,True,5
+room_8535,It used to be great. Now it's in the dumpster.,I take a lot of surveys on there. Get a few dollars a week. Wish it was more,True,5
+room_8590,hello,Hi,True,6
+room_8590,"i'm doing good, wyf?",How are doing? ~ How are you doing?,True,6
+room_8590,"Same, Colorado","I’m from the US, wbt u?",True,6
+room_8590,Nice to meet you too... hows Mturk treating you?,"Oh wow, from Texas, nice to meet ya ",True,6
+room_8590,I guess it's everybody facing this challenge... It's really been difficult ngl,It’s been quite difficult lately especially with absence of tasks ~ Wbt u?,True,6
+room_8916,HI,Hi how are you,True,3
+room_8916,HELLO,My name is katie whats yours ~ do you have a name? ~ hello,True,3
+room_9008,Hey sorry ~ Just saw the chat,hello im thom ~ im in hot fla. ~ anyone there,True,9
+room_9008,How’s ur day  ~ US ~ Wbu,no problem ~ where you from,True,9
+room_9008,I’m alright,its great thanks ~ whats wbu,True,9
+room_9008,Ca,im not sure ~ whats your state,True,9
+room_9008,South,thats real nice ~ north or south,True,9
+room_9008,Are you in the us too ~ No not a big sports fan,r u sports fan,True,9
+room_9008,Ahh ok cool,in fla.,True,9
+room_9008,Haha that’s kinda the norm I think,hot here already,True,9
+room_9382,HI,hi,True,5
+room_9382,what is your name?,Chris,True,5
+room_9382,what makes you different from a bot  ~ u there//???,I am living person . I have lot emotion faced in my daily life. ~ I think logically each question before answer,True,5
+room_9382,Okay  what is the difference between logic and emotion?,logically thinking means we solve quesiton in different ways  ~ emotion means each of queries reply from heart,True,5
+room_9382,ok thanks for talking',for happy moment we react happy ~ for depressive moment we react anger like that we have emotions lot ~ thank you,True,5
+room_9674,hello,Hi ~ Nice. ~ There are reasons I assume ~ How about a response?,True,6
+room_9674,what's going on,hey,True,6
+room_9674,same here,light rain out side.  cool.  Furnace is running.,True,6
+room_9674,don't know yet ~ long weekend though,Weekend plans?,True,6
+room_9674,yummy,"Yes, the long weekend.   ~ I plan on making bread",True,6
+room_9674,I hear you,"It is messy, but the smell is great. Melted butter on some fresh outf the oven",True,6
+room_9694,hello,hii,True,3
+room_9694,what are you up to today? ~ anyone there?,hello,True,3
+room_9770,Hello? ~ Hello? Are you there?,hello,True,4
+room_9770,What's good?,yes,True,4
+room_9770,no ~ Can you tell me a story?,nothing,True,4
+room_9782,Hello.,HI,True,7
+room_9782,Are you having a nice day?,YES I HAVE,True,7
+room_9782,What have you done so far?,NOTHING BUDDY,True,7
+room_9782,Just a quiet day at home?,WHAT DO U MEAN?,True,7
+room_9782,"For today, you’ve just had a quiet day at home?",NO ~ SAY SOMETHING,True,7
+room_9782,That’s kind of rude. You could suggest a topic?,SORRY ~ PLZZ FORGIVE ME,True,7
+room_9782,Is there something you want to talk about?,NOTHING,True,7

@@ -78,14 +78,23 @@ function ChatPage() {
     const lastWakeupMessageTimeRef = useRef(Date.now());
     const lastWakeupMessageRef = useRef(null);
     const botWakeupEnabled = config.ENABLE_BOT_WAKEUP;
-    const MAX_WAKEUP_ATTEMPTS = 2; // Maximum number of wake-up messages
-
+    const MAX_WAKEUP_ATTEMPTS = 2; // Maximum number of wake-up messages  
     const [partnerQuizStatus, setPartnerQuizStatus] = useState(null); // 'completed', 'failed', or null
     const [quizStep, setQuizStep] = useState('instructions'); // 'instructions', 'quiz', 'completed'
     const [quizAnswers, setQuizAnswers] = useState(Array(2).fill(null));
     const [showQuizConfirmation, setShowQuizConfirmation] = useState(false);
     const [chatTimerStarted, setChatTimerStarted] = useState(false);
-    const [partnerHasFailed, setPartnerHasFailed] = useState(false);
+    const [partnerHasFailed, setPartnerHasFailed] = useState(false);    // Waiting for partner state
+    const [waitingForPartner, setWaitingForPartner] = useState(false);
+    const [waitingStartTime, setWaitingStartTime] = useState(null);
+    const [waitingElapsedTime, setWaitingElapsedTime] = useState(0);
+    const waitingTimerRef = useRef(null);    // Conversation review waiting states
+    const [waitingForPartnerReview, setWaitingForPartnerReview] = useState(false);
+    const [partnerReviewCompleted, setPartnerReviewCompleted] = useState(false);
+    const [waitingForReviewStartTime, setWaitingForReviewStartTime] = useState(null);
+    const [waitingForReviewElapsed, setWaitingForReviewElapsed] = useState(0);
+    const [partnerConversationReviewTimeRemaining, setPartnerConversationReviewTimeRemaining] = useState(300); // Track partner's remaining time
+    const waitingForReviewTimerRef = useRef(null);
 
     // Timer-related state
     const [currentPhase, setCurrentPhase] = useState('waiting'); // 'waiting', 'known_identity', 'shuffle'
@@ -126,7 +135,7 @@ function ChatPage() {
     const [conversationPhase, setConversationPhase] = useState('review'); // 'review', 'guess', 'feedback', 'completed'
     const [conversationReviewStarted, setConversationReviewStarted] = useState(false);
     const [currentConversationGuess, setCurrentConversationGuess] = useState({ leftWindow: '', rightWindow: '' });    const [conversationReviewStartTime, setConversationReviewStartTime] = useState(null);
-    const [conversationReviewElapsed, setConversationReviewElapsed] = useState(180); // Start at 3 minutes (180 seconds)
+    const [conversationReviewElapsed, setConversationReviewElapsed] = useState(300); // Start at 5 minutes (300 seconds)
     const conversationReviewTimerRef = useRef(null);
 
     // Fetch Human Participant's Demographics
@@ -153,7 +162,7 @@ function ChatPage() {
             fetchHumanDems(partner_username); // Tester sees experimenter's demographics
         } else if (role === 'experimenter' && username) {
             fetchHumanDems(username); // Experimenter sees their own demographics
-        }    }, [role, username, partner_username]);    // Load conversations for the conversation review phase
+        }    }, [role, username, partner_username]);    // Load conversations for the conversation review phase (data only, don't start review)
     useEffect(() => {
         const loadConversations = async () => {
             try {
@@ -163,27 +172,36 @@ function ChatPage() {
                 console.log('Loaded conversations:', conversations);
                 setPreShuffleConversations(conversations);
                 setConversationGuesses(new Array(conversations.length).fill(null));
-                setConversationReviewStarted(true);
-                
-                // Start conversation review timer
-                setConversationReviewStartTime(Date.now());
-                startConversationReviewTimer();
+                // Don't start conversation review automatically - wait for quiz completion
+                console.log('Conversations loaded, waiting for quiz completion to start review');
             } catch (error) {
                 console.error('Error loading conversations:', error);
                 // Set mock data as fallback
                 const mockConversations = getRandomConversations(null, 5);
                 setPreShuffleConversations(mockConversations);
                 setConversationGuesses(new Array(mockConversations.length).fill(null));
-                setConversationReviewStarted(true);
-                
-                // Start conversation review timer even with fallback data
-                setConversationReviewStartTime(Date.now());
-                startConversationReviewTimer();
+                // Don't start conversation review automatically - wait for quiz completion
+                console.log('Fallback conversations loaded, waiting for quiz completion to start review');
             }
         };
 
         loadConversations();
-    }, []);    // Conversation review timer management
+    }, []);
+
+    // Initialize quiz immediately after pairing
+    useEffect(() => {
+        if (pairId && role && username) {
+            console.log('🎯 Initializing quiz after pairing:', {pairId, role, username});
+            // Show quiz notification immediately after pairing
+            if (role === 'tester') {
+                setShowNotificationForTester(true);
+            } else if (role === 'experimenter') {
+                setShowNotificationForExperimenter(true);
+            }
+        }
+    }, [pairId, role, username]);
+
+    // Conversation review timer management
     const startConversationReviewTimer = () => {
         if (conversationReviewTimerRef.current) {
             clearInterval(conversationReviewTimerRef.current);
@@ -235,8 +253,10 @@ function ChatPage() {
     };    // useEffect for handling the start of inactivity checking
     useEffect(() => {
         // Start the inactivity checker when chat timer has started and not paused, OR during conversation review
-        const shouldStartInactivityCheck = (chatTimerStarted && !timerPaused) || 
-                                         (conversationReviewStarted && conversationPhase !== 'completed');
+        // BUT NOT when waiting for partner to complete quiz OR waiting for partner to complete review
+        const shouldStartInactivityCheck = ((chatTimerStarted && !timerPaused) || 
+                                         (conversationReviewStarted && conversationPhase !== 'completed')) &&
+                                         !waitingForPartner && !waitingForPartnerReview;
         
         if (shouldStartInactivityCheck && !inactivityCheckerActive) {
             console.log(`${role} - Starting inactivity monitoring system`);
@@ -246,7 +266,7 @@ function ChatPage() {
             console.log(`${role} - Stopping inactivity monitoring system`);
             setInactivityCheckerActive(false);
         }
-    }, [chatTimerStarted, timerPaused, inactivityCheckerActive, role, conversationReviewStarted, conversationPhase]);
+    }, [chatTimerStarted, timerPaused, inactivityCheckerActive, role, conversationReviewStarted, conversationPhase, waitingForPartner, waitingForPartnerReview]);
 
 // useEffect for the actual inactivity checking
     useEffect(() => {
@@ -301,8 +321,45 @@ function ChatPage() {
                 }
             };
         }
-    }, [inactivityCheckerActive, role, pairId, warningShown, navigate]);
+    }, [inactivityCheckerActive, role, pairId, warningShown, navigate]);    // Waiting timer management
+    useEffect(() => {
+        if (waitingForPartner && waitingStartTime) {
+            waitingTimerRef.current = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - waitingStartTime) / 1000);
+                setWaitingElapsedTime(elapsed);
+            }, 1000);
+        } else if (waitingTimerRef.current) {
+            clearInterval(waitingTimerRef.current);
+            waitingTimerRef.current = null;
+        }
 
+        return () => {
+            if (waitingTimerRef.current) {
+                clearInterval(waitingTimerRef.current);
+                waitingTimerRef.current = null;
+            }
+        };
+    }, [waitingForPartner, waitingStartTime]);
+
+    // Waiting for review timer management
+    useEffect(() => {
+        if (waitingForPartnerReview && waitingForReviewStartTime) {
+            waitingForReviewTimerRef.current = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - waitingForReviewStartTime) / 1000);
+                setWaitingForReviewElapsed(elapsed);
+            }, 1000);
+        } else if (waitingForReviewTimerRef.current) {
+            clearInterval(waitingForReviewTimerRef.current);
+            waitingForReviewTimerRef.current = null;
+        }
+
+        return () => {
+            if (waitingForReviewTimerRef.current) {
+                clearInterval(waitingForReviewTimerRef.current);
+                waitingForReviewTimerRef.current = null;
+            }
+        };
+    }, [waitingForPartnerReview, waitingForReviewStartTime]);
 
     // Handlers to send messages on Enter key press
     const handleKeyPressExperimenter = (e) => {
@@ -601,19 +658,12 @@ function ChatPage() {
         socket.onAny((eventName, ...args) => {
             // console.log('📥 RECEIVED ANY EVENT:', eventName, args);
         });
-        
-        socket.emit('join', {pair_id: pairId, role: role});
+          socket.emit('join', {pair_id: pairId, role: role});
         // console.log('🔗 Emitted join event with:', {pair_id: pairId, role: role});
 
-        // If shuffle is disabled, set up rooms immediately
-        if (!shuffleEnabled) {
-            // console.log('🔗 Shuffle disabled, setting up anonymous rooms immediately');
-            // Skip timer and go straight to anonymous setup
-            setIsAnonymousMode(true);
-            setupAnonymousRooms();
-        } else {
-            // console.log('🔗 Shuffle enabled, waiting for shuffle_started event');
-        }
+        // Don't set up anonymous rooms immediately - wait for proper phase transitions
+        // Phase flow: Quiz → Conversation Review → Chat Phase
+        // Anonymous mode will be set when conversation review is completed
 
         if (role === 'tester') {
             socket.on('experimenter_ready', (data) => {
@@ -700,9 +750,8 @@ function ChatPage() {
         
         // CRITICAL: Set up shuffle_started listener
         // console.log('🚀 REGISTERING shuffle_started event listener');
-        
-        socket.on('shuffle_started', (data) => {
-            console.log('🚀 SHUFFLE_STARTED EVENT RECEIVED!', data);
+          socket.on('shuffle_started', (data) => {
+            console.log('🚀 SHUFFLE_STARTED EVENT RECEIVED - Ignoring for no-shuffle mode!', data);
             console.log('📊 Current state when shuffle_started received:', {
                 role,
                 conversationPhase,
@@ -715,73 +764,16 @@ function ChatPage() {
             
             // Clear fallback shuffle timeout
             clearTimeout(fallbackShuffleTimeoutRef.current);
-            console.log('🚀 Current role:', role);
-            console.log('🚀 Event data:', JSON.stringify(data, null, 2));
-            console.log('🚀 performShuffleForTester function available?', typeof performShuffleForTester);
             
-            // Dismiss any active notifications when shuffle starts
-            setShowNotificationForTester(false);
-            setShowNotificationForExperimenter(false);
-              // For tester: Start conversation review if shuffle is disabled
-            if (role === 'tester' && !shuffleEnabled) {
-                console.log('👤 Tester: Shuffle disabled, starting conversation review phase');
-                console.log('🔄 Setting conversationReviewStarted to true');
-                console.log('🔄 Setting conversationPhase to review');
-                console.log('🔄 Current preShuffleConversations length:', preShuffleConversations.length);
-                
-                setConversationReviewStarted(true);
-                setConversationPhase('review');
-                setShowNotificationForTester(false); // Hide any popups
-                setShowNotificationForExperimenter(false); // Hide any popups
-                
-                // Load conversation data if not already loaded
-                if (preShuffleConversations.length === 0) {
-                    console.log('🔄 No conversations loaded, calling loadConversationData()');
-                    loadConversationData();
-                } else {
-                    console.log('🔄 Conversations already loaded, proceeding with review');
-                }
-                
-                console.log('🔄 Conversation review setup completed');
-                return; // Exit early for conversation review mode
-            }
-            
-            // Standard shuffle behavior
-            // Start post-shuffle timer for anonymous phase
-            console.log('🕐 Starting post-shuffle timer with POST_SHUFFLE_TIMER:', config.POST_SHUFFLE_TIMER);
-            setCurrentPhase('shuffle');
-            setTotalPhaseTime(config.POST_SHUFFLE_TIMER);
-            setTimeRemaining(config.POST_SHUFFLE_TIMER);
-            setTimerVisible(true);
-            startCountdown();
-            
-            // Trigger shuffle logic for both roles
-            if (role === 'tester') {
-                console.log('🚀 ROLE IS TESTER - Calling performShuffleForTester()');
-                try {
-                    // Trigger shuffle logic directly
-                    performShuffleForTester();
-                    console.log('🚀 performShuffleForTester() completed successfully');
-                } catch (error) {
-                    console.error('🚀 ERROR in performShuffleForTester():', error);
-                }
-            } else if (role === 'experimenter') {
-                console.log('🚀 ROLE IS EXPERIMENTER - Entering anonymous mode');
-                try {                    // For experimenter, just enter anonymous mode
-                    console.log("SHUFFLE SYNC for Experimenter: Shuffle started by backend.");
-                    setIsAnonymousMode(true); // Experimenter enters anonymous mode
-                    console.log("Experimenter shuffle process complete. Anonymous mode active.");
-                } catch (error) {
-                    console.error('🚀 ERROR in experimenter shuffle logic:', error);
-                }
-            } else {
-                console.log('🚀 UNKNOWN ROLE:', role);
-            }
-        });
-          // console.log('🚀 shuffle_started listener registered successfully');
-          // BACKUP: Also listen for broadcast version in case room-targeted event fails
+            // Since we don't want shuffle, we ignore this event entirely
+            // The conversation review phase will handle transitions properly
+            console.log('🚀 Ignoring shuffle_started event - conversation review will handle phase transitions');
+            return;
+        });        // console.log('🚀 shuffle_started listener registered successfully');
+        
+        // Listen for broadcast version (but ignore it since shuffle is disabled)
         socket.on('shuffle_started_broadcast', (data) => {
-            console.log('🚀 SHUFFLE_STARTED_BROADCAST EVENT RECEIVED!', data);
+            console.log('🚀 SHUFFLE_STARTED_BROADCAST EVENT RECEIVED - Ignoring for no-shuffle mode!', data);
             console.log('📊 Current state when shuffle_started_broadcast received:', {
                 role,
                 conversationPhase,
@@ -793,67 +785,11 @@ function ChatPage() {
                 pairId,
                 dataPairId: data.pair_id
             });
-            
-            if (data.pair_id === pairId) {
-                console.log('🚀 Broadcast event matches our pairId, processing...');
-                
-                // Dismiss any active notifications when shuffle starts
-                setShowNotificationForTester(false);
-                setShowNotificationForExperimenter(false);
-                  // For tester: Start conversation review if shuffle is disabled
-                if (role === 'tester' && !shuffleEnabled) {
-                    console.log('👤 BROADCAST - Tester: Shuffle disabled, starting conversation review phase');
-                    console.log('🔄 BROADCAST - Setting conversationReviewStarted to true');
-                    console.log('🔄 BROADCAST - Setting conversationPhase to review');
-                    console.log('🔄 BROADCAST - Current preShuffleConversations length:', preShuffleConversations.length);
-                    
-                    setConversationReviewStarted(true);
-                    setConversationPhase('review');
-                    setShowNotificationForTester(false); // Hide any popups
-                    setShowNotificationForExperimenter(false); // Hide any popups
-                    
-                    // Load conversation data if not already loaded
-                    if (preShuffleConversations.length === 0) {
-                        console.log('🔄 BROADCAST - No conversations loaded, calling loadConversationData()');
-                        loadConversationData();
-                    } else {
-                        console.log('🔄 BROADCAST - Conversations already loaded, proceeding with review');
-                    }
-                    
-                    console.log('🔄 BROADCAST - Conversation review setup completed');
-                    return; // Exit early for conversation review mode
-                }
-                
-                // Standard shuffle behavior
-                // Start post-shuffle timer for anonymous phase
-                console.log('🕐 Starting post-shuffle timer with POST_SHUFFLE_TIMER:', config.POST_SHUFFLE_TIMER);
-                setCurrentPhase('shuffle');
-                setTotalPhaseTime(config.POST_SHUFFLE_TIMER);
-                setTimeRemaining(config.POST_SHUFFLE_TIMER);
-                setTimerVisible(true);
-                startCountdown();
-                
-                // Trigger same shuffle logic as regular event
-                if (role === 'tester') {
-                    console.log('🚀 BROADCAST - ROLE IS TESTER - Calling performShuffleForTester()');
-                    try {
-                        performShuffleForTester();
-                        console.log('🚀 BROADCAST - performShuffleForTester() completed successfully');
-                    } catch (error) {
-                        console.error('🚀 BROADCAST - ERROR in performShuffleForTester():', error);
-                    }
-                } else if (role === 'experimenter') {
-                    console.log('🚀 BROADCAST - ROLE IS EXPERIMENTER - Entering anonymous mode');
-                    try {
-                        setIsAnonymousMode(true);
-                        console.log("BROADCAST - Experimenter shuffle process complete. Anonymous mode active.");
-                    } catch (error) {
-                        console.error('🚀 BROADCAST - ERROR in experimenter shuffle logic:', error);
-                    }
-                }
-            } else {
-                console.log('🚀 Broadcast event for different pair, ignoring:', data.pair_id);
-            }
+              
+            // Since we don't want shuffle, we ignore this event entirely
+            // The conversation review phase will handle transitions properly
+            console.log('🚀 Ignoring shuffle_started_broadcast event - conversation review will handle phase transitions');
+            return;
         });
         // console.log('🚀 shuffle_started_broadcast listener registered successfully');
         
@@ -943,23 +879,32 @@ function ChatPage() {
                     // console.log('✅ NAVIGATION DEBUG - Navigation to feedback completed');
                 }, 500); // Short delay to ensure alert is dismissed
             }
-        });
-          // Listen for conversation review synchronization events
+        });        // Listen for conversation review synchronization events
         socket.on('conversation_review_sync', (data) => {
             console.log('🔄 Conversation review sync event received:', data);
             if (data.action === 'start_test_phase') {
-                console.log('🚀 Starting synchronized test phase');
+                console.log('🚀 Starting synchronized test phase (chat phase)');
+                // Clear waiting states
+                setWaitingForPartnerReview(false);
+                setPartnerReviewCompleted(false);
+                setWaitingForReviewStartTime(null);
+                setWaitingForReviewElapsed(0);
+                
                 setConversationPhase('completed');
                 setIsAnonymousMode(true);
-                setCurrentPhase('shuffle');
+                setCurrentPhase('anonymous_phase'); // Go directly to chat phase, not shuffle
                 setTimerVisible(true);
                 setTimerPaused(false);
                 setupAnonymousRooms();
-                startTimer(config.POST_SHUFFLE_TIMER, 'anonymous_phase');
-            } else if (data.action === 'partner_completed') {
+                startTimer(config.POST_SHUFFLE_TIMER, 'anonymous_phase');            } else if (data.action === 'partner_completed') {
                 console.log('👥 Partner completed conversation review, waiting for sync');
-                // Show notification that partner completed and we're waiting
-                alert('Your partner has completed their conversation review. Please wait while we synchronize the test phase.');
+                setPartnerReviewCompleted(true);
+                // Set the partner's remaining time if provided
+                if (data.partner_remaining_time !== undefined) {
+                    setPartnerConversationReviewTimeRemaining(data.partner_remaining_time);
+                    console.log('⏰ Partner had', data.partner_remaining_time, 'seconds remaining when they completed');
+                }
+                // Don't show alert, let the UI handle the waiting state display
             }
         });
         
@@ -1107,14 +1052,21 @@ function ChatPage() {
             socket.emit('notification_dismissed', {pair_id: pairId, role: 'experimenter'});
             setExperimenterDismissed(true);
         }
-    };
-
-    useEffect(() => {
+    };    useEffect(() => {
         if (quizStep === 'completed' && partnerQuizStatus === 'completed' &&
             testerDismissed && experimenterDismissed) {
+            console.log('[QUIZ_DISMISSAL] Both participants completed quiz and dismissed notifications, starting conversation review');
+            
+            // Start conversation review phase when both have dismissed their notifications
+            setConversationPhase('review');
+            setConversationReviewStarted(true);
+            
+            // Conversations are already loaded by the initial useEffect - start the review timer
+            setConversationReviewStartTime(Date.now());
+            startConversationReviewTimer();
+            
             setTimerPaused(false);
             setChatTimerStarted(true);
-            // // console.log('Both participants completed quiz and dismissed notifications, starting timer');
         }
     }, [quizStep, partnerQuizStatus, testerDismissed, experimenterDismissed]);
     // Send a message to the experimenter
@@ -1545,34 +1497,35 @@ function ChatPage() {
         if (currentConversationIndex < preShuffleConversations.length - 1) {
             setCurrentConversationIndex(currentConversationIndex + 1);
             setCurrentConversationGuess({ leftWindow: '', rightWindow: '' });
-            setShowConversationFeedback(false);
-        } else {
+            setShowConversationFeedback(false);        } else {
             // All conversations reviewed, transition to post-shuffle phase
             console.log('🔄 All conversations reviewed, transitioning to test phase');
-            
-            // Stop conversation review timer and calculate total time
+              // Stop conversation review timer and calculate total time
             stopConversationReviewTimer();
             const totalReviewTime = Math.floor((Date.now() - conversationReviewStartTime) / 1000);
             console.log(`🕐 Conversation review completed in ${totalReviewTime} seconds`);
             
             setConversationPhase('completed');
-            setIsAnonymousMode(true);
-            setCurrentPhase('shuffle');
-            setTimerVisible(true);
-            setTimerPaused(false);
             
-            // Emit synchronization event to backend with review completion data
+            // Set waiting states for partner synchronization
+            setWaitingForPartnerReview(true);
+            setWaitingForReviewStartTime(Date.now());
+            setWaitingForReviewElapsed(0);
+            
+            // Don't set anonymous mode or start timers yet - wait for backend sync
+            // The backend will coordinate with the other participant via conversation_review_sync
+              // Emit synchronization event to backend with review completion data
             socket.emit('conversation_review_completed', {
                 pair_id: pairId,
                 role: role,
-                username: username,
-                review_time_seconds: totalReviewTime,
+                username: username,                review_time_seconds: totalReviewTime,
                 total_conversations: preShuffleConversations.length,
-                correct_guesses: conversationGuesses.filter(guess => guess?.isCorrect).length
+                correct_guesses: conversationGuesses.filter(guess => guess?.isCorrect).length,
+                remaining_time_when_completed: conversationReviewElapsed // Add current remaining time
             });
             
-            setupAnonymousRooms(); // Ensure rooms are properly configured for the test phase
-            startTimer(config.POST_SHUFFLE_TIMER, 'anonymous_phase');
+            // Show waiting message while backend coordinates with partner
+            console.log('🔄 Waiting for partner to complete conversation review...');
         }
     };
 
@@ -1642,13 +1595,12 @@ function ChatPage() {
                         "To pretend to be a bot"
                     ],
                     correctAnswer: 1
-                },
-                {
-                    question: "Regarding the 'shuffle' phase, which is true?",
+                },                {
+                    question: "What is the conversation review phase?",
                     options: [
-                        "Room order is randomized, and I won't know who is who, the conversation histroy of the human will be duplicated.",
-                        "Room order is always identical to the known identity phase.",
-                        "The identity of both canditates is clearly visible."
+                        "A phase where I review sample conversations to learn to distinguish humans from bots",
+                        "A phase where I chat with participants",
+                        "A phase where I submit my final guesses"
                     ],
                     correctAnswer: 0
                 }
@@ -1662,6 +1614,7 @@ function ChatPage() {
             const ipData = await ipResponse.json();
             const userIp = ipData.ip;
 
+           
             const response = await axios.post(server_url + '/api/generate_code', {
                 guessCandidateA,
                 guessCandidateB,
@@ -1709,24 +1662,16 @@ function ChatPage() {
                     conversationPhase,
                     conversationReviewStarted
                 });
-                setPartnerQuizStatus('completed');
-                
-                // If we've already completed our quiz, start the conversation review
+                setPartnerQuizStatus('completed');                // If we've already completed our quiz, mark that we're ready but don't auto-start conversation review
                 if (quizStep === 'completed') {
-                    console.log('[QUIZ_COMPLETED] Both quizzes complete, checking next step');
-                    if (!shuffleEnabled) {
-                        console.log('[QUIZ_COMPLETED] Shuffle disabled - starting conversation review');
-                        // Start conversation review instead of chat timer
-                        setConversationPhase('review');
-                        setConversationReviewStarted(true);
-                        setShowNotificationForTester(false);
-                        setShowNotificationForExperimenter(false);
-                        // Load conversations
-                        loadConversationData();
-                    } else {
-                        console.log('[QUIZ_COMPLETED] Shuffle enabled - starting chat timer');
-                        setChatTimerStarted(true);
-                    }
+                    console.log('[QUIZ_COMPLETED] Both quizzes complete, but waiting for both to dismiss notifications');
+                    // End waiting state
+                    setWaitingForPartner(false);
+                    setWaitingStartTime(null);
+                    setWaitingElapsedTime(0);
+                    
+                    // Don't automatically start conversation review or dismiss notifications
+                    // Let users manually dismiss their notifications - conversation review will start via useEffect
                 } else {
                     console.log('[QUIZ_COMPLETED] Partner completed but we have not completed yet');
                 }
@@ -1777,31 +1722,19 @@ function ChatPage() {
             
             console.log('[QUIZ_SUBMISSION] Emitting quiz_completed event to backend');
             socket.emit('quiz_completed', {pair_id: pairId, role});
-            console.log('[QUIZ_SUBMISSION] quiz_completed event emitted with data:', {pair_id: pairId, role});
-
-            // Check if partner has already failed when we complete our quiz
+            console.log('[QUIZ_SUBMISSION] quiz_completed event emitted with data:', {pair_id: pairId, role});            // Check if partner has already failed when we complete our quiz
             if (partnerHasFailed) {
                 console.log('[QUIZ_SUBMISSION] Partner already failed, generating bonus code');
-                await generateAndNavigateToBonusCode();
-            } else if (partnerQuizStatus === 'completed') {
-                console.log('[QUIZ_SUBMISSION] Partner also completed, starting conversation review or chat timer');
-                console.log('[QUIZ_SUBMISSION] Shuffle enabled?', shuffleEnabled);
-                // Only start if partner has completed and not failed
-                if (!shuffleEnabled) {
-                    console.log('[QUIZ_SUBMISSION] Shuffle disabled - starting conversation review');
-                    // Start conversation review instead of chat timer
-                    setConversationPhase('review');
-                    setConversationReviewStarted(true);
-                    setShowNotificationForTester(false);
-                    setShowNotificationForExperimenter(false);
-                    // Load conversations immediately
-                    await loadConversationData();
-                } else {
-                    console.log('[QUIZ_SUBMISSION] Shuffle enabled - starting chat timer');
-                    setChatTimerStarted(true);
-                }
+                await generateAndNavigateToBonusCode();            } else if (partnerQuizStatus === 'completed') {
+                console.log('[QUIZ_SUBMISSION] Partner also completed, but waiting for both to dismiss notifications');
+                // Don't automatically start conversation review - wait for both users to dismiss their notifications
+                // The conversation review will start when both have dismissed via the existing useEffect logic
             } else {
                 console.log('[QUIZ_SUBMISSION] Waiting for partner to complete quiz');
+                // Start waiting state
+                setWaitingForPartner(true);
+                setWaitingStartTime(Date.now());
+                setWaitingElapsedTime(0);
             }
             handleDismissNotification();
         } else {
@@ -1826,11 +1759,10 @@ function ChatPage() {
                         human.
                         If you guess correctly, you and the human will receive $1.00 bonus each.
                         You will see the demographics of both participants.
-                    </p>
-                    <p>
-                        <strong>The interaction will be composed of two phases,</strong> the known identity phase (3
+                    </p>                    <p>
+                        <strong>The interaction will be composed of two phases,</strong> the known identity phase (5
                         minutes)
-                        and the shuffle phase (7 minutes).
+                        and the shuffle phase (5 minutes).
                     </p>
                     <p>
                         In the known identity phase, you will see who is in which room, <strong>use this phase to
@@ -1861,11 +1793,10 @@ function ChatPage() {
                     You will chat with a human tester. You must convince the tester that you are human.
                     If the tester guesses correctly, you and the tester will receive a $1.00 bonus each.
                     The tester will see your demographics, so make sure to answer the questions truthfully.
-                </p>
-                <p>
-                    <strong>The interaction will be composed of two phases,</strong> the known identity phase (3
+                </p>                <p>
+                    <strong>The interaction will be composed of two phases,</strong> the known identity phase (5
                     minutes)
-                    and the shuffle phase (8 minutes).
+                    and the shuffle phase (5 minutes).
                 </p>
                 <h4><strong>Important:</strong></h4>
                 <ul>
@@ -2071,7 +2002,7 @@ function ChatPage() {
                                         receive feedback. This will help you learn to distinguish between humans and bots.
                                     </li>
                                     <li>
-                                        <strong>Test Phase (8 minutes):</strong> You will chat with both a human and a bot 
+                                        <strong>Test Phase (5 minutes):</strong> You will chat with both a human and a bot 
                                         in separate rooms. Both rooms will display the demographics of the human participant.
                                         You must identify which room contains the human.
                                     </li>
@@ -2090,14 +2021,28 @@ function ChatPage() {
                                     Continue to Quiz
                                 </button>
                             </>
-                        )}
-
-                        {(quizStep === 'completed' && !chatTimerStarted && conversationPhase === 'review') && (
+                        )}                        {(quizStep === 'completed' && !chatTimerStarted && conversationPhase === 'review') && (
                             <div className="timer-status">
-                                <p>Waiting for both participants to complete the quiz before starting conversation review...</p>
-                                <p>Your status: Quiz completed</p>
-                                <p>Partner
-                                    status: {partnerQuizStatus === 'completed' ? 'Quiz completed' : 'Still taking quiz...'}</p>
+                                {/* Show different message based on partner quiz completion status */}
+                                {partnerQuizStatus !== 'completed' ? (
+                                    <>
+                                        <p>Please wait while your partner completes the quiz...</p>
+                                        <p>Your status: Quiz completed</p>
+                                        <p>Partner status: Still taking quiz...</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p>Waiting for both participants to complete the quiz before starting conversation review...</p>
+                                        <p>Your status: Quiz completed</p>
+                                        <p>Partner status: Quiz completed</p>
+                                    </>
+                                )}
+                                {waitingForPartner && (
+                                    <div className="waiting-timer-display">
+                                        <p>⏱️ Waiting time: {Math.floor(waitingElapsedTime / 60)}:{(waitingElapsedTime % 60).toString().padStart(2, '0')}</p>
+                                        <p style={{ fontSize: '0.9em', color: '#666' }}>Please wait while your partner completes the quiz...</p>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -2213,11 +2158,9 @@ function ChatPage() {
 
                                 <p>
                                     The Tester will be able to see your demographics (such as age and occupation).
-                                </p>
-
-                                <p>
-                                    Note, that at the first 3 minutes of the conversation (the known identity phase),
-                                    the tester knows who is human and who is the bot, but in the later 8 minutes (the
+                                </p>                                <p>
+                                    Note, that at the first 5 minutes of the conversation (the known identity phase),
+                                    the tester knows who is human and who is the bot, but in the later 5 minutes (the
                                     shuffle phase), the tester does not know.
                                 </p>
 
@@ -2235,15 +2178,18 @@ function ChatPage() {
                                     Continue to Quiz
                                 </button>
                             </>
-                        )}
-
-
-                        {(quizStep === 'completed' && !chatTimerStarted) && (
+                        )}                        {(quizStep === 'completed' && !chatTimerStarted) && (
                             <div className="timer-status">
                                 <p>Waiting for both participants to complete the quiz before starting...</p>
                                 <p>Your status: Quiz completed</p>
                                 <p>Partner
                                     status: {partnerQuizStatus === 'completed' ? 'Quiz completed' : 'Still taking quiz...'}</p>
+                                {waitingForPartner && (
+                                    <div className="waiting-timer-display">
+                                        <p>⏱️ Waiting time: {Math.floor(waitingElapsedTime / 60)}:{(waitingElapsedTime % 60).toString().padStart(2, '0')}</p>
+                                        <p style={{ fontSize: '0.9em', color: '#666' }}>Please wait while your partner completes the quiz...</p>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -2461,11 +2407,50 @@ function ChatPage() {
                                 {currentConversationIndex < preShuffleConversations.length - 1 ? 'Next Conversation' : 'Start Test Phase'}
                             </button>
                         )}
+                    </div>                </div>
+            )}
+
+            {/* Waiting for Partner Review UI */}
+            {waitingForPartnerReview && conversationPhase === 'completed' && (
+                <div className="waiting-for-partner-container">
+                    <div className="waiting-header">
+                        <h2>🎉 Conversation Review Complete!</h2>
+                        <p>You have successfully completed reviewing all conversations.</p>
+                    </div>
+                    
+                    <div className="waiting-status">
+                        <div className="waiting-icon">
+                            <div className="spinner"></div>
+                        </div>
+                        <h3>Waiting for Partner</h3>
+                        <p>Your partner is still reviewing their conversations. Please wait while they complete their review.</p>                        <div className="waiting-timer">
+                            <div className="timer-label">Time Remaining for Partner:</div>
+                            <div className="timer-value">
+                                {(() => {
+                                    const remainingTime = Math.max(0, partnerConversationReviewTimeRemaining - waitingForReviewElapsed);
+                                    return `${Math.floor(remainingTime / 60)}:${(remainingTime % 60).toString().padStart(2, '0')}`;
+                                })()}
+                            </div>
+                        </div>
+                        
+                        <div className="partner-status">
+                            <div className="status-indicator">
+                                <span className="status-dot waiting"></span>
+                                <span>Partner is reviewing conversations...</span>
+                            </div>
+                        </div>
+                        
+                        <div className="next-phase-info">
+                            <h4>What happens next?</h4>
+                            <p>Once both participants complete their conversation reviews, the test phase will begin automatically. You'll then engage in real-time conversations where you'll need to determine if you're chatting with a human or AI.</p>
+                        </div>
                     </div>
                 </div>
-            )}            <div className="chat-boxes">
+            )}
+
+            <div className="chat-boxes">
                 {role === 'tester' && conversationPhase === 'completed' && roomOrder.map((roomType) => renderChatWindow(roomType))}
-                {role === 'experimenter' && conversationPhase === 'completed' && isAnonymousMode && (
+                {role === 'experimenter' && conversationPhase === 'completed' && (
                     <div className="chat-window chat-experimenter">
                         {showOverlay && role === 'experimenter' && (
                             <div className="overlay">
@@ -2500,13 +2485,35 @@ function ChatPage() {
                             </button>
                         </div>
                     </div>
-                )}
-                {role === 'experimenter' && (conversationPhase !== 'completed' || !isAnonymousMode) && (
+                )}                {role === 'experimenter' && (conversationPhase !== 'completed' || !isAnonymousMode) && (
                     <div className="experimenter-waiting-container">
                         <div className="experimenter-waiting-message">
-                            <h2>Please wait while the tester reviews sample conversations</h2>
-                            <p>The tester is currently in the conversation review phase, learning to distinguish between human and bot responses.</p>
+                            {/* Show different message based on quiz completion status */}
+                            {quizStep === 'completed' && partnerQuizStatus !== 'completed' ? (
+                                <>
+                                    <h2>Please wait while your partner completes the quiz</h2>
+                                    <p>Your partner is still working on the instruction quiz. Once they complete it, you'll both proceed to the conversation review phase.</p>
+                                </>
+                            ) : (
+                                <>
+                                    <h2>Please wait while the tester reviews sample conversations</h2>
+                                    <p>The tester is currently in the conversation review phase, learning to distinguish between human and bot responses.</p>
+                                </>
+                            )}
                             <p>You will be able to chat once this phase is completed.</p>
+                            <div className="waiting-spinner">
+                                <div className="spinner"></div>
+                            </div>
+                        </div>
+                    </div>                )}
+
+                {/* Tester waiting container for when they finish quiz first */}
+                {role === 'tester' && quizStep === 'completed' && partnerQuizStatus !== 'completed' && (
+                    <div className="tester-waiting-container">
+                        <div className="tester-waiting-message">
+                            <h2>Please wait while your partner completes the quiz</h2>
+                            <p>Your partner is still working on the instruction quiz. Once they complete it, you'll both proceed to the conversation review phase.</p>
+                            <p>You will be able to proceed once this phase is completed.</p>
                             <div className="waiting-spinner">
                                 <div className="spinner"></div>
                             </div>

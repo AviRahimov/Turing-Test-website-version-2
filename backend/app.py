@@ -88,8 +88,8 @@ user_lock = Lock()
 pair_timers = {}
 pair_quiz_status = {}  # Track quiz completion status for each pair
 pair_review_status = {}  # Track conversation review completion status for each pair
-SHUFFLE_TIMER_DURATION = 180  # 30 seconds shuffle timer (3 minutes in production)
-REAL_TEST_DURATION = 480  # 40 seconds real test timer (8 minutes in production)
+SHUFFLE_TIMER_DURATION = 300  # 30 seconds shuffle timer (5 minutes in production)
+REAL_TEST_DURATION = 300  # 40 seconds real test timer (5 minutes in production)
 
 
 @socketio.on('check_ip')
@@ -874,9 +874,10 @@ def handle_conversation_review_completed(data):
     review_time_seconds = data.get('review_time_seconds', 0)
     total_conversations = data.get('total_conversations', 0)
     correct_guesses = data.get('correct_guesses', 0)
+    remaining_time_when_completed = data.get('remaining_time_when_completed', 0)
     
     logging.info(f"User {username} ({role}) completed conversation review for pair {pair_id}")
-    logging.info(f"Review stats - Time: {review_time_seconds}s, Total: {total_conversations}, Correct: {correct_guesses}")
+    logging.info(f"Review stats - Time: {review_time_seconds}s, Total: {total_conversations}, Correct: {correct_guesses}, Remaining: {remaining_time_when_completed}s")
     
     # Initialize pair review status if not exists
     if pair_id not in pair_review_status:
@@ -886,15 +887,15 @@ def handle_conversation_review_completed(data):
             'tester_data': None,
             'experimenter_data': None
         }
-    
-    # Mark this participant as completed and store their data
+      # Mark this participant as completed and store their data
     if role == 'tester':
         pair_review_status[pair_id]['tester_completed'] = True
         pair_review_status[pair_id]['tester_data'] = {
             'username': username,
             'review_time_seconds': review_time_seconds,
             'total_conversations': total_conversations,
-            'correct_guesses': correct_guesses
+            'correct_guesses': correct_guesses,
+            'remaining_time_when_completed': remaining_time_when_completed
         }
     elif role == 'experimenter':
         pair_review_status[pair_id]['experimenter_completed'] = True
@@ -902,7 +903,8 @@ def handle_conversation_review_completed(data):
             'username': username,
             'review_time_seconds': review_time_seconds,
             'total_conversations': total_conversations,
-            'correct_guesses': correct_guesses
+            'correct_guesses': correct_guesses,
+            'remaining_time_when_completed': remaining_time_when_completed
         }
     
     # Check if both participants have completed their review
@@ -917,18 +919,22 @@ def handle_conversation_review_completed(data):
             'tester_data': review_status['tester_data'],
             'experimenter_data': review_status['experimenter_data']
         }, to=pair_id)
-        
-        # Clean up the review status for this pair
+          # Clean up the review status for this pair
         del pair_review_status[pair_id]
         logging.info(f"Cleaned up conversation review status for pair {pair_id}")
     else:
         # Notify the other participant that this user has completed
         waiting_role = 'experimenter' if role == 'tester' else 'tester'
+        
+        # Get the partner's remaining time to pass to the waiting participant
+        partner_remaining_time = remaining_time_when_completed
+        
         socketio.emit('conversation_review_sync', {
             'action': 'partner_completed',
             'message': f'Your partner has completed their conversation review. Waiting for you to finish.',
             'completed_role': role,
-            'waiting_role': waiting_role
+            'waiting_role': waiting_role,
+            'partner_remaining_time': partner_remaining_time
         }, to=pair_id)
         
         logging.info(f"Notified pair {pair_id} that {role} completed review, waiting for {waiting_role}")
