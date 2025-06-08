@@ -1488,6 +1488,22 @@ function ChatPage() {
         };
         setConversationGuesses(newGuesses);
         setShowConversationFeedback(true);
+    };
+
+    const tryAgain = () => {
+        // Reset activity timestamp when user tries again
+        lastActivityTimestampRef.current = Date.now();
+        setWarningShown(false);
+        console.log(`${role} - Activity timestamp reset - try again`);
+        
+        // Reset the current conversation state for retry
+        setCurrentConversationGuess({ leftWindow: '', rightWindow: '' });
+        setShowConversationFeedback(false);
+        
+        // Clear the incorrect guess from the array so they can try again
+        const newGuesses = [...conversationGuesses];
+        newGuesses[currentConversationIndex] = null;
+        setConversationGuesses(newGuesses);
     };    const nextConversation = () => {
         // Reset activity timestamp when user progresses through conversations
         lastActivityTimestampRef.current = Date.now();
@@ -2400,12 +2416,23 @@ function ChatPage() {
                                 Submit Guess
                             </button>
                         ) : (
-                            <button 
-                                onClick={nextConversation}
-                                className="next-conversation-button"
-                            >
-                                {currentConversationIndex < preShuffleConversations.length - 1 ? 'Next Conversation' : 'Start Test Phase'}
-                            </button>
+                            <>
+                                {conversationGuesses[currentConversationIndex]?.isCorrect ? (
+                                    <button 
+                                        onClick={nextConversation}
+                                        className="next-conversation-button"
+                                    >
+                                        {currentConversationIndex < preShuffleConversations.length - 1 ? 'Next Conversation' : 'Start Test Phase'}
+                                    </button>
+                                ) : (
+                                    <button 
+                                        onClick={tryAgain}
+                                        className="try-again-button"
+                                    >
+                                        Try Again
+                                    </button>
+                                )}
+                            </>
                         )}
                     </div>                </div>
             )}
