@@ -1409,7 +1409,7 @@ body {
 .conversation-review-timer .timer-value {
     font-size: clamp(14px, 3vw, 18px);
     font-weight: 700;
-    color: #ffffff;
+    color: #000000;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
     min-width: 60px;
     text-align: center;

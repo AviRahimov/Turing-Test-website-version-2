@@ -34,7 +34,7 @@ SHUFFLE_ENABLED = False  # Should match frontend config - set to False to skip s
 
 # MongoDB connection
 client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
-db = client['advanced_turing_test_db']  # database name
+db = client['advanced_turing_test_no_shuffle_version_db']  # database name
 
 # Flask app setup
 allowed = ["http://localhost:3000", "http://54.89.200.237:5000", "*"]

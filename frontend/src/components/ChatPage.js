@@ -1614,7 +1614,7 @@ function ChatPage() {
                 },                {
                     question: "What is the conversation review phase?",
                     options: [
-                        "A phase where I review sample conversations to learn to distinguish humans from bots",
+                        "A phase where I review real conversations and guess which is human-human conversation and which is human-bot conversation",
                         "A phase where I chat with participants",
                         "A phase where I submit my final guesses"
                     ],
@@ -1883,7 +1883,6 @@ function ChatPage() {
                         {/* In anonymous mode, title is always "Candidate X" */}
                         {isAnonymousMode ? `Candidate ${roomInfo.candidate}` : (roomTypeArgument === 'experimenter' ? 'Chat with a Human' : 'Chat with a Bot')}
                     </div>
-                    <DemographicsDisplayComponent demData={demDataForDisplay} isLoading={isLoadingDemographics}/>
                     <div className="chat-messages"
                          ref={roomTypeArgument === 'experimenter' ? chatMessagesRef : botChatMessagesRef}>
                         {/*
@@ -1929,7 +1928,6 @@ function ChatPage() {
                             : "Chat with a Human" // Pre-shuffle title
                         }
                     </div>
-                    <DemographicsDisplayComponent demData={demDataForDisplay} isLoading={isLoadingDemographics}/>
                     <div className="chat-messages" ref={chatMessagesRef}>
                         {messages.map((msg, index) => (
                             <p className={`message ${msg.sender === username || msg.sender === role ? 'message-left' : 'message-right'}`}
@@ -1964,7 +1962,6 @@ function ChatPage() {
                             : "Chat with a Bot" // Pre-shuffle title
                         }
                     </div>
-                    <DemographicsDisplayComponent demData={demDataForDisplay} isLoading={isLoadingDemographics}/>
                     <div className="chat-messages" ref={botChatMessagesRef}>
                         {botMessages.map((msg, index) => (
                             <p className={`message ${msg.sender === username || msg.sender === role ? 'message-left' : 'message-right'}`}
@@ -2003,24 +2000,24 @@ function ChatPage() {
                                 <h3>Your Mission: Identify the Human.</h3>
 
                                 <p>
-                                    You will review sample conversations and then chat with a human and a bot (in two separate rooms). You must identify
-                                    who is human.
-                                    If you guess correctly, you and the human will receive <strong>$1.00
+                                    You will review real conversations and then chat with a human and a bot (in two separate rooms). You must identify
+                                    who is human and who is a bot.
+                                    If you guess correctly, you and the human (responder) will receive <strong>$1.00
                                     bonus</strong> each.
-                                    You will see the demographics of both participants.
                                 </p>
 
                                 <h4>The interaction will be composed of two phases:</h4>
                                 <ul>
                                     <li>
-                                        <strong>Conversation Review Phase:</strong> You will review 5 sample conversations 
-                                        between humans and bots. For each conversation, you'll guess which is which and 
-                                        receive feedback. This will help you learn to distinguish between humans and bots.
+                                        <strong>Conversation Review Phase:</strong> You will review 5 human-human and human-bot conversations. 
+                                        For each conversation, you'll guess which is which and 
+                                        the option to try again will be given you if you fail in guessing. 
+                                        This will help you learn to distinguish between humans and bots.
                                     </li>
                                     <li>
                                         <strong>Test Phase (5 minutes):</strong> You will chat with both a human and a bot 
-                                        in separate rooms. Both rooms will display the demographics of the human participant.
-                                        You must identify which room contains the human.
+                                        in separate rooms. You must identify which room contains the human and which contains the bot.
+                                        If you guess correctly, you and the human will receive a <strong>$1.00 bonus</strong> each.
                                     </li>
                                 </ul>
 

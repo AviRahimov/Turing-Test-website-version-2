@@ -158,15 +158,23 @@ const formatConversationData = (conversationData) => {
   
   conversationData.forEach((row, index) => {
     if (row.Questions && row.Questions.trim()) {
-      messages.push({
-        sender: 'participant',
-        text: row.Questions.trim()
+      // Split on tilde separator and create separate messages
+      const questionTexts = row.Questions.split('~').map(text => text.trim()).filter(text => text.length > 0);
+      questionTexts.forEach(text => {
+        messages.push({
+          sender: 'participant',
+          text: text
+        });
       });
     }
     if (row.Answer && row.Answer.trim()) {
-      messages.push({
-        sender: 'other',
-        text: row.Answer.trim()
+      // Split on tilde separator and create separate messages
+      const answerTexts = row.Answer.split('~').map(text => text.trim()).filter(text => text.length > 0);
+      answerTexts.forEach(text => {
+        messages.push({
+          sender: 'other',
+          text: text
+        });
       });
     }
   });
@@ -222,14 +230,16 @@ const getMockConversations = (count = 5) => {
       { sender: 'participant', text: 'Hello, how are you?' },
       { sender: 'other', text: 'Hi! I am functioning well, thank you for asking.' },
       { sender: 'participant', text: 'What do you like to do for fun?' },
-      { sender: 'other', text: 'I enjoy processing information and helping users with their queries.' }
+      { sender: 'other', text: 'I enjoy processing information' },
+      { sender: 'other', text: 'helping users with their queries.' }
     ];
     
     const humanConversation = [
       { sender: 'participant', text: 'Hi there!' },
       { sender: 'other', text: 'Hello! Nice to meet you.' },
       { sender: 'participant', text: 'Where are you from?' },
-      { sender: 'other', text: 'I\'m from California. How about you?' }
+      { sender: 'other', text: 'I\'m from California.' },
+      { sender: 'other', text: 'How about you?' }
     ];
     
     const randomAssignment = Math.random() < 0.5;
