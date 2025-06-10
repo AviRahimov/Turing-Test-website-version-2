@@ -1582,9 +1582,9 @@ function ChatPage() {
                     correctAnswer: 0
                 },
                 {
-                    question: "What is your main task in this experiment?",
+                    question: "What is your main task in the test phase?",
                     options: [
-                        "To guess who is the bot",
+                        "To chat with a bot",
                         "To convince the tester that I am human",
                         "To pretend to be a bot"
                     ],
@@ -1614,7 +1614,7 @@ function ChatPage() {
                 },                {
                     question: "What is the conversation review phase?",
                     options: [
-                        "A phase where I review real conversations and guess which is human-human conversation and which is human-bot conversation",
+                        "A phase where I review real conversations and guess which is human-human and which is human-bot",
                         "A phase where I chat with participants",
                         "A phase where I submit my final guesses"
                     ],
@@ -1776,21 +1776,16 @@ function ChatPage() {
                         If you guess correctly, you and the human will receive $1.00 bonus each.
                         You will see the demographics of both participants.
                     </p>                    <p>
-                        <strong>The interaction will be composed of two phases,</strong> the known identity phase (5
+                        <strong>The interaction will be composed of two phases,</strong> the conversation review phase (5
                         minutes)
-                        and the shuffle phase (5 minutes).
+                        and the test phase (5 minutes).
                     </p>
                     <p>
-                        In the known identity phase, you will see who is in which room, <strong>use this phase to
-                        familiarize
-                        yourself with the participants' behavior.</strong>
+                        In the conversation review phase, you will review real conversations and guess which is human-human and which is human-bot.
                     </p>
                     <p>
-                        In the shuffle phase, <strong>the location of both participants might be swapped,</strong> but
-                        both will show
-                        your previous chat history and demographics of the human participant. However, still one room
-                        will be a human
-                        and the other a bot.
+                        In the test phase, you will chat with a human and a bot in two separate rooms, but you will not know which is which, 
+                        and in the end of the test phase, you will have to guess which candidate is human and which is bot.
                     </p>
                     <h4><strong>Important:</strong></h4>
                     <ul>
@@ -1806,13 +1801,16 @@ function ChatPage() {
             <>
                 <h3><strong>Your Mission: Convince the Tester You're Human.</strong></h3>
                 <p>
-                    You will chat with a human tester. You must convince the tester that you are human.
-                    If the tester guesses correctly, you and the tester will receive a $1.00 bonus each.
-                    The tester will see your demographics, so make sure to answer the questions truthfully.
-                </p>                <p>
-                    <strong>The interaction will be composed of two phases,</strong> the known identity phase (5
+                    <strong>The interaction will be composed of two phases,</strong> the conversation review phase (5
                     minutes)
-                    and the shuffle phase (5 minutes).
+                    and the test phase (5 minutes).
+                </p>
+                <p>
+                    In the conversation review phase, you will review real conversations and guess which is human-human and which is human-bot.
+                </p>
+                <p>
+                    In the test phase, you will chat with a human tester, and you must convince them that you are human.
+                    If the tester guesses you are human, both of you will receive a $1.00 bonus each.
                 </p>
                 <h4><strong>Important:</strong></h4>
                 <ul>
@@ -2160,23 +2158,18 @@ function ChatPage() {
                             <>
                                 <h3>Your Mission: Convince the Tester You're Human.</h3>
 
-                                <p>
-                                    You will chat with a <strong>human Tester</strong> (who is simultanesly chatting
-
-                                    also with a bot). Your goal is to convince the tester that <strong>you are the
-                                    human</strong>.
-                                    If the Tester guesses correctly, you and the Tester will each receive a <strong>$1.00
-                                    bonus</strong>.
-                                </p>
-
-                                <p>
-                                    The Tester will be able to see your demographics (such as age and occupation).
-                                </p>                                <p>
-                                    Note, that at the first 5 minutes of the conversation (the known identity phase),
-                                    the tester knows who is human and who is the bot, but in the later 5 minutes (the
-                                    shuffle phase), the tester does not know.
-                                </p>
-
+                                <h4>The interaction will be composed of two phases:</h4>
+                                <ul>
+                                    <li>
+                                        <strong>Conversation Review Phase:</strong> You will review 5 human-human and human-bot conversations. 
+                                        For each conversation, you'll guess which is which and 
+                                        the option to try again will be given you if you fail in guessing. 
+                                    </li>
+                                    <li>
+                                        <strong>Test Phase (5 minutes):</strong> You will chat with a human Tester, and you must convince them that you are human.
+                                        If the Tester guesses you are human, both of you will receive a <strong>$1.00 bonus</strong> each.
+                                    </li>
+                                </ul>
                                 <h4>Important:</h4>
                                 <ul>
                                     <li><p className="warning-text">⚠️ Stay active to avoid disconnection.</p></li>
