@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import usePreventBackNavigation from './usePreventBackNavigation';
 import io from 'socket.io-client';
@@ -21,12 +21,12 @@ const socket = io(server_url, {
 function HomePage() {
   usePreventBackNavigation();
   const navigate = useNavigate();
+  const startButtonRef = useRef(null); // Ref for auto-scroll to start button
 
   // Updated formData state
   const [formData, setFormData] = useState({
     gender: '',
     age: '',
-    occupation: '', // Changed from employment, removed education
     education: '',
     country: '',
     aiExperience: ''
@@ -153,6 +153,22 @@ function HomePage() {
     }
   }, []); // Empty dependency array ensures this runs only once
 
+  // Auto-scroll to start button when all demographics are filled
+  useEffect(() => {
+    const { gender, age, education, country, aiExperience } = formData;
+    const allFieldsFilled = gender && age && education && country && aiExperience;
+    
+    if (allFieldsFilled && startButtonRef.current) {
+      // Small delay to ensure DOM has updated
+      setTimeout(() => {
+        startButtonRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }, 200);
+    }
+  }, [formData]);
+
   const handleCheckboxChange = (e) => {
       if (!agreedToParticipate) {
           setAgreedToParticipate(e.target.checked);
@@ -202,15 +218,9 @@ function HomePage() {
 
   const handleStart = async () => {
     // Validate form data
-    const { gender, age, occupation, education, country, aiExperience } = formData;
-    if (!gender || !age || !occupation || !education || !country || !aiExperience) {
+    const { gender, age, education, country, aiExperience } = formData;
+    if (!gender || !age || !education || !country || !aiExperience) {
       alert('Please fill in all demographic fields to start the experiment.');
-      return;
-    }
-
-    const ageNum = parseInt(age, 10);
-    if (isNaN(ageNum) || ageNum <= 0) {
-      alert('Please enter a valid age greater than 0.');
       return;
     }
 
@@ -227,7 +237,7 @@ function HomePage() {
         setStatus('You have already participated.');
         setIsSubmitting(false);
         return;
-      }      const payloadToSave = { user_id: username, ...formData, age: ageNum };
+      }      const payloadToSave = { user_id: username, ...formData };
       await fetch(server_url + '/api/save_demographics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -237,7 +247,7 @@ function HomePage() {
       const response = await fetch(server_url + '/api/submit_name', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username, user_id: userID, ...formData, age: ageNum }),
+        body: JSON.stringify({ username: username, user_id: userID, ...formData }),
       });      const result = await response.json();
       if (result.status === 'waiting') {
         setStatus('Waiting for another user to connect...');
@@ -307,37 +317,27 @@ function HomePage() {
                 </label>
                 <label>
                   Age:
-                  <input
-                      type="number" // Changed to number input
-                      name="age"
-                      value={formData.age}
-                      onChange={handleChange}
-                      placeholder="Enter your age"
-                      min="1" // Basic HTML5 validation
-                      required
-                  />
+                  <select name="age" value={formData.age} onChange={handleChange} required>
+                    <option value="">Select</option>
+                    <option value="10-20">10-20</option>
+                    <option value="20-30">20-30</option>
+                    <option value="30-40">30-40</option>
+                    <option value="40-50">40-50</option>
+                    <option value="50-60">50-60</option>
+                    <option value="60-70">60-70</option>
+                    <option value="70+">70+</option>
+                  </select>
                 </label>
                 <label>
-                  Occupation: {/* Changed from Employment Status */}
-                  <input
-                      type="text"
-                      name="occupation" // Changed name
-                      value={formData.occupation}
-                      onChange={handleChange}
-                      placeholder="Enter your occupation"
-                      required
-                  />
-                </label>
-                <label>
-                  Field of Study:
-                  <input
-                      type="text"
-                      name="education"
-                      value={formData.education}
-                      onChange={handleChange}
-                      placeholder="Enter your education level"
-                      required
-                  />
+                  Education:
+                  <select name="education" value={formData.education} onChange={handleChange} required>
+                    <option value="">Select</option>
+                    <option value="High School">High School</option>
+                    <option value="Bachelor's Degree">Bachelor's Degree</option>
+                    <option value="Master's Degree">Master's Degree</option>
+                    <option value="Doctorate">Doctorate</option>
+                    <option value="Other">Other</option>
+                  </select>
                 </label>
                 <label>
                   Country of Residence:
@@ -370,9 +370,10 @@ function HomePage() {
                 </label>
               </div>
               <button
+                  ref={startButtonRef}
                   className="start-button"
                   onClick={handleStart}
-                  disabled={isSubmitting || !agreedToParticipate || !formData.gender || !formData.age || !formData.occupation || !formData.education || !formData.country || !formData.aiExperience}
+                  disabled={isSubmitting || !agreedToParticipate || !formData.gender || !formData.age || !formData.education || !formData.country || !formData.aiExperience}
               >
                 Start
               </button>

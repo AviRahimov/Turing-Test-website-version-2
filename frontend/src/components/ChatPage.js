@@ -57,12 +57,15 @@ function ChatPage() {
         // Try to load from localStorage in case of reload
         return localStorage.getItem('experimenterBonus') || '';
     });
-    const [showBonusNotification, setShowBonusNotification] = useState(false);    const [experimenterReady, setExperimenterReady] = useState(false);
+    const [showBonusNotification, setShowBonusNotification] = useState(false);
+    const [showTestPhaseNotification, setShowTestPhaseNotification] = useState(false); // New state for test phase notification
+    const [experimenterReady, setExperimenterReady] = useState(false);
     const [showOverlay, setShowOverlay] = useState(false); // Manage overlay visibility
     const [showNotificationForExperimenter, setShowNotificationForExperimenter] = useState(false);
     const [showNotificationForTester, setShowNotificationForTester] = useState(false);
     const [testerDismissed, setTesterDismissed] = useState(false);
-    const [experimenterDismissed, setExperimenterDismissed] = useState(false);    const [timerPaused, setTimerPaused] = useState(true); // Start with timer paused
+    const [experimenterDismissed, setExperimenterDismissed] = useState(false);
+    const [timerPaused, setTimerPaused] = useState(true); // Start with timer paused
     const [isAnonymousMode, setIsAnonymousMode] = useState(false);
     const [shuffleEnabled] = useState(config.SHUFFLE_ENABLED);
 
@@ -83,12 +86,18 @@ function ChatPage() {
     const [quizStep, setQuizStep] = useState('instructions'); // 'instructions', 'quiz', 'completed'
     const [quizAnswers, setQuizAnswers] = useState(Array(2).fill(null));
     const [showQuizConfirmation, setShowQuizConfirmation] = useState(false);
+    const submitButtonRef = useRef(null); // Ref for auto-scroll to submit button
+    const popupRef = useRef(null); // Ref for the popup container
     const [chatTimerStarted, setChatTimerStarted] = useState(false);
-    const [partnerHasFailed, setPartnerHasFailed] = useState(false);    // Waiting for partner state
+    const [partnerHasFailed, setPartnerHasFailed] = useState(false);
+    
+    // Waiting for partner state
     const [waitingForPartner, setWaitingForPartner] = useState(false);
     const [waitingStartTime, setWaitingStartTime] = useState(null);
     const [waitingElapsedTime, setWaitingElapsedTime] = useState(0);
-    const waitingTimerRef = useRef(null);    // Conversation review waiting states
+    const waitingTimerRef = useRef(null);
+    
+    // Conversation review waiting states
     const [waitingForPartnerReview, setWaitingForPartnerReview] = useState(false);
     const [partnerReviewCompleted, setPartnerReviewCompleted] = useState(false);
     const [waitingForReviewStartTime, setWaitingForReviewStartTime] = useState(null);
@@ -287,7 +296,8 @@ function ChatPage() {
 
                     socket.emit('participant_banned', {
                         pair_id: pairId,
-                        role: role
+                        role: role,
+                        username: username
                     });
 
                     // Clear the interval before navigating
@@ -632,7 +642,7 @@ function ChatPage() {
           // Only remove specific listeners that we're about to re-add to prevent conflicts
         // CRITICAL: Do NOT remove shuffle_started listener as it's a one-time event that must persist
         // console.log('🔗 Removing specific event listeners to prevent duplicates...');
-        const eventsToRemove = ['message', 'timer_started', 'chat_ended', 'bonus_code', 'guess_submitted', 'experimenter_ready', 'notification_dismissed'];
+        const eventsToRemove = ['message', 'timer_started', 'chat_ended', 'bonus_code', 'guess_submitted', 'experimenter_ready', 'notification_dismissed', 'participant_banned'];
         eventsToRemove.forEach(event => {
             socket.removeAllListeners(event);
             // console.log(`🔗 Removed all listeners for event: ${event}`);
@@ -884,25 +894,19 @@ function ChatPage() {
             console.log('🔄 Conversation review sync event received:', data);
             if (data.action === 'start_test_phase') {
                 console.log('🚀 Starting synchronized test phase (chat phase)');
-                // Clear waiting states
-                setWaitingForPartnerReview(false);
-                setPartnerReviewCompleted(false);
-                setWaitingForReviewStartTime(null);
-                setWaitingForReviewElapsed(0);
                 
-                setConversationPhase('completed');
-                setIsAnonymousMode(true);
-                setCurrentPhase('anonymous_phase'); // Go directly to chat phase, not shuffle
-                setTimerVisible(true);
-                setTimerPaused(false);
-                setupAnonymousRooms();
-                startTimer(config.POST_SHUFFLE_TIMER, 'anonymous_phase');            } else if (data.action === 'partner_completed') {
+                // Show beautiful test phase notification first
+                setShowTestPhaseNotification(true);
+                
+                // Auto-dismiss after 10 seconds and proceed with the test phase
+                setTimeout(() => {
+                    handleDismissTestPhaseNotification();
+                }, 10000); // Show notification for 10 seconds before auto-proceeding            } else if (data.action === 'partner_completed') {
                 console.log('👥 Partner completed conversation review, waiting for sync');
                 setPartnerReviewCompleted(true);
                 // Set the partner's remaining time if provided
                 if (data.partner_remaining_time !== undefined) {
                     setPartnerConversationReviewTimeRemaining(data.partner_remaining_time);
-                    console.log('⏰ Partner had', data.partner_remaining_time, 'seconds remaining when they completed');
                 }
                 // Don't show alert, let the UI handle the waiting state display
             }
@@ -943,6 +947,13 @@ function ChatPage() {
             }
         });
         
+        // Handle partner ban notifications
+        socket.on('participant_banned', (data) => {
+            console.log('🚫 Partner was banned due to inactivity:', data);
+            // The partner_disconnected event will handle the actual disconnection logic
+            // This event is just for notification purposes
+        });
+        
         // All critical listeners have been registered successfully
         // console.log('🔗 All socket event listeners registered successfully');
 
@@ -963,6 +974,8 @@ function ChatPage() {
             socket.off('chat_ended');
             socket.off('bonus_code');
             socket.off('guess_submitted');
+            socket.off('participant_banned');
+            socket.off('participant_banned');
               if (role === 'tester') {
                 socket.off('experimenter_ready');
             }
@@ -1052,6 +1065,23 @@ function ChatPage() {
             socket.emit('notification_dismissed', {pair_id: pairId, role: 'experimenter'});
             setExperimenterDismissed(true);
         }
+    };
+
+    const handleDismissTestPhaseNotification = () => {
+        setShowTestPhaseNotification(false);
+        // Clear waiting states
+        setWaitingForPartnerReview(false);
+        setPartnerReviewCompleted(false);
+        setWaitingForReviewStartTime(null);
+        setWaitingForReviewElapsed(0);
+        
+        setConversationPhase('completed');
+        setIsAnonymousMode(true);
+        setCurrentPhase('anonymous_phase'); // Go directly to chat phase, not shuffle
+        setTimerVisible(true);
+        setTimerPaused(false);
+        setupAnonymousRooms();
+        startTimer(config.REAL_TEST_TIMER, 'anonymous_phase');
     };    useEffect(() => {
         if (quizStep === 'completed' && partnerQuizStatus === 'completed' &&
             testerDismissed && experimenterDismissed) {
@@ -1069,6 +1099,76 @@ function ChatPage() {
             setChatTimerStarted(true);
         }
     }, [quizStep, partnerQuizStatus, testerDismissed, experimenterDismissed]);
+    
+    // Auto-scroll to submit button when all quiz questions are answered
+    useEffect(() => {
+        // Check if all questions are answered and we're in quiz mode
+        const allQuestionsAnswered = quizAnswers.every(answer => answer !== null);
+        
+        if (allQuestionsAnswered && quizStep === 'quiz') {
+            console.log('🔄 Auto-scroll triggered: All questions answered');
+            
+            // Small delay to ensure DOM has updated and submit button is rendered
+            setTimeout(() => {
+                const popup = popupRef.current;
+                const submitButton = submitButtonRef.current;
+                
+                if (popup && submitButton) {
+                    console.log('🔄 Found popup and submit button elements');
+                    console.log('🔄 Popup scrollHeight:', popup.scrollHeight);
+                    console.log('🔄 Popup clientHeight:', popup.clientHeight);
+                    console.log('🔄 Submit button offsetTop:', submitButton.offsetTop);
+                    
+                    // Calculate the position to scroll to show the submit button
+                    const submitButtonTop = submitButton.offsetTop;
+                    const submitButtonHeight = submitButton.offsetHeight;
+                    const popupHeight = popup.clientHeight;
+                    
+                    // Scroll to position the submit button comfortably in view
+                    const targetScrollTop = submitButtonTop - popupHeight + submitButtonHeight + 60; // 60px padding from bottom
+                    
+                    console.log('🔄 Scrolling to position:', Math.max(0, targetScrollTop));
+                    
+                    popup.scrollTo({
+                        top: Math.max(0, targetScrollTop),
+                        behavior: 'smooth'
+                    });
+                } else {
+                    console.log('🔄 Missing elements:', {
+                        popup: !!popup,
+                        submitButton: !!submitButton,
+                        popupRef: !!popupRef.current,
+                        submitButtonRef: !!submitButtonRef.current
+                    });
+                }
+            }, 500); // Longer delay to ensure submit button is rendered
+        }
+    }, [quizAnswers, quizStep]);
+    
+    // Auto-scroll when confirmation dialog appears
+    useEffect(() => {
+        if (showQuizConfirmation && quizStep === 'quiz') {
+            console.log('🔄 Auto-scroll triggered: Confirmation dialog appeared');
+            
+            // Small delay to ensure DOM has updated and confirmation dialog is rendered
+            setTimeout(() => {
+                const popup = popupRef.current;
+                
+                if (popup) {
+                    console.log('🔄 Scrolling to bottom for confirmation dialog');
+                    
+                    // Scroll to the bottom of the popup to show the confirmation dialog 
+                    popup.scrollTo({
+                        top: popup.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                } else {
+                    console.log('🔄 Missing popup element for confirmation scroll');
+                }
+            }, 200); // Small delay to ensure confirmation dialog is rendered
+        }
+    }, [showQuizConfirmation, quizStep]);
+    
     // Send a message to the experimenter
     const sendMessageToExperimenter = () => {
         if (!messageToExperimenter.trim()) return;
@@ -1573,52 +1673,62 @@ function ChatPage() {
         experimenter: {
             questions: [
                 {
-                    question: "Is it true that when the tester correctly identifies you as human, both of you will receive a bonus payment?",
+                    question: "What is the purpose of the conversation review phase?",
                     options: [
-                        "Yes, we will both receive a $1 bonus",
-                        "No, I won't receive any bonus",
-                        "I will receive a bonus regardless of the tester's guess"
+                        "To review conversations and guess which was with a human and which was with the bot",
+                        "To go to sleep and be inactive",
+                        "To trick the other participant into thinking I am a bot"
                     ],
                     correctAnswer: 0
                 },
                 {
                     question: "What is your main task in the test phase?",
                     options: [
-                        "To chat with a bot",
+                        "To chat only with a bot",
                         "To convince the tester that I am human",
                         "To pretend to be a bot"
                     ],
                     correctAnswer: 1
+                },
+                {
+                    question: "In the main test phase, is it true that if the tester correctly identifies you as human, both of you will receive a bonus payment?",
+                    options: [
+                        "Yes, we will both receive a $1 bonus",
+                        "No, I won't receive any bonus",
+                        "I will receive a bonus regardless of the tester's guess"
+                    ],
+                    correctAnswer: 0
                 }
             ]
         },
         tester: {
             questions: [
                 {
-                    question: "What happens if you correctly identify which candidate is human and which is a bot?",
+                    question: "What is the purpose of the conversation review phase?",
+                    options: [
+                        "To review conversations and guess which was with a human and which was with the bot",
+                        "To go to sleep and be inactive",
+                        "To trick the other participant into thinking I am a bot"
+                    ],
+                    correctAnswer: 0
+                },
+                {
+                    question: "What is your main task in the test phase?",
+                    options: [
+                        "To not write anything",
+                        "To chat with both candidates and identify which candidate is human and which is a bot",
+                        "To pretend to be a bot"
+                    ],
+                    correctAnswer: 1
+                },
+                                {
+                    question: "In the main test phase, what happens if you correctly identify which candidate is human and which is a bot?",
                     options: [
                         "I will get disconnected",
                         "Both I and the human responder will receive a $1 bonus each",
                         "I will lose money"
                     ],
                     correctAnswer: 1
-                },
-                {
-                    question: "What is your main task in this experiment?",
-                    options: [
-                        "To not write anything",
-                        "To identify which candidate is human and which is a bot",
-                        "To pretend to be a bot"
-                    ],
-                    correctAnswer: 1
-                },                {
-                    question: "What is the conversation review phase?",
-                    options: [
-                        "A phase where I review real conversations and guess which is human-human and which is human-bot",
-                        "A phase where I chat with participants",
-                        "A phase where I submit my final guesses"
-                    ],
-                    correctAnswer: 0
                 }
             ]
         }
@@ -1989,11 +2099,11 @@ function ChatPage() {
         // Or if role is 'experimenter' (they only see one window, handled outside this mapping)
         return null;
     };
-    return (        <div className={`chat-container ${shuffling ? 'shuffling' : ''} ${role === 'tester' && showOverlay ? 'with-submission' : ''}`}>
+    return (        <div className={`chat-container ${shuffling ? 'shuffling' : ''} ${role === 'tester' && showOverlay ? 'with-submission' : ''} ${role === 'tester' ? 'tester-role' : ''}`}>
             
             {showNotificationForTester && role === 'tester' && (
                 <div className="popup-overlay">
-                    <div className="popup">
+                    <div className="popup" ref={popupRef}>
                         {quizStep === 'instructions' && (                            <>
                                 <h3>Your Mission: Identify the Human.</h3>
 
@@ -2112,6 +2222,7 @@ function ChatPage() {
 
                                 {!showQuizConfirmation ? (
                                     <button
+                                        ref={submitButtonRef}
                                         onClick={() => {
                                             if (quizAnswers.includes(null)) {
                                                 alert("Please answer all questions before submitting.");
@@ -2153,7 +2264,7 @@ function ChatPage() {
 
             {showNotificationForExperimenter && role === 'experimenter' && (
                 <div className="popup-overlay">
-                    <div className="popup">
+                    <div className="popup" ref={popupRef}>
                         {quizStep === 'instructions' && (
                             <>
                                 <h3>Your Mission: Convince the Tester You're Human.</h3>
@@ -2172,9 +2283,9 @@ function ChatPage() {
                                 </ul>
                                 <h4>Important:</h4>
                                 <ul>
-                                    <li><p className="warning-text">⚠️ Stay active to avoid disconnection.</p></li>
-                                    <li><p className="warning-text">You must pass a quiz on these instructions. Failure
-                                        means no payment.</p></li>
+                                    <li>⚠️ Stay active to avoid disconnection.</li>
+                                    <li>You must pass a quiz on these instructions. Failure
+                                        means no payment.</li>
                                 </ul>
 
                                 <button
@@ -2254,6 +2365,7 @@ function ChatPage() {
 
                                 {!showQuizConfirmation ? (
                                     <button
+                                        ref={submitButtonRef}
                                         onClick={() => {
                                             if (quizAnswers.includes(null)) {
                                                 alert("Please answer all questions before submitting.");
@@ -2441,7 +2553,7 @@ function ChatPage() {
                         </div>
                         <h3>Waiting for Partner</h3>
                         <p>Your partner is still reviewing their conversations. Please wait while they complete their review.</p>                        <div className="waiting-timer">
-                            <div className="timer-label">Time Remaining for Partner:</div>
+                            <div className="timer-label">Maximum time Remaining for Partner:</div>
                             <div className="timer-value">
                                 {(() => {
                                     const remainingTime = Math.max(0, partnerConversationReviewTimeRemaining - waitingForReviewElapsed);
@@ -2574,6 +2686,44 @@ function ChatPage() {
                     </div>
                     <div className="timer-info">
                         Time remaining in current phase
+                    </div>
+                </div>
+            )}
+
+            {/* Test Phase Start Notification */}
+            {showTestPhaseNotification && (
+                <div className="popup-overlay">
+                    <div className="popup test-phase-notification">
+                        <div className="notification-icon">
+                            🚀
+                        </div>
+                        <h2>Ready for the Real Test!</h2>
+                        <p>
+                            Excellent! Both participants have completed the conversation review phase.
+                        </p>
+                        <p>
+                            <strong>The actual Turing Test chat is about to begin!</strong>
+                        </p>
+                        <div className="test-phase-instructions">
+                            {role === 'tester' ? (
+                                <p>
+                                    You will now chat with two candidates in separate windows. 
+                                    Your goal is to identify which one is human and which is the bot.
+                                </p>
+                            ) : (
+                                <p>
+                                    You will now chat with the tester. 
+                                    Your goal is to convince them that you are the human participant.
+                                </p>
+                            )}
+                        </div>
+                        <div className="test-phase-timer-info">
+                            <p><strong>Duration:</strong> 5 minutes</p>
+                            <p><strong>Reward:</strong> $1.00 bonus if the tester guesses correctly!</p>
+                        </div>
+                        <div className="auto-start-message">
+                            <p>Starting automatically in a few seconds...</p>
+                        </div>
                     </div>
                 </div>
             )}

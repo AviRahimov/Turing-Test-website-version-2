@@ -34,7 +34,7 @@ SHUFFLE_ENABLED = False  # Should match frontend config - set to False to skip s
 
 # MongoDB connection
 client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
-db = client['advanced_turing_test_no_shuffle_version_db']  # database name
+db = client['advanced_turing_test_db_V2']  # database name
 
 # Flask app setup
 allowed = ["http://localhost:3000", "http://54.89.200.237:5000", "*"]
@@ -176,7 +176,6 @@ def chat_with_bot():
                     bot_base_name=bot_base_persona_details.get('name'),
                     bot_base_gender=bot_base_persona_details.get('gender'),
                     bot_base_age=bot_base_persona_details.get('age'),
-                    bot_base_occupation=bot_base_persona_details.get('occupation', "Student"),
                     bot_base_country=bot_base_persona_details.get('country', "USA"),
                     bot_base_ai_experience=bot_base_persona_details.get('aiExperience', "Low"),
                     conversation_to_continue_history=conversation_to_continue,
@@ -439,15 +438,10 @@ def handle_quiz_completed(data):
             emit('timer_started', {'pair_id': pair_id, 'shuffle_duration': SHUFFLE_TIMER_DURATION}, to=pair_id)
             logging.info(f"🎯 Emitted timer_started event to room {pair_id}")
         else:
-            logging.info(f"🎯 Shuffle disabled, skipping directly to real test timer for pair {pair_id}")
-            # Skip shuffle phase, go directly to real test
-            start_real_test_timer(pair_id)
-            # Emit shuffle_started event immediately to trigger frontend anonymous mode
-            emit('shuffle_started_broadcast', {
-                'pair_id': pair_id,
-                'message': 'Shuffle phase skipped - starting test phase'
-            }, to=pair_id)
-            logging.info(f"🎯 Emitted shuffle_started_broadcast (skipped) event to room {pair_id}")
+            logging.info(f"🎯 Shuffle disabled, quiz completed - will start timer after conversation review")
+            # Don't start timer yet - wait for conversation review to complete
+            # The timer will be started when both users complete conversation review
+            logging.info(f"🎯 Quiz phase completed for pair {pair_id}, proceeding to conversation review")
     else:
         logging.info(f"🎯 ⏳ WAITING for other user - Tester completed: {tester_completed}, Experimenter completed: {experimenter_completed}")
 
@@ -474,8 +468,72 @@ def handle_participant_ban(data):
     print("Received participant ban:", data)  # Debug log
     pair_id = data.get("pair_id")
     role = data.get("role")
+    banned_username = data.get("username")  # Get the banned user's username
+    
+    # Emit the ban notification to the room
     emit("participant_banned", {"role": role}, to=pair_id)
     print(f"Sent ban notification to room {pair_id}")  # Debug log
+    
+    # Now handle the disconnection logic similar to on_disconnect
+    if banned_username and pair_id in pairs:
+        logging.info(f"Handling inactive ban for user {banned_username} in pair {pair_id}")
+        
+        # Find the remaining user
+        pair = pairs[pair_id]
+        other_user = pair['experimenter'] if pair['tester'] == banned_username else pair['tester']
+        other_user_role = 'experimenter' if pair['tester'] == banned_username else 'tester'
+        
+        # Generate a 6-digit code for the remaining user
+        code = generate_unique_code(digits=6)
+        
+        # Save the code to MongoDB for the remaining user
+        try:
+            codes_collection.insert_one({
+                "code": code,
+                "username": other_user,
+                "user_id": other_user,
+                "role": other_user_role,
+                "pair_id": pair_id,
+                "reason": "partner_inactive_banned",
+                "timestamp": datetime.now()
+            })
+            logging.info(f"Saved inactive ban code {code} for user {other_user}")
+        except Exception as e:
+            logging.error(f"Error saving inactive ban code: {e}")
+        
+        # Emit partner disconnected event to the remaining user
+        socketio.emit('partner_disconnected', {
+            'message': 'Your partner was disconnected due to inactivity. You will be redirected to the completion page.',
+            'redirect_to_thank_you': True,
+            'bonus_code': code,
+            'role': other_user_role,
+            'username': other_user,
+            'user_id': other_user,
+            'reason': 'partner_inactive'
+        }, to=pair_id)
+        
+        logging.info(f"Notified {other_user} about partner inactivity with code {code}")
+        
+        # Clean up the pair and associated data
+        if pair_id in pair_quiz_status:
+            del pair_quiz_status[pair_id]
+        if pair_id in pair_review_status:
+            del pair_review_status[pair_id]
+        
+        # Clean up timers
+        timers_to_remove = []
+        for timer_key in pair_timers:
+            if timer_key.startswith(f"{pair_id}_"):
+                timers_to_remove.append(timer_key)
+        
+        for timer_key in timers_to_remove:
+            timer_thread = pair_timers.pop(timer_key, None)
+            if timer_thread and hasattr(timer_thread, 'cancel'):
+                timer_thread.cancel()
+        
+        # Remove the pair
+        del pairs[pair_id]
+        logging.info(f"Cleaned up pair {pair_id} after inactive ban")
 
 
 # Update the socket connection event handler
@@ -523,25 +581,19 @@ def save_demographics():
     print(f"Received demographics data to save: {data}")  # DEBUG LINE
     user_id_from_frontend = data.get("user_id") # This is the "user_X" string
     gender = data.get("gender")
-    age = data.get("age")
-    occupation = data.get("occupation")
+    age = data.get("age")  # Now this is a range string like "20-30"
     education = data.get("education")
     country = data.get("country")
     ai_experience = data.get("aiExperience")
 
-    # Validate age server-side as well
-    try:
-        age_num = int(age)
-        if age_num <= 0:
-            return jsonify({"status": "error", "message": "Invalid age"}), 400
-    except (ValueError, TypeError):
-        return jsonify({"status": "error", "message": "Age must be a number"}), 400
+    # No longer need to validate age as integer since it's now a range string
+    if not age:
+        return jsonify({"status": "error", "message": "Age is required"}), 400
 
     demographic_data = {
         "user_id": user_id_from_frontend, # Storing "user_X" as user_id
         "gender": gender,
-        "age": age_num, # Storing numerical age
-        "occupation": occupation, # Storing occupation
+        "age": age, # Storing age range string (e.g., "20-30")
         "education": education,
         "country": country,
         "ai_experience": ai_experience,
@@ -565,7 +617,6 @@ def get_user_demographics(target_username):
             demographics_to_return = {
                 "gender": user_data_doc.get("gender"),
                 "age": user_data_doc.get("age"),
-                "occupation": user_data_doc.get("occupation"),  # Return occupation
                 "education": user_data_doc.get("education"),
                 "country": user_data_doc.get("country"),
                 "aiExperience": user_data_doc.get("ai_experience")
@@ -920,6 +971,15 @@ def handle_conversation_review_completed(data):
             'tester_data': review_status['tester_data'],
             'experimenter_data': review_status['experimenter_data']
         }, to=pair_id)
+        
+        # Start the backend timer after 10 seconds to sync with frontend notification
+        def delayed_timer_start():
+            socketio.sleep(10)  # Wait 10 seconds to match frontend notification timing
+            start_real_test_timer(pair_id)
+            logging.info(f"Started backend timer (300s) for pair {pair_id} after 10s delay")
+        
+        # Start delayed timer as background task
+        socketio.start_background_task(delayed_timer_start)
           # Clean up the review status for this pair
         del pair_review_status[pair_id]
         logging.info(f"Cleaned up conversation review status for pair {pair_id}")
