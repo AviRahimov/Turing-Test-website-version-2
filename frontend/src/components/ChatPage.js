@@ -175,14 +175,14 @@ function ChatPage() {
     useEffect(() => {
         const loadConversations = async () => {
             try {
-                console.log('Loading conversations for review...');
+                // console.log('Loading conversations for review...');
                 const csvData = await loadCSVData();
                 const conversations = getRandomConversations(csvData, 5);
-                console.log('Loaded conversations:', conversations);
+                // console.log('Loaded conversations:', conversations);
                 setPreShuffleConversations(conversations);
                 setConversationGuesses(new Array(conversations.length).fill(null));
                 // Don't start conversation review automatically - wait for quiz completion
-                console.log('Conversations loaded, waiting for quiz completion to start review');
+                // console.log('Conversations loaded, waiting for quiz completion to start review');
             } catch (error) {
                 console.error('Error loading conversations:', error);
                 // Set mock data as fallback
@@ -190,7 +190,7 @@ function ChatPage() {
                 setPreShuffleConversations(mockConversations);
                 setConversationGuesses(new Array(mockConversations.length).fill(null));
                 // Don't start conversation review automatically - wait for quiz completion
-                console.log('Fallback conversations loaded, waiting for quiz completion to start review');
+                // console.log('Fallback conversations loaded, waiting for quiz completion to start review');
             }
         };
 
@@ -200,7 +200,7 @@ function ChatPage() {
     // Initialize quiz immediately after pairing
     useEffect(() => {
         if (pairId && role && username) {
-            console.log('🎯 Initializing quiz after pairing:', {pairId, role, username});
+            // console.log('🎯 Initializing quiz after pairing:', {pairId, role, username});
             // Show quiz notification immediately after pairing
             if (role === 'tester') {
                 setShowNotificationForTester(true);
@@ -258,8 +258,8 @@ function ChatPage() {
                 {demData.country && <p><span>Country:</span> {demData.country}</p>}
                 {demData.aiExperience && <p><span>AI Exp:</span> {demData.aiExperience}</p>}
             </div>
-        );
-    };    // useEffect for handling the start of inactivity checking
+        );    // useEffect for handling the start of inactivity checking
+    };
     useEffect(() => {
         // Start the inactivity checker when chat timer has started and not paused, OR during conversation review
         // BUT NOT when waiting for partner to complete quiz OR waiting for partner to complete review
@@ -268,11 +268,11 @@ function ChatPage() {
                                          !waitingForPartner && !waitingForPartnerReview;
         
         if (shouldStartInactivityCheck && !inactivityCheckerActive) {
-            console.log(`${role} - Starting inactivity monitoring system`);
+            // console.log(`${role} - Starting inactivity monitoring system`);
             lastActivityTimestampRef.current = Date.now(); // Initialize the ref
             setInactivityCheckerActive(true);
         } else if (!shouldStartInactivityCheck && inactivityCheckerActive) {
-            console.log(`${role} - Stopping inactivity monitoring system`);
+            // console.log(`${role} - Stopping inactivity monitoring system`);
             setInactivityCheckerActive(false);
         }
     }, [chatTimerStarted, timerPaused, inactivityCheckerActive, role, conversationReviewStarted, conversationPhase, waitingForPartner, waitingForPartnerReview]);
@@ -280,16 +280,16 @@ function ChatPage() {
 // useEffect for the actual inactivity checking
     useEffect(() => {
         if (inactivityCheckerActive) {
-            // // console.log(`${role} - Inactivity checker is now running`);
+            // // // console.log(`${role} - Inactivity checker is now running`);
 
             const inactivityInterval = setInterval(() => {
                 const currentTime = Date.now();
                 const timeSinceLastActivity = currentTime - lastActivityTimestampRef.current;
 
-                // // console.log(`${role} - Last activity: ${Math.floor(timeSinceLastActivity / 1000)} seconds ago`);
+                console.log(`${role} - Last activity: ${Math.floor(timeSinceLastActivity / 1000)} seconds ago`);
 
                 if (timeSinceLastActivity >= 120000) { // 120 seconds
-                    // // console.log(`${role} - Inactivity limit reached - disconnecting user`);
+                    // // // console.log(`${role} - Inactivity limit reached - disconnecting user`);
 
                     const banMessage = "You have been disconnected due to inactivity. You will not receive payment for this session.";
                     alert(banMessage);
@@ -309,11 +309,23 @@ function ChatPage() {
                         state: {message: banMessage}, replace: true
                     });
                 } else if (timeSinceLastActivity >= 60000 && !warningShown) { // 60 seconds
-                    // // console.log(`${role} - Warning threshold reached - showing warning`);
+                    // // // console.log(`${role} - Warning threshold reached - showing warning`);
 
-                    const warningMessage = role === 'tester'
-                        ? "⚠️ Warning: If you don't send a message soon, you will be disconnected and won't receive payment."
-                        : "⚠️ Warning: If you don't send a message soon, you will be disconnected from the experiment, and won't receive payment.";
+                    // Check if we're in conversation review phase vs test phase
+                    const isConversationReviewPhase = conversationReviewStarted && conversationPhase !== 'completed';
+                    
+                    let warningMessage;
+                    if (isConversationReviewPhase) {
+                        // Conversation review phase warnings
+                        warningMessage = role === 'tester'
+                            ? "⚠️ Warning: You must stay active during the conversation review phase. Make your guesses or you will be disconnected and won't receive payment."
+                            : "⚠️ Warning: You must stay active during the conversation review phase. Make your guesses or you will be disconnected and won't receive payment.";
+                    } else {
+                        // Test phase warnings (original behavior)
+                        warningMessage = role === 'tester'
+                            ? "⚠️ Warning: If you don't send a message soon, you will be disconnected and won't receive payment."
+                            : "⚠️ Warning: If you don't send a message soon, you will be disconnected from the experiment, and won't receive payment.";
+                    }
 
                     alert(warningMessage);
                     setWarningShown(true);
@@ -389,32 +401,31 @@ function ChatPage() {
     };    const sendMessageToBot = () => {
         if (!messageToBot.trim()) return;
 
-        // // console.log('User sending message to bot, resetting timestamps and counters');
+        // // // console.log('User sending message to bot, resetting timestamps and counters');
         // Reset wake-up attempts and activity timestamps when user sends a message
         setWakeupAttemptsCount(0);
         lastActivityTimestampRef.current = Date.now(); // Use ref instead of state
         lastWakeupMessageTimeRef.current = Date.now();
         setWarningShown(false);
-        // // console.log(`${role} - Activity timestamp reset - message to bot`);
+        // // // console.log(`${role} - Activity timestamp reset - message to bot`);
 
         // If this is a response to a wake-up message, log it
         if (lastWakeupMessageRef.current) {
-            // // console.log('User responding to wake-up message:', lastWakeupMessageRef.current);
+            // // // console.log('User responding to wake-up message:', lastWakeupMessageRef.current);
         }
 
         const newMessage = {sender: role, content: messageToBot};
         
         // DEBUG: Track bot message additions
-        // // console.log("🤖 ADDING MESSAGE TO BOT:", newMessage);
-        // console.log("🤖 Current botMessages length before add:", botMessages.length);
+        // // console.log("🤖 Current botMessages length before add:", botMessages.length);
           setBotMessages((prevBotMessages) => {
             const updatedBotMessages = [...prevBotMessages, newMessage];
-            // console.log("🤖 Updated botMessages length after add:", updatedBotMessages.length);
-            // console.log("🤖 Full botMessages array:", updatedBotMessages.map(msg => `${msg.sender}: ${msg.content}`));
+            // // console.log("🤖 Updated botMessages length after add:", updatedBotMessages.length);
+            // // console.log("🤖 Full botMessages array:", updatedBotMessages.map(msg => `${msg.sender}: ${msg.content}`));
             
             // SYNC WITH REF for reliable shuffle capture
             botMessagesRef.current = updatedBotMessages;
-            // console.log("🤖 SYNCED botMessagesRef length:", botMessagesRef.current.length);
+            // // console.log("🤖 SYNCED botMessagesRef length:", botMessagesRef.current.length);
             
             return updatedBotMessages;
         });
@@ -531,37 +542,37 @@ function ChatPage() {
         setFinalRoomConfig(newConfig);
     };    // Function to handle shuffle logic for tester role (called from socket event)
     const performShuffleForTester = () => {
-        // console.log("🎯 PERFORM_SHUFFLE_FOR_TESTER FUNCTION CALLED!");
-        // console.log("🎯 Function is executing - this confirms the function was found and called");
-        // console.log("SHUFFLE INITIATED for Tester: Backend triggered shuffle.");
+        // // console.log("🎯 PERFORM_SHUFFLE_FOR_TESTER FUNCTION CALLED!");
+        // // console.log("🎯 Function is executing - this confirms the function was found and called");
+        // // console.log("SHUFFLE INITIATED for Tester: Backend triggered shuffle.");
         
         // DEBUG: Check state and ref values
-        // console.log("Current messages state length:", messages.length);
-        // console.log("Current botMessages state length:", botMessages.length);
-        // console.log("Current messages content:", messages.map(msg => `${msg.sender}: ${msg.content}`));
-        // console.log("Current botMessages content:", botMessages.map(msg => `${msg.sender}: ${msg.content}`));
+        // // console.log("Current messages state length:", messages.length);
+        // // console.log("Current botMessages state length:", botMessages.length);
+        // // console.log("Current messages content:", messages.map(msg => `${msg.sender}: ${msg.content}`));
+        // // console.log("Current botMessages content:", botMessages.map(msg => `${msg.sender}: ${msg.content}`));
         
         // CRITICAL FIX: Use refs instead of state for reliable capture
-        // console.log("🔍 CHECKING REFS:");
-        // console.log("messagesRef.current length:", messagesRef.current.length);
-        // console.log("botMessagesRef.current length:", botMessagesRef.current.length);
-        // console.log("messagesRef.current content:", messagesRef.current.map(msg => `${msg.sender}: ${msg.content}`));
-        // console.log("botMessagesRef.current content:", botMessagesRef.current.map(msg => `${msg.sender}: ${msg.content}`));
+        // // console.log("🔍 CHECKING REFS:");
+        // // console.log("messagesRef.current length:", messagesRef.current.length);
+        // // console.log("botMessagesRef.current length:", botMessagesRef.current.length);
+        // // console.log("messagesRef.current content:", messagesRef.current.map(msg => `${msg.sender}: ${msg.content}`));
+        // // console.log("botMessagesRef.current content:", botMessagesRef.current.map(msg => `${msg.sender}: ${msg.content}`));
         
         setShuffling(true); // For visual shuffle effect        // --- CAPTURE HISTORIES BEFORE SHUFFLE ---
         // 1. Capture the Tester <-> Human Responder chat history (from messagesRef - real-time data)
         // This is the history the bot will take over.
         const testerResponderChatSnapshot = [...messagesRef.current]; // USE REF instead of state
         setCapturedPreShuffleTesterResponderChat(testerResponderChatSnapshot);
-        // console.log("✅ CAPTURED Tester-Responder chat snapshot length:", testerResponderChatSnapshot.length);
-        // console.log("✅ CAPTURED Tester-Responder chat content:", testerResponderChatSnapshot.map(msg => `${msg.sender}: ${msg.content}`));
+        // // console.log("✅ CAPTURED Tester-Responder chat snapshot length:", testerResponderChatSnapshot.length);
+        // // console.log("✅ CAPTURED Tester-Responder chat content:", testerResponderChatSnapshot.map(msg => `${msg.sender}: ${msg.content}`));
 
         // 2. Capture the original Tester <-> Bot (Alex) chat history (from botMessagesRef - real-time data)
         // This is for the "confusion test" context.
         const originalTesterBotChatSnapshot = [...botMessagesRef.current]; // USE REF instead of state       
         setCapturedPreShuffleTesterBotChat(originalTesterBotChatSnapshot);        
-        // console.log("✅ CAPTURED original Tester-Bot chat snapshot length:", originalTesterBotChatSnapshot.length);
-        // console.log("✅ CAPTURED original Tester-Bot chat content:", originalTesterBotChatSnapshot.map(msg => `${msg.sender}: ${msg.content}`));
+        // // console.log("✅ CAPTURED original Tester-Bot chat snapshot length:", originalTesterBotChatSnapshot.length);
+        // // console.log("✅ CAPTURED original Tester-Bot chat content:", originalTesterBotChatSnapshot.map(msg => `${msg.sender}: ${msg.content}`));
         
         // VALIDATE CAPTURED DATA
         if (testerResponderChatSnapshot.length === 0 && originalTesterBotChatSnapshot.length === 0) {
@@ -571,7 +582,7 @@ function ChatPage() {
         // --- END CAPTURE ---
 
         setTimeout(() => {
-            // console.log("🔄 SHUFFLE EXECUTION for Tester: Applying post-shuffle states.");
+            // // console.log("🔄 SHUFFLE EXECUTION for Tester: Applying post-shuffle states.");
             setupAnonymousRooms();
             saveChatLogs('Before Turing Test: '); // Log before state changes fully apply to UI            
             
@@ -579,27 +590,27 @@ function ChatPage() {
             // ONLY use the tester-experimenter chat history, never bot messages
             
             // ALWAYS use the captured history, even if it appears empty (to debug the real issue)
-            // console.log("🔄 Setting both chat windows to captured tester-experimenter history...");
-            // console.log("🔄 Using captured history with length:", testerResponderChatSnapshot.length);
+            // // console.log("🔄 Setting both chat windows to captured tester-experimenter history...");
+            // // console.log("🔄 Using captured history with length:", testerResponderChatSnapshot.length);
             setMessages([...testerResponderChatSnapshot]); // Experimenter window (Candidate A or B)
             setBotMessages([...testerResponderChatSnapshot]); // Bot window (Candidate A or B) - same history
             
             // SYNC WITH REFS immediately after setting state
             messagesRef.current = [...testerResponderChatSnapshot];
             botMessagesRef.current = [...testerResponderChatSnapshot];
-            // console.log("🔄 SYNCED both refs with tester-experimenter history, length:", testerResponderChatSnapshot.length);
+            // // console.log("🔄 SYNCED both refs with tester-experimenter history, length:", testerResponderChatSnapshot.length);
             
             if (testerResponderChatSnapshot.length === 0) {
                 console.warn("⚠️ WARNING: Applied empty chat history. This indicates a problem with timing or state capture.");
                 console.warn("⚠️ The shuffle may be occurring before participants have had a chance to chat.");
             } else {
-                // console.log("✅ SUCCESS: Both chat windows populated with actual tester-experimenter conversation history.");
-                // console.log("✅ Shared chat history content:", testerResponderChatSnapshot.map(msg => `${msg.sender}: ${msg.content}`));
+                // // console.log("✅ SUCCESS: Both chat windows populated with actual tester-experimenter conversation history.");
+                // // console.log("✅ Shared chat history content:", testerResponderChatSnapshot.map(msg => `${msg.sender}: ${msg.content}`));
             }            // 4. Bot "adopts" human's demographics for display and conversational context
-            // console.log("🔄 DEMOGRAPHICS ADOPTION DEBUG:");
-            // console.log("🔄 humanParticipantDemographics:", humanParticipantDemographics);
-            // console.log("🔄 humanParticipantDemographics.error:", humanParticipantDemographics?.error);
-            // console.log("🔄 FIXED_BOT_DEMOGRAPHICS:", FIXED_BOT_DEMOGRAPHICS);
+            // // console.log("🔄 DEMOGRAPHICS ADOPTION DEBUG:");
+            // // console.log("🔄 humanParticipantDemographics:", humanParticipantDemographics);
+            // // console.log("🔄 humanParticipantDemographics.error:", humanParticipantDemographics?.error);
+            // // console.log("🔄 FIXED_BOT_DEMOGRAPHICS:", FIXED_BOT_DEMOGRAPHICS);
             
             if (humanParticipantDemographics && !humanParticipantDemographics.error) {
                 const humanDemographicsForBot = {
@@ -607,69 +618,69 @@ function ChatPage() {
                     source: 'adopted-human-post-shuffle'
                 };
                 setBotDisplayedDemographicsPostShuffle(humanDemographicsForBot);
-                // console.log("🔄 ✅ Bot displayed demographics set to human participant's:", humanDemographicsForBot);
+                // // console.log("🔄 ✅ Bot displayed demographics set to human participant's:", humanDemographicsForBot);
             } else {
                 console.warn("🔄 ❌ Human demographics not available for bot to adopt post-shuffle. Using fallback.");
                 console.warn("🔄 ❌ humanParticipantDemographics:", humanParticipantDemographics);
                 setBotDisplayedDemographicsPostShuffle(FIXED_BOT_DEMOGRAPHICS);
-                // console.log("🔄 ❌ Using FIXED_BOT_DEMOGRAPHICS as fallback:", FIXED_BOT_DEMOGRAPHICS);
+                // // console.log("🔄 ❌ Using FIXED_BOT_DEMOGRAPHICS as fallback:", FIXED_BOT_DEMOGRAPHICS);
             }            // 5. Switch to anonymous mode
             setIsAnonymousMode(true);
             setShuffling(false); // End visual shuffle effect
-            // console.log("Tester shuffle process complete. Anonymous mode active.");
+            // // console.log("Tester shuffle process complete. Anonymous mode active.");
         }, 3000); // Shuffle animation duration
     };
 
     // Socket connection setup with duplicate prevention
     useEffect(() => {
-        // console.log('🔗 Socket useEffect triggered with:', {role, pairId, shuffleEnabled});
-        // console.log('🔗 Setting up socket connection for role:', role, 'pairId:', pairId);
-        // console.log('🔗 Socket object:', socket);
-        // console.log('🔗 Socket connected?', socket?.connected);
-        // console.log('🔗 Current socketSetupRef value:', socketSetupRef.current);
+        // // console.log('🔗 Socket useEffect triggered with:', {role, pairId, shuffleEnabled});
+        // // console.log('🔗 Setting up socket connection for role:', role, 'pairId:', pairId);
+        // // console.log('🔗 Socket object:', socket);
+        // // console.log('🔗 Socket connected?', socket?.connected);
+        // // console.log('🔗 Current socketSetupRef value:', socketSetupRef.current);
         
         // Prevent duplicate socket setup
         if (socketSetupRef.current) {
-            // console.log('🔗 Socket setup already completed, skipping duplicate execution');
+            // // console.log('🔗 Socket setup already completed, skipping duplicate execution');
             return () => {
-                // console.log('🔗 Skipped setup - no cleanup needed');
+                // // console.log('🔗 Skipped setup - no cleanup needed');
             };
         }
         
         // Mark socket setup as completed to prevent duplicates
         socketSetupRef.current = true;
-        // console.log('🔗 Setting socketSetupRef to true to prevent duplicates');
+        // // console.log('🔗 Setting socketSetupRef to true to prevent duplicates');
           // Only remove specific listeners that we're about to re-add to prevent conflicts
         // CRITICAL: Do NOT remove shuffle_started listener as it's a one-time event that must persist
-        // console.log('🔗 Removing specific event listeners to prevent duplicates...');
+        // // console.log('🔗 Removing specific event listeners to prevent duplicates...');
         const eventsToRemove = ['message', 'timer_started', 'chat_ended', 'bonus_code', 'guess_submitted', 'experimenter_ready', 'notification_dismissed', 'participant_banned'];
         eventsToRemove.forEach(event => {
             socket.removeAllListeners(event);
-            // console.log(`🔗 Removed all listeners for event: ${event}`);
+            // // console.log(`🔗 Removed all listeners for event: ${event}`);
         });
         
         // Special handling for shuffle_started: only remove if we haven't set up the ref flag
         if (!socketSetupRef.current) {
-            // console.log('🔗 First time setup - removing any existing shuffle_started listeners');
+            // // console.log('🔗 First time setup - removing any existing shuffle_started listeners');
             socket.removeAllListeners('shuffle_started');
         } else {
-            // console.log('🔗 Preserving existing shuffle_started listener to prevent missing the event');
+            // // console.log('🔗 Preserving existing shuffle_started listener to prevent missing the event');
         }
         
         // Add connection status listeners
         socket.on('connect', () => {
-            // console.log('🔗 Socket CONNECTED successfully');
+            // // console.log('🔗 Socket CONNECTED successfully');
         });
         
         socket.on('disconnect', () => {
-            // console.log('🔗 Socket DISCONNECTED');
+            // // console.log('🔗 Socket DISCONNECTED');
         });
           // Add a generic event listener to catch all events
         socket.onAny((eventName, ...args) => {
-            // console.log('📥 RECEIVED ANY EVENT:', eventName, args);
+            // // console.log('📥 RECEIVED ANY EVENT:', eventName, args);
         });
           socket.emit('join', {pair_id: pairId, role: role});
-        // console.log('🔗 Emitted join event with:', {pair_id: pairId, role: role});
+        // // console.log('🔗 Emitted join event with:', {pair_id: pairId, role: role});
 
         // Don't set up anonymous rooms immediately - wait for proper phase transitions
         // Phase flow: Quiz → Conversation Review → Chat Phase
@@ -677,7 +688,7 @@ function ChatPage() {
 
         if (role === 'tester') {
             socket.on('experimenter_ready', (data) => {
-                // // console.log('Received experimenter_ready event', data);
+                // // // console.log('Received experimenter_ready event', data);
                 setExperimenterReady(true);
             });
         }
@@ -693,25 +704,25 @@ function ChatPage() {
             const newMessage = {sender: data.sender, content: data.message};
             
             // DEBUG: Track incoming messages
-            // console.log("≡ƒô¿ RECEIVED MESSAGE via socket:", newMessage);
-            // console.log("≡ƒô¿ Current role:", role);
+            // // console.log("≡ƒô¿ RECEIVED MESSAGE via socket:", newMessage);
+            // // console.log("≡ƒô¿ Current role:", role);
 
             // Avoid duplication in messages for experimenter or tester
             if (data.sender !== 'bot') {
-                // console.log("≡ƒô¿ Adding to messages array (experimenter chat)");
-                // console.log("≡ƒô¿ Current messages length before add:", messages.length);
+                // // console.log("≡ƒô¿ Adding to messages array (experimenter chat)");
+                // // console.log("≡ƒô¿ Current messages length before add:", messages.length);
                 setMessages((prevMessages) => {
                     if (prevMessages.find((msg) => msg.content === newMessage.content && msg.sender === newMessage.sender)) {
-                        // console.log("≡ƒô¿ DUPLICATE detected, ignoring message");
+                        // // console.log("≡ƒô¿ DUPLICATE detected, ignoring message");
                         return prevMessages; // Ignore duplicates
                     }
                     const updatedMessages = [...prevMessages, newMessage];
-                    // console.log("≡ƒô¿ Updated messages length after add:", updatedMessages.length);
-                    // console.log("≡ƒô¿ Full messages array:", updatedMessages.map(msg => `${msg.sender}: ${msg.content}`));
+                    // // console.log("≡ƒô¿ Updated messages length after add:", updatedMessages.length);
+                    // // console.log("≡ƒô¿ Full messages array:", updatedMessages.map(msg => `${msg.sender}: ${msg.content}`));
                     
                     // SYNC WITH REF for reliable shuffle capture
                     messagesRef.current = updatedMessages;
-                    // console.log("≡ƒô¿ SYNCED messagesRef from socket, length:", messagesRef.current.length);
+                    // // console.log("≡ƒô¿ SYNCED messagesRef from socket, length:", messagesRef.current.length);
                     
                     return updatedMessages;
                 });
@@ -719,26 +730,26 @@ function ChatPage() {
 
             // Avoid duplication in botMessages for bot-related messages
             if (data.sender === 'bot' && role === 'tester') {
-                // console.log("≡ƒô¿ Adding to botMessages array (bot chat)");
+                // // console.log("≡ƒô¿ Adding to botMessages array (bot chat)");
                 setBotMessages((prevBotMessages) => {
                     if (prevBotMessages.find((msg) => msg.content === newMessage.content)) {
-                        // console.log("≡ƒô¿ DUPLICATE bot message detected, ignoring");
+                        // // console.log("≡ƒô¿ DUPLICATE bot message detected, ignoring");
                         return prevBotMessages; // Ignore duplicates
                     }
                     const updatedBotMessages = [...prevBotMessages, newMessage];
-                    // console.log("≡ƒô¿ Updated botMessages length after add:", updatedBotMessages.length);
+                    // // console.log("≡ƒô¿ Updated botMessages length after add:", updatedBotMessages.length);
                     
                     // SYNC WITH REF for reliable shuffle capture
                     botMessagesRef.current = updatedBotMessages;
-                    // console.log("≡ƒô¿ SYNCED botMessagesRef from socket, length:", botMessagesRef.current.length);
+                    // // console.log("≡ƒô¿ SYNCED botMessagesRef from socket, length:", botMessagesRef.current.length);
                     
                     return updatedBotMessages;
                 });
             }
         });        // Listen for timer events from backend
         socket.on('timer_started', (data) => {
-            // console.log('🕐 Timer started event received:', data);
-            // console.log('🕐 Using PRE_SHUFFLE_TIMER from config:', config.PRE_SHUFFLE_TIMER);
+            // // console.log('🕐 Timer started event received:', data);
+            // // console.log('🕐 Using PRE_SHUFFLE_TIMER from config:', config.PRE_SHUFFLE_TIMER);
             setTimerPaused(false);
             setChatTimerStarted(true);
             setCurrentPhase('known_identity');
@@ -759,52 +770,20 @@ function ChatPage() {
             }        });
         
         // CRITICAL: Set up shuffle_started listener
-        // console.log('🚀 REGISTERING shuffle_started event listener');
+        // // console.log('🚀 REGISTERING shuffle_started event listener');
           socket.on('shuffle_started', (data) => {
-            console.log('🚀 SHUFFLE_STARTED EVENT RECEIVED - Ignoring for no-shuffle mode!', data);
-            console.log('📊 Current state when shuffle_started received:', {
-                role,
-                conversationPhase,
-                conversationReviewStarted,
-                quizStep,
-                chatTimerStarted,
-                preShuffleConversations: preShuffleConversations.length,
-                shuffleEnabled
-            });
             
             // Clear fallback shuffle timeout
             clearTimeout(fallbackShuffleTimeoutRef.current);
             
             // Since we don't want shuffle, we ignore this event entirely
             // The conversation review phase will handle transitions properly
-            console.log('🚀 Ignoring shuffle_started event - conversation review will handle phase transitions');
+            // console.log('🚀 Ignoring shuffle_started event - conversation review will handle phase transitions');
             return;
-        });        // console.log('🚀 shuffle_started listener registered successfully');
-        
-        // Listen for broadcast version (but ignore it since shuffle is disabled)
-        socket.on('shuffle_started_broadcast', (data) => {
-            console.log('🚀 SHUFFLE_STARTED_BROADCAST EVENT RECEIVED - Ignoring for no-shuffle mode!', data);
-            console.log('📊 Current state when shuffle_started_broadcast received:', {
-                role,
-                conversationPhase,
-                conversationReviewStarted,
-                quizStep,
-                chatTimerStarted,
-                preShuffleConversations: preShuffleConversations.length,
-                shuffleEnabled,
-                pairId,
-                dataPairId: data.pair_id
-            });
-              
-            // Since we don't want shuffle, we ignore this event entirely
-            // The conversation review phase will handle transitions properly
-            console.log('🚀 Ignoring shuffle_started_broadcast event - conversation review will handle phase transitions');
-            return;
-        });
-        // console.log('🚀 shuffle_started_broadcast listener registered successfully');
+        });        // // console.log('🚀 shuffle_started listener registered successfully');
         
         socket.on('chat_ended', (data) => {
-            // console.log('Chat ended event received:', data);
+            // // console.log('Chat ended event received:', data);
             // Backend says chat is over, show overlay
             setShowOverlay(true);
             setInactivityCheckerActive(false); // Stop inactivity checking
@@ -814,7 +793,7 @@ function ChatPage() {
         });
         
         socket.on('bonus_code', (data) => {
-            // console.log('Bonus code received:', data);
+            // // console.log('Bonus code received:', data);
             // Process bonus code for both roles when role is "both", or for specific role
             if (data.role === 'both' || (data.role === 'experimenter' && role === 'experimenter')) {
                 const bonusCode = data.bonus;
@@ -838,7 +817,7 @@ function ChatPage() {
                 // For tester, just store the code - navigation will happen on guess_submitted
             }
         });        socket.on('guess_submitted', (data) => {
-            // console.log('Guess submission confirmed:', data);
+            // // console.log('Guess submission confirmed:', data);
             // Only process if this is for the tester role and we are a tester
             if (data.role === 'tester' && role === 'tester') {
                 // Get the bonus code from localStorage or from the data
@@ -850,7 +829,7 @@ function ChatPage() {
                 const currentRealIdentityA = realIdentityARef.current;
                 const currentRealIdentityB = realIdentityBRef.current;
                 
-                // console.log('🔍 NAVIGATION DEBUG - About to navigate to feedback with:', {
+                // // console.log('🔍 NAVIGATION DEBUG - About to navigate to feedback with:', {
                 //     realIdentityA: currentRealIdentityA,
                 //     realIdentityB: currentRealIdentityB,
                 //     guessCandidateA: currentGuessCandidateA,
@@ -886,14 +865,14 @@ function ChatPage() {
                             username: username
                         }
                     });
-                    // console.log('✅ NAVIGATION DEBUG - Navigation to feedback completed');
+                    // // console.log('✅ NAVIGATION DEBUG - Navigation to feedback completed');
                 }, 500); // Short delay to ensure alert is dismissed
             }
         });        // Listen for conversation review synchronization events
         socket.on('conversation_review_sync', (data) => {
-            console.log('🔄 Conversation review sync event received:', data);
+            // console.log('🔄 Conversation review sync event received:', data);
             if (data.action === 'start_test_phase') {
-                console.log('🚀 Starting synchronized test phase (chat phase)');
+                // console.log('🚀 Starting synchronized test phase (chat phase)');
                 
                 // Show beautiful test phase notification first
                 setShowTestPhaseNotification(true);
@@ -901,8 +880,8 @@ function ChatPage() {
                 // Auto-dismiss after 10 seconds and proceed with the test phase
                 setTimeout(() => {
                     handleDismissTestPhaseNotification();
-                }, 10000); // Show notification for 10 seconds before auto-proceeding            } else if (data.action === 'partner_completed') {
-                console.log('👥 Partner completed conversation review, waiting for sync');
+                }, 10000); // Show notification for 10 seconds before auto-proceeding            
+                } else if (data.action === 'partner_completed') {
                 setPartnerReviewCompleted(true);
                 // Set the partner's remaining time if provided
                 if (data.partner_remaining_time !== undefined) {
@@ -914,7 +893,6 @@ function ChatPage() {
         
         // Enhanced partner disconnection handling
         socket.on('partner_conversation_review_disconnect', (data) => {
-            console.log('🔥 Partner disconnected during conversation review:', data);
             // Stop any active timers
             setTimerVisible(false);
             setTimerPaused(true);
@@ -949,18 +927,15 @@ function ChatPage() {
         
         // Handle partner ban notifications
         socket.on('participant_banned', (data) => {
-            console.log('🚫 Partner was banned due to inactivity:', data);
             // The partner_disconnected event will handle the actual disconnection logic
             // This event is just for notification purposes
         });
         
         // All critical listeners have been registered successfully
-        // console.log('🔗 All socket event listeners registered successfully');
+        // // console.log('🔗 All socket event listeners registered successfully');
 
         // Only return cleanup function if this was the actual setup execution
         return () => {
-            // console.log('🔗 Cleanup function called for actual socket setup');
-            // console.log('🔗 Cleaning up socket listeners...');
             
             // DO NOT reset the setup flag here to prevent duplicate executions
             // Only reset it when component truly unmounts
@@ -979,18 +954,17 @@ function ChatPage() {
               if (role === 'tester') {
                 socket.off('experimenter_ready');
             }
-            // console.log('🔗 Socket cleanup completed (shuffle_started listener preserved)');
+            // // console.log('🔗 Socket cleanup completed (shuffle_started listener preserved)');
         };
-    }, []); // CRITICAL FIX: Empty dependencies - socket setup should only run once!
-
+    }, []);
 
     // Partner disconnection listener
     useEffect(() => {
-        // console.log('🔥 Setting up partner_disconnected listener');
+        // // console.log('🔥 Setting up partner_disconnected listener');
         
         const handlePartnerDisconnected = (data) => {
-            // console.log('🔥 PARTNER DISCONNECTED EVENT RECEIVED:', data);
-            // console.log('🔥 Event data details:', JSON.stringify(data, null, 2));
+            // // console.log('🔥 PARTNER DISCONNECTED EVENT RECEIVED:', data);
+            // // console.log('🔥 Event data details:', JSON.stringify(data, null, 2));
             
             // Stop any active timers or intervals
             setInactivityCheckerActive(false);
@@ -1005,7 +979,7 @@ function ChatPage() {
             
             // Navigate to thank you page with 6-digit code
             if (data.redirect_to_thank_you && data.bonus_code) {
-                // console.log('🔥 Redirecting to ThankYou page with code:', data.bonus_code);
+                // // console.log('🔥 Redirecting to ThankYou page with code:', data.bonus_code);
                 navigate('/thank_you', {
                     replace: true,
                     state: { 
@@ -1018,7 +992,7 @@ function ChatPage() {
                     }
                 });
             } else {
-                // console.log('🔥 Redirecting to HomePage - no valid completion data');
+                // // console.log('🔥 Redirecting to HomePage - no valid completion data');
                 navigate('/', { 
                     replace: true,
                     state: { 
@@ -1042,7 +1016,7 @@ function ChatPage() {
     // Component unmount cleanup - reset socket setup ref
     useEffect(() => {
         return () => {
-            // console.log('🔗 Component unmounting - resetting socketSetupRef');
+            // // console.log('🔗 Component unmounting - resetting socketSetupRef');
             socketSetupRef.current = false;
         };
     }, []); // Empty dependency array, only runs on unmount
@@ -1051,7 +1025,7 @@ function ChatPage() {
     useEffect(() => {
         if (testerDismissed && experimenterDismissed) {
             setTimerPaused(false);
-            // // console.log('Both participants dismissed notifications, timer starting');
+            // // // console.log('Both participants dismissed notifications, timer starting');
         }
     }, [testerDismissed, experimenterDismissed]);
 
@@ -1085,7 +1059,7 @@ function ChatPage() {
     };    useEffect(() => {
         if (quizStep === 'completed' && partnerQuizStatus === 'completed' &&
             testerDismissed && experimenterDismissed) {
-            console.log('[QUIZ_DISMISSAL] Both participants completed quiz and dismissed notifications, starting conversation review');
+            // console.log('[QUIZ_DISMISSAL] Both participants completed quiz and dismissed notifications, starting conversation review');
             
             // Start conversation review phase when both have dismissed their notifications
             setConversationPhase('review');
@@ -1106,7 +1080,7 @@ function ChatPage() {
         const allQuestionsAnswered = quizAnswers.every(answer => answer !== null);
         
         if (allQuestionsAnswered && quizStep === 'quiz') {
-            console.log('🔄 Auto-scroll triggered: All questions answered');
+            // console.log('🔄 Auto-scroll triggered: All questions answered');
             
             // Small delay to ensure DOM has updated and submit button is rendered
             setTimeout(() => {
@@ -1114,10 +1088,10 @@ function ChatPage() {
                 const submitButton = submitButtonRef.current;
                 
                 if (popup && submitButton) {
-                    console.log('🔄 Found popup and submit button elements');
-                    console.log('🔄 Popup scrollHeight:', popup.scrollHeight);
-                    console.log('🔄 Popup clientHeight:', popup.clientHeight);
-                    console.log('🔄 Submit button offsetTop:', submitButton.offsetTop);
+                    // console.log('🔄 Found popup and submit button elements');
+                    // console.log('🔄 Popup scrollHeight:', popup.scrollHeight);
+                    // console.log('🔄 Popup clientHeight:', popup.clientHeight);
+                    // console.log('🔄 Submit button offsetTop:', submitButton.offsetTop);
                     
                     // Calculate the position to scroll to show the submit button
                     const submitButtonTop = submitButton.offsetTop;
@@ -1127,19 +1101,19 @@ function ChatPage() {
                     // Scroll to position the submit button comfortably in view
                     const targetScrollTop = submitButtonTop - popupHeight + submitButtonHeight + 60; // 60px padding from bottom
                     
-                    console.log('🔄 Scrolling to position:', Math.max(0, targetScrollTop));
+                    // console.log('🔄 Scrolling to position:', Math.max(0, targetScrollTop));
                     
                     popup.scrollTo({
                         top: Math.max(0, targetScrollTop),
                         behavior: 'smooth'
                     });
                 } else {
-                    console.log('🔄 Missing elements:', {
-                        popup: !!popup,
-                        submitButton: !!submitButton,
-                        popupRef: !!popupRef.current,
-                        submitButtonRef: !!submitButtonRef.current
-                    });
+                    // console.log('🔄 Missing elements:', {
+                    //     popup: !!popup,
+                    //     submitButton: !!submitButton,
+                    //     popupRef: !!popupRef.current,
+                    //     submitButtonRef: !!submitButtonRef.current
+                    // });
                 }
             }, 500); // Longer delay to ensure submit button is rendered
         }
@@ -1148,14 +1122,14 @@ function ChatPage() {
     // Auto-scroll when confirmation dialog appears
     useEffect(() => {
         if (showQuizConfirmation && quizStep === 'quiz') {
-            console.log('🔄 Auto-scroll triggered: Confirmation dialog appeared');
+            // console.log('🔄 Auto-scroll triggered: Confirmation dialog appeared');
             
             // Small delay to ensure DOM has updated and confirmation dialog is rendered
             setTimeout(() => {
                 const popup = popupRef.current;
                 
                 if (popup) {
-                    console.log('🔄 Scrolling to bottom for confirmation dialog');
+                    // console.log('🔄 Scrolling to bottom for confirmation dialog');
                     
                     // Scroll to the bottom of the popup to show the confirmation dialog 
                     popup.scrollTo({
@@ -1163,7 +1137,7 @@ function ChatPage() {
                         behavior: 'smooth'
                     });
                 } else {
-                    console.log('🔄 Missing popup element for confirmation scroll');
+                    // console.log('🔄 Missing popup element for confirmation scroll');
                 }
             }, 200); // Small delay to ensure confirmation dialog is rendered
         }
@@ -1176,21 +1150,21 @@ function ChatPage() {
         // Reset activity timestamp and warning state
         lastActivityTimestampRef.current = Date.now(); // Use ref instead of state
         setWarningShown(false);
-        // // console.log(`${role} - Activity timestamp reset - message to experimenter`);
+        // // // console.log(`${role} - Activity timestamp reset - message to experimenter`);
 
         const newMessage = {sender: role, content: messageToExperimenter};
         
         // DEBUG: Track message additions
-        // console.log("💬 ADDING MESSAGE TO EXPERIMENTER:", newMessage);
-        // console.log("💬 Current messages length before add:", messages.length);
+        // // console.log("💬 ADDING MESSAGE TO EXPERIMENTER:", newMessage);
+        // // console.log("💬 Current messages length before add:", messages.length);
           setMessages((prevMessages) => {
             const updatedMessages = [...prevMessages, newMessage];
-            // console.log("💬 Updated messages length after add:", updatedMessages.length);
-            // console.log("💬 Full messages array:", updatedMessages.map(msg => `${msg.sender}: ${msg.content}`));
+            // // console.log("💬 Updated messages length after add:", updatedMessages.length);
+            // // console.log("💬 Full messages array:", updatedMessages.map(msg => `${msg.sender}: ${msg.content}`));
             
             // SYNC WITH REF for reliable shuffle capture
             messagesRef.current = updatedMessages;
-            // console.log("💬 SYNCED messagesRef length:", messagesRef.current.length);
+            // // console.log("💬 SYNCED messagesRef length:", messagesRef.current.length);
             
             return updatedMessages;
         });
@@ -1253,11 +1227,11 @@ function ChatPage() {
             aiExperience: 'Low',
         };        if (isAnonymousMode) {
             // POST-SHUFFLE SCENARIO
-            // console.log("🔧 DEBUG: POST-SHUFFLE bot message sending");
-            // console.log("🔧 isAnonymousMode:", isAnonymousMode);
-            // console.log("🔧 humanParticipantDemographics:", humanParticipantDemographics);
-            // console.log("🔧 botDisplayedDemographicsPostShuffle:", botDisplayedDemographicsPostShuffle);
-            // console.log("🔧 FIXED_BOT_DEMOGRAPHICS:", FIXED_BOT_DEMOGRAPHICS);
+            // // console.log("🔧 DEBUG: POST-SHUFFLE bot message sending");
+            // // console.log("🔧 isAnonymousMode:", isAnonymousMode);
+            // // console.log("🔧 humanParticipantDemographics:", humanParticipantDemographics);
+            // // console.log("🔧 botDisplayedDemographicsPostShuffle:", botDisplayedDemographicsPostShuffle);
+            // // console.log("🔧 FIXED_BOT_DEMOGRAPHICS:", FIXED_BOT_DEMOGRAPHICS);
             
             // `botMessages` state IS the pre-shuffle Tester-Responder chat history.
             conversationHistoryForAPITurn = botMessages.map(msg => ({
@@ -1269,12 +1243,12 @@ function ChatPage() {
             // 1. The Tester-Responder history (as the conversation to continue)
             if (capturedPreShuffleTesterResponderChat && capturedPreShuffleTesterResponderChat.length > 0) {
                 conversationToContinueCtx = [...capturedPreShuffleTesterResponderChat].slice(-15); // Slice for brevity
-                // console.log("🔧 Using capturedPreShuffleTesterResponderChat, length:", capturedPreShuffleTesterResponderChat.length);
+                // // console.log("🔧 Using capturedPreShuffleTesterResponderChat, length:", capturedPreShuffleTesterResponderChat.length);
             } else {
                 // Fallback if preShuffleTesterResponderHistory is not yet populated or empty,
                 // use the current botMessages (which should be the same in this scenario)
                 conversationToContinueCtx = [...conversationHistoryForAPITurn].slice(-15);
-                // console.log("🔧 No captured tester-responder chat, using current botMessages for 'conversationToContinueCtx'");
+                // // console.log("🔧 No captured tester-responder chat, using current botMessages for 'conversationToContinueCtx'");
             }
 
             // 2. The Responder's demographics (for the bot to display)
@@ -1288,22 +1262,22 @@ function ChatPage() {
                     aiExperience: humanParticipantDemographics.ai_experience || humanParticipantDemographics.aiExperience,
                     source: 'human-participant-demographics'
                 };
-                // console.log("🔧 ✅ Using HUMAN PARTICIPANT demographics for bot:", displayedDemographicsCtx);
+                // // console.log("🔧 ✅ Using HUMAN PARTICIPANT demographics for bot:", displayedDemographicsCtx);
             } else if (botDisplayedDemographicsPostShuffle) {
                 displayedDemographicsCtx = botDisplayedDemographicsPostShuffle;
-                // console.log("🔧 ⚠️ Using botDisplayedDemographicsPostShuffle:", displayedDemographicsCtx);
+                // // console.log("🔧 ⚠️ Using botDisplayedDemographicsPostShuffle:", displayedDemographicsCtx);
             } else {
                 displayedDemographicsCtx = FIXED_BOT_DEMOGRAPHICS;
-                // console.log("🔧 ❌ FALLBACK: Using FIXED_BOT_DEMOGRAPHICS:", displayedDemographicsCtx);
+                // // console.log("🔧 ❌ FALLBACK: Using FIXED_BOT_DEMOGRAPHICS:", displayedDemographicsCtx);
             }
 
             // 3. The original Tester-Bot (Alex) pre-shuffle history (for the "confusion test")
             // Ensure capturedPreShuffleTesterBotChat state is populated correctly by ChatPage logic
             if (capturedPreShuffleTesterBotChat && capturedPreShuffleTesterBotChat.length > 0) {
                 originalTesterBotHistoryCtx = [...capturedPreShuffleTesterBotChat].slice(-10); // Slice for brevity
-                // console.log("🔧 Using capturedPreShuffleTesterBotChat, length:", capturedPreShuffleTesterBotChat.length);
+                // // console.log("🔧 Using capturedPreShuffleTesterBotChat, length:", capturedPreShuffleTesterBotChat.length);
             } else {
-                // console.log("🔧 No captured tester-bot chat available");
+                // // console.log("🔧 No captured tester-bot chat available");
             }
 
         } else {
@@ -1368,7 +1342,7 @@ function ChatPage() {
 
         if (!inactivityCheckerActive || role !== 'tester' || !chatTimerStarted) {
             if (wakeupIntervalRef.current) {
-                // // console.log('Cleaning up existing wake-up interval');
+                // // // console.log('Cleaning up existing wake-up interval');
                 clearInterval(wakeupIntervalRef.current);
                 wakeupIntervalRef.current = null;
             }
@@ -1377,11 +1351,11 @@ function ChatPage() {
 
         // Only create new interval if one doesn't exist
         if (!wakeupIntervalRef.current) {
-            // // console.log('Starting wake-up interval checker');
+            // // // console.log('Starting wake-up interval checker');
 
             // Generate random delay once when starting the checker
             wakeupDelayRef.current = Math.floor(Math.random() * (45000 - 25000) + 25000);
-            // // console.log('Set wake-up delay to:', wakeupDelayRef.current / 1000, 'seconds');
+            // // // console.log('Set wake-up delay to:', wakeupDelayRef.current / 1000, 'seconds');
 
 
             wakeupIntervalRef.current = setInterval(() => {
@@ -1395,12 +1369,12 @@ function ChatPage() {
                     timeSinceLastBotActivity >= 20000 &&
                     timeSinceLastWakeup >= wakeupDelayRef.current &&
                     wakeupAttemptsCount < MAX_WAKEUP_ATTEMPTS) {
-                    // // console.log('Conditions met - Sending bot wakeup message...');
+                    // // // console.log('Conditions met - Sending bot wakeup message...');
                     sendBotWakeupMessage();
                     lastWakeupMessageTimeRef.current = currentTime;
                     // Generate new delay for next wake-up
                     wakeupDelayRef.current = Math.floor(Math.random() * (45000 - 25000) + 25000);
-                    // // console.log('Set new wake-up delay to:', wakeupDelayRef.current / 1000, 'seconds');
+                    // // // console.log('Set new wake-up delay to:', wakeupDelayRef.current / 1000, 'seconds');
                 }
             }, 5000);
         }
@@ -1408,7 +1382,7 @@ function ChatPage() {
         // Cleanup function
         return () => {
             if (wakeupIntervalRef.current) {
-                // // console.log('Cleaning up wake-up interval');
+                // // // console.log('Cleaning up wake-up interval');
                 clearInterval(wakeupIntervalRef.current);
                 wakeupIntervalRef.current = null;
             }
@@ -1440,7 +1414,7 @@ function ChatPage() {
             // SYNC WITH REF for reliable shuffle capture
             setBotMessages(currentBotMessages => {
                 botMessagesRef.current = currentBotMessages;
-                // console.log("🤖 SYNCED botMessagesRef after wake-up message, length:", botMessagesRef.current.length);
+                // // console.log("🤖 SYNCED botMessagesRef after wake-up message, length:", botMessagesRef.current.length);
                 return currentBotMessages;
             });
 
@@ -1455,7 +1429,7 @@ function ChatPage() {
     useEffect(() => {
         setCurrentPersona(getRandomPersona(personas.personas));
     }, []);    const handleGuess = (candidateLabel, selectedRole) => {
-        // console.log('🔍 GUESS DEBUG - Selection made:', {
+        // // console.log('🔍 GUESS DEBUG - Selection made:', {
         //     candidateLabel,
         //     selectedRole,
         //     currentGuessCandidateA: guessCandidateA,
@@ -1469,18 +1443,18 @@ function ChatPage() {
             // CRITICAL FIX: Update refs immediately
             guessCandidateARef.current = selectedRole;
             guessCandidateBRef.current = selectedRole === 'experimenter' ? 'bot' : 'experimenter';
-            // console.log('🔍 GUESS DEBUG - Setting A to:', selectedRole, 'and B to:', selectedRole === 'experimenter' ? 'bot' : 'experimenter');
+            // // console.log('🔍 GUESS DEBUG - Setting A to:', selectedRole, 'and B to:', selectedRole === 'experimenter' ? 'bot' : 'experimenter');
         } else {
             setGuessCandidateB(selectedRole);
             setGuessCandidateA(selectedRole === 'experimenter' ? 'bot' : 'experimenter');
             // CRITICAL FIX: Update refs immediately
             guessCandidateBRef.current = selectedRole;
             guessCandidateARef.current = selectedRole === 'experimenter' ? 'bot' : 'experimenter';
-            // console.log('🔍 GUESS DEBUG - Setting B to:', selectedRole, 'and A to:', selectedRole === 'experimenter' ? 'bot' : 'experimenter');
+            // // console.log('🔍 GUESS DEBUG - Setting B to:', selectedRole, 'and A to:', selectedRole === 'experimenter' ? 'bot' : 'experimenter');
         }
     };    const handleSubmitGuesses = async () => {
         // DEBUG: Log current guess values when submit is clicked
-        // console.log('🔍 SUBMIT DEBUG - Current guess values when submit clicked:', {
+        // // console.log('🔍 SUBMIT DEBUG - Current guess values when submit clicked:', {
         //     guessCandidateA,
         //     guessCandidateB,
         //     finalRoomConfig,
@@ -1508,7 +1482,7 @@ function ChatPage() {
         // CRITICAL FIX: Update refs with real identities for socket event handler
         realIdentityARef.current = realIdentityA;
         realIdentityBRef.current = realIdentityB;
-        //   console.log('🔍 SUBMIT DEBUG - About to emit tester_guessed with:', {
+        //   // console.log('🔍 SUBMIT DEBUG - About to emit tester_guessed with:', {
         //     pairId,
         //     guessCandidateA: guessCandidateARef.current,
         //     guessCandidateB: guessCandidateBRef.current,
@@ -1525,35 +1499,35 @@ function ChatPage() {
             realIdentityA: realIdentityARef.current,
             realIdentityB: realIdentityBRef.current,
             tester: username // for logging/debugging
-        });        // console.log('✅ SUBMIT DEBUG - tester_guessed event emitted successfully');
+        });        // // console.log('✅ SUBMIT DEBUG - tester_guessed event emitted successfully');
         // Optionally, show a waiting message or disable the submit button
     };    // Function to load conversation data for the review phase
     const loadConversationData = async () => {
         try {
-            console.log('[CONVERSATION_REVIEW] Loading conversations for review...');
+            // console.log('[CONVERSATION_REVIEW] Loading conversations for review...');
             const csvData = await loadCSVData();
             const conversations = getRandomConversations(csvData, 5);
-            console.log('[CONVERSATION_REVIEW] Loaded conversations:', conversations);
-            console.log('[CONVERSATION_REVIEW] Number of conversations loaded:', conversations.length);
+            // console.log('[CONVERSATION_REVIEW] Loaded conversations:', conversations);
+            // console.log('[CONVERSATION_REVIEW] Number of conversations loaded:', conversations.length);
             setPreShuffleConversations(conversations);
             setConversationGuesses(new Array(conversations.length).fill(null));
-            console.log('[CONVERSATION_REVIEW] State updated with conversations');
+            // console.log('[CONVERSATION_REVIEW] State updated with conversations');
         } catch (error) {
             console.error('[CONVERSATION_REVIEW] Error loading conversations:', error);
             // Set mock data as fallback
-            console.log('[CONVERSATION_REVIEW] Using fallback mock data');
+            // console.log('[CONVERSATION_REVIEW] Using fallback mock data');
             const mockConversations = getRandomConversations(null, 5);
-            console.log('[CONVERSATION_REVIEW] Mock conversations generated:', mockConversations);
+            // console.log('[CONVERSATION_REVIEW] Mock conversations generated:', mockConversations);
             setPreShuffleConversations(mockConversations);
             setConversationGuesses(new Array(mockConversations.length).fill(null));
-            console.log('[CONVERSATION_REVIEW] Fallback mock data loaded successfully');
+            // console.log('[CONVERSATION_REVIEW] Fallback mock data loaded successfully');
         }
     };    // Conversation review handlers
     const handleConversationGuess = (leftGuess, rightGuess) => {
         // Reset activity timestamp when user interacts with conversation review
         lastActivityTimestampRef.current = Date.now();
         setWarningShown(false);
-        console.log(`${role} - Activity timestamp reset - conversation guess`);
+        // console.log(`${role} - Activity timestamp reset - conversation guess`);
         
         setCurrentConversationGuess({ leftWindow: leftGuess, rightWindow: rightGuess });
     };
@@ -1562,7 +1536,7 @@ function ChatPage() {
         // Reset activity timestamp when user submits guess
         lastActivityTimestampRef.current = Date.now();
         setWarningShown(false);
-        console.log(`${role} - Activity timestamp reset - conversation guess submission`);
+        // console.log(`${role} - Activity timestamp reset - conversation guess submission`);
         
         if (!currentConversationGuess.leftWindow || !currentConversationGuess.rightWindow) {
             alert('Please make a guess for both conversations before submitting.');
@@ -1594,7 +1568,7 @@ function ChatPage() {
         // Reset activity timestamp when user tries again
         lastActivityTimestampRef.current = Date.now();
         setWarningShown(false);
-        console.log(`${role} - Activity timestamp reset - try again`);
+        // console.log(`${role} - Activity timestamp reset - try again`);
         
         // Reset the current conversation state for retry
         setCurrentConversationGuess({ leftWindow: '', rightWindow: '' });
@@ -1608,18 +1582,18 @@ function ChatPage() {
         // Reset activity timestamp when user progresses through conversations
         lastActivityTimestampRef.current = Date.now();
         setWarningShown(false);
-        console.log(`${role} - Activity timestamp reset - next conversation`);
+        // console.log(`${role} - Activity timestamp reset - next conversation`);
         
         if (currentConversationIndex < preShuffleConversations.length - 1) {
             setCurrentConversationIndex(currentConversationIndex + 1);
             setCurrentConversationGuess({ leftWindow: '', rightWindow: '' });
             setShowConversationFeedback(false);        } else {
             // All conversations reviewed, transition to post-shuffle phase
-            console.log('🔄 All conversations reviewed, transitioning to test phase');
+            // console.log('🔄 All conversations reviewed, transitioning to test phase');
               // Stop conversation review timer and calculate total time
             stopConversationReviewTimer();
             const totalReviewTime = Math.floor((Date.now() - conversationReviewStartTime) / 1000);
-            console.log(`🕐 Conversation review completed in ${totalReviewTime} seconds`);
+            // console.log(`🕐 Conversation review completed in ${totalReviewTime} seconds`);
             
             setConversationPhase('completed');
             
@@ -1641,7 +1615,7 @@ function ChatPage() {
             });
             
             // Show waiting message while backend coordinates with partner
-            console.log('🔄 Waiting for partner to complete conversation review...');
+            // console.log('🔄 Waiting for partner to complete conversation review...');
         }
     };
 
@@ -1777,20 +1751,20 @@ function ChatPage() {
         }
     };    useEffect(() => {
         // Log when socket events are registered
-        // console.log('🎯 [SOCKET] Registering quiz events for role:', role);
+        // // console.log('🎯 [SOCKET] Registering quiz events for role:', role);
         
         socket.on('quiz_completed', (data) => {
             if (data.role !== role) {
-                console.log('[QUIZ_COMPLETED] Partner completed quiz, updating partner status');
-                console.log('[QUIZ_COMPLETED] Current state:', {
-                    quizStep,
-                    shuffleEnabled,
-                    conversationPhase,
-                    conversationReviewStarted
-                });
+                // console.log('[QUIZ_COMPLETED] Partner completed quiz, updating partner status');
+                // console.log('[QUIZ_COMPLETED] Current state:', {
+                //     quizStep,
+                //     shuffleEnabled,
+                //     conversationPhase,
+                //     conversationReviewStarted
+                // });
                 setPartnerQuizStatus('completed');                // If we've already completed our quiz, mark that we're ready but don't auto-start conversation review
                 if (quizStep === 'completed') {
-                    console.log('[QUIZ_COMPLETED] Both quizzes complete, but waiting for both to dismiss notifications');
+                    // console.log('[QUIZ_COMPLETED] Both quizzes complete, but waiting for both to dismiss notifications');
                     // End waiting state
                     setWaitingForPartner(false);
                     setWaitingStartTime(null);
@@ -1799,33 +1773,33 @@ function ChatPage() {
                     // Don't automatically start conversation review or dismiss notifications
                     // Let users manually dismiss their notifications - conversation review will start via useEffect
                 } else {
-                    console.log('[QUIZ_COMPLETED] Partner completed but we have not completed yet');
+                    // console.log('[QUIZ_COMPLETED] Partner completed but we have not completed yet');
                 }
             } else {
-                console.log('[QUIZ_COMPLETED] Received our own completion event, ignoring');
+                // console.log('[QUIZ_COMPLETED] Received our own completion event, ignoring');
             }
         });
 
         socket.on('quiz_failed', (data) => {
             if (data.role !== role) {
-                // console.log('🎯 [QUIZ-FAIL] Partner failed quiz');
+                // // console.log('🎯 [QUIZ-FAIL] Partner failed quiz');
                 setPartnerQuizStatus('failed');
                 setPartnerHasFailed(true); // Set the flag when partner fails
 
                 // If we've already completed our quiz, generate bonus code
                 if (quizStep === 'completed') {
-                    // console.log('🎯 [QUIZ-FAIL] We completed but partner failed, generating bonus');
+                    // // console.log('🎯 [QUIZ-FAIL] We completed but partner failed, generating bonus');
                     generateAndNavigateToBonusCode();
                 } else {
-                    // console.log('🎯 [QUIZ-FAIL] Partner failed but we have not completed yet');
+                    // // console.log('🎯 [QUIZ-FAIL] Partner failed but we have not completed yet');
                 }
             } else {
-                // console.log('🎯 [QUIZ-FAIL] Received our own failure event, ignoring');
+                // // console.log('🎯 [QUIZ-FAIL] Received our own failure event, ignoring');
             }
         });
 
         return () => {
-            // console.log('🎯 [SOCKET] Cleaning up quiz event listeners');
+            // // console.log('🎯 [SOCKET] Cleaning up quiz event listeners');
             socket.off('quiz_completed');
             socket.off('quiz_failed');
         };
@@ -1833,30 +1807,30 @@ function ChatPage() {
     
     // Modify the quiz submission logic in both notification components
     const handleQuizSubmission = async (isCorrect) => {
-        console.log('[QUIZ_SUBMISSION] Quiz submission started, isCorrect:', isCorrect);
-        console.log('[QUIZ_SUBMISSION] Current state:', {
-            shuffleEnabled,
-            conversationPhase,
-            conversationReviewStarted,
-            partnerQuizStatus,
-            partnerHasFailed
-        });
+        // console.log('[QUIZ_SUBMISSION] Quiz submission started, isCorrect:', isCorrect);
+        // console.log('[QUIZ_SUBMISSION] Current state:', {
+        //     shuffleEnabled,
+        //     conversationPhase,
+        //     conversationReviewStarted,
+        //     partnerQuizStatus,
+        //     partnerHasFailed
+        // });
         
         if (isCorrect) {
-            console.log('[QUIZ_SUBMISSION] Quiz passed, setting step to completed');
+            // console.log('[QUIZ_SUBMISSION] Quiz passed, setting step to completed');
             setQuizStep('completed');
             
-            console.log('[QUIZ_SUBMISSION] Emitting quiz_completed event to backend');
+            // console.log('[QUIZ_SUBMISSION] Emitting quiz_completed event to backend');
             socket.emit('quiz_completed', {pair_id: pairId, role});
-            console.log('[QUIZ_SUBMISSION] quiz_completed event emitted with data:', {pair_id: pairId, role});            // Check if partner has already failed when we complete our quiz
+            // console.log('[QUIZ_SUBMISSION] quiz_completed event emitted with data:', {pair_id: pairId, role});            // Check if partner has already failed when we complete our quiz
             if (partnerHasFailed) {
-                console.log('[QUIZ_SUBMISSION] Partner already failed, generating bonus code');
+                // console.log('[QUIZ_SUBMISSION] Partner already failed, generating bonus code');
                 await generateAndNavigateToBonusCode();            } else if (partnerQuizStatus === 'completed') {
-                console.log('[QUIZ_SUBMISSION] Partner also completed, but waiting for both to dismiss notifications');
+                // console.log('[QUIZ_SUBMISSION] Partner also completed, but waiting for both to dismiss notifications');
                 // Don't automatically start conversation review - wait for both users to dismiss their notifications
                 // The conversation review will start when both have dismissed via the existing useEffect logic
             } else {
-                console.log('[QUIZ_SUBMISSION] Waiting for partner to complete quiz');
+                // console.log('[QUIZ_SUBMISSION] Waiting for partner to complete quiz');
                 // Start waiting state
                 setWaitingForPartner(true);
                 setWaitingStartTime(Date.now());
@@ -1864,9 +1838,9 @@ function ChatPage() {
             }
             handleDismissNotification();
         } else {
-            console.log('[QUIZ_SUBMISSION] Quiz failed, emitting quiz_failed event');
+            // console.log('[QUIZ_SUBMISSION] Quiz failed, emitting quiz_failed event');
             socket.emit('quiz_failed', {pair_id: pairId, role});
-            console.log('[QUIZ_SUBMISSION] Navigating to disconnected page');
+            // console.log('[QUIZ_SUBMISSION] Navigating to disconnected page');
             navigate('/disconnected', {
                 state: {
                     message: "You were disconnected because you failed the Quiz. You will not receive payment for this session."
@@ -1891,7 +1865,7 @@ function ChatPage() {
                         and the test phase (5 minutes).
                     </p>
                     <p>
-                        In the conversation review phase, you will review real conversations and guess which is human-human and which is human-bot.
+                        In the conversation review phase, you will review real conversations and guess which is which.
                     </p>
                     <p>
                         In the test phase, you will chat with a human and a bot in two separate rooms, but you will not know which is which, 
@@ -1916,7 +1890,7 @@ function ChatPage() {
                     and the test phase (5 minutes).
                 </p>
                 <p>
-                    In the conversation review phase, you will review real conversations and guess which is human-human and which is human-bot.
+                    In the conversation review phase, you will review real conversations and guess which was with a human and which is with the bot.
                 </p>
                 <p>
                     In the test phase, you will chat with a human tester, and you must convince them that you are human.
@@ -1960,13 +1934,13 @@ function ChatPage() {
             // POST-SHUFFLE: Both windows display the original human participant's demographics
             demDataForDisplay = humanParticipantDemographics;
             isLoadingDemographics = isLoadingHumanDemographics;
-            // // console.log("Human Demographics for Display (Post-Shuffle):", humanParticipantDemographics); // DEBUG LINE
+            // // // console.log("Human Demographics for Display (Post-Shuffle):", humanParticipantDemographics); // DEBUG LINE
         } else {
             // PRE-SHUFFLE:
             if (roomTypeArgument === 'experimenter') {
                 demDataForDisplay = humanParticipantDemographics;
                 isLoadingDemographics = isLoadingHumanDemographics;
-                // // console.log("Human Demographics for Display (Pre-Shuffle, Experimenter Window):", humanParticipantDemographics); // DEBUG LINE
+                // // // console.log("Human Demographics for Display (Pre-Shuffle, Experimenter Window):", humanParticipantDemographics); // DEBUG LINE
             } else { // roomTypeArgument === 'bot'
                 demDataForDisplay = FIXED_BOT_DEMOGRAPHICS;
                 isLoadingDemographics = false; // Fixed, so not "loading"
@@ -2402,15 +2376,18 @@ function ChatPage() {
                             </>
                         )}
                     </div>
-                </div>            )}            {/* Conversation Review Phase */}
+                </div>
+            )}
+
+            {/* Conversation Review Phase */}
             {(() => {
-                console.log('[RENDER_DEBUG] Conversation Review conditional check:', {
-                    conversationReviewStarted,
-                    conversationPhase,
-                    conversationPhaseNotCompleted: conversationPhase !== 'completed',
-                    preShuffleConversationsLength: preShuffleConversations.length,
-                    shouldShow: conversationReviewStarted && conversationPhase !== 'completed' && preShuffleConversations.length > 0
-                });
+                // console.log('[RENDER_DEBUG] Conversation Review conditional check:', {
+                //     conversationReviewStarted,
+                //     conversationPhase,
+                //     conversationPhaseNotCompleted: conversationPhase !== 'completed',
+                //     preShuffleConversationsLength: preShuffleConversations.length,
+                //     shouldShow: conversationReviewStarted && conversationPhase !== 'completed' && preShuffleConversations.length > 0
+                // });
                 return null;
             })()}            {conversationReviewStarted && conversationPhase !== 'completed' && preShuffleConversations.length > 0 && (
                 <div className="conversation-review-container">
@@ -2553,19 +2530,17 @@ function ChatPage() {
                         </div>
                         <h3>Waiting for Partner</h3>
                         <p>Your partner is still reviewing their conversations. Please wait while they complete their review.</p>                        <div className="waiting-timer">
-                            <div className="timer-label">Maximum time Remaining for Partner:</div>
+                            <div className="timer-label">Maximum Remaining Time:</div>
                             <div className="timer-value">
                                 {(() => {
-                                    const remainingTime = Math.max(0, partnerConversationReviewTimeRemaining - waitingForReviewElapsed);
-                                    return `${Math.floor(remainingTime / 60)}:${(remainingTime % 60).toString().padStart(2, '0')}`;
+                                    // Calculate partner's actual remaining time
+                                    const partnerActualRemaining = Math.max(0, partnerConversationReviewTimeRemaining - waitingForReviewElapsed);
+                                    const minutes = Math.floor(partnerActualRemaining / 60);
+                                    const seconds = partnerActualRemaining % 60;
+                                    
+                                    // Debug logging                                    
+                                    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
                                 })()}
-                            </div>
-                        </div>
-                        
-                        <div className="partner-status">
-                            <div className="status-indicator">
-                                <span className="status-dot waiting"></span>
-                                <span>Partner is reviewing conversations...</span>
                             </div>
                         </div>
                         

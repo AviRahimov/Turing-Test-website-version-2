@@ -939,7 +939,8 @@ def handle_conversation_review_completed(data):
             'tester_data': None,
             'experimenter_data': None
         }
-      # Mark this participant as completed and store their data
+    
+    # Mark this participant as completed and store their data
     if role == 'tester':
         pair_review_status[pair_id]['tester_completed'] = True
         pair_review_status[pair_id]['tester_data'] = {
@@ -987,9 +988,12 @@ def handle_conversation_review_completed(data):
         # Notify the other participant that this user has completed
         waiting_role = 'experimenter' if role == 'tester' else 'tester'
         
-        # Get the partner's remaining time to pass to the waiting participant
-        partner_remaining_time = remaining_time_when_completed
-        
+        # Calculate the partner's actual remaining time based on elapsed time since review started
+        # The waiting partner still has the full 5 minutes (300 seconds) minus any time that has elapsed
+        # since both participants started their review at the same time
+        elapsed_time_for_completer = 300 - remaining_time_when_completed  # How long the completer took
+        partner_remaining_time = max(0, 300 - elapsed_time_for_completer)  # Partner has same elapsed time
+                
         socketio.emit('conversation_review_sync', {
             'action': 'partner_completed',
             'message': f'Your partner has completed their conversation review. Waiting for you to finish.',

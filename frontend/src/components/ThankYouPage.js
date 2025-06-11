@@ -83,8 +83,8 @@ const ThankYouPage = () => {
       {isSevenDigitCode && (
         <p style={styles.bonusMessage}>
           {role === 'experimenter'
-            ? 'Hooray, the tester guessed true, thus both of you will get a bonus code!'
-            : 'Hooray, you guessed true, thus you and the responder will get a bonus code!'}
+            ? 'Hooray, the tester guessed correctly, thus both of you will get a bonus code!'
+            : 'Hooray, you guessed correctly, thus you and the responder will get a bonus code!'}
         </p>
       )}
 
