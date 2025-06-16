@@ -1866,6 +1866,8 @@ function ChatPage() {
                     </p>
                     <p>
                         In the conversation review phase, you will review real conversations and guess which is which.
+                        Take your time to read both conversations carefully in each of the 5 samples, if you finish early, you will need to 
+                        wait for your partner to finish as well.
                     </p>
                     <p>
                         In the test phase, you will chat with a human and a bot in two separate rooms, but you will not know which is which, 
@@ -1891,6 +1893,8 @@ function ChatPage() {
                 </p>
                 <p>
                     In the conversation review phase, you will review real conversations and guess which was with a human and which is with the bot.
+                    Take your time to read both conversations carefully in each of the 5 samples, if you finish early, you will need to 
+                    wait for your partner to finish as well.
                 </p>
                 <p>
                     In the test phase, you will chat with a human tester, and you must convince them that you are human.
@@ -2091,10 +2095,13 @@ function ChatPage() {
                                 <h4>The interaction will be composed of two phases:</h4>
                                 <ul>
                                     <li>
-                                        <strong>Conversation Review Phase:</strong> You will review 5 human-human and human-bot conversations. 
+                                        <strong>Conversation Review Phase (5 minutes):</strong> You will review 5 human-human and human-bot conversations. 
                                         For each conversation, you'll guess which is which and 
                                         the option to try again will be given you if you fail in guessing. 
                                         This will help you learn to distinguish between humans and bots.
+                                        In the conversation review phase, you will review real conversations and guess which was with a human and which is with the bot.
+                                        Take your time to read both conversations carefully in each of the 5 samples, if you finish early, you will need to 
+                                        wait for your partner to finish as well.
                                     </li>
                                     <li>
                                         <strong>Test Phase (5 minutes):</strong> You will chat with both a human and a bot 
@@ -2246,9 +2253,12 @@ function ChatPage() {
                                 <h4>The interaction will be composed of two phases:</h4>
                                 <ul>
                                     <li>
-                                        <strong>Conversation Review Phase:</strong> You will review 5 human-human and human-bot conversations. 
+                                        <strong>Conversation Review Phase (5 minutes):</strong> You will review 5 human-human and human-bot conversations. 
                                         For each conversation, you'll guess which is which and 
-                                        the option to try again will be given you if you fail in guessing. 
+                                        the option to try again will be given you if you fail in guessing.
+                                        In the conversation review phase, you will review real conversations and guess which was with a human and which is with the bot.
+                                        Take your time to read both conversations carefully in each of the 5 samples, if you finish early, you will need to 
+                                        wait for your partner to finish as well.
                                     </li>
                                     <li>
                                         <strong>Test Phase (5 minutes):</strong> You will chat with a human Tester, and you must convince them that you are human.
