@@ -6,9 +6,9 @@ export const loadCSVData = async () => {
     console.log('Loading CSV data...');
     
     // Fetch CSV files from public folder
-    const botResponse = await fetch('/data/df_bot_qa_merged_before_shuffle_llama_model_filtered.csv');
-    const humanResponse = await fetch('/data/df_human_qa_merged_before_shuffle_llama_model_filtered.csv');
-    
+    const botResponse = await fetch('/data/enhanced_gpt_4.5_bot_conversations_correct_filtered.csv');
+    const humanResponse = await fetch('/data/enhanced_gpt_4.5_human_conversations_correct_filtered.csv');
+
     if (!botResponse.ok || !humanResponse.ok) {
       throw new Error(`Failed to fetch CSV files. Bot: ${botResponse.status}, Human: ${humanResponse.status}`);
     }

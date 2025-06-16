@@ -26,9 +26,9 @@ load_dotenv()
 MONGODB_URI = os.getenv("MONGODB_URI")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-OPENROUTER_MODEL = "meta-llama/llama-3.1-405b-instruct"
+# OPENROUTER_MODEL = "meta-llama/llama-3.1-405b-instruct"
 # OPENROUTER_MODEL = "deepseek/deepseek-r1:free"
-# OPENROUTER_MODEL = "openai/gpt-4.5-preview"
+OPENROUTER_MODEL = "openai/gpt-4.5-preview"
 BOT_ENABLE_PROMPT = True
 SHUFFLE_ENABLED = False  # Should match frontend config - set to False to skip shuffle phase
 
@@ -57,9 +57,10 @@ logging.basicConfig(level=logging.INFO)
 codes_collection = db['codes']
 chats_collection = db['chats']
 feedback_collection = db['feedback']
-demographic_collection = db['demographic_data']
+demographic_collection = db['demographics']
 blocked_ips_collection = db['blocked_ips']
 room_numbers_collection = db['room_numbers']
+tracking_collection = db['tracking']  # New collection for tracking data
 
 # Fetch and print collections stored in the database
 collection_names = db.list_collection_names()
@@ -176,6 +177,7 @@ def chat_with_bot():
                     bot_base_name=bot_base_persona_details.get('name'),
                     bot_base_gender=bot_base_persona_details.get('gender'),
                     bot_base_age=bot_base_persona_details.get('age'),
+                    # bot_base_occupation=bot_base_persona_details.get('occupation', "Student"),
                     bot_base_country=bot_base_persona_details.get('country', "USA"),
                     bot_base_ai_experience=bot_base_persona_details.get('aiExperience', "Low"),
                     conversation_to_continue_history=conversation_to_continue,
@@ -590,7 +592,7 @@ def save_demographics():
     if not age:
         return jsonify({"status": "error", "message": "Age is required"}), 400
 
-    demographic_data = {
+    demographics = {
         "user_id": user_id_from_frontend, # Storing "user_X" as user_id
         "gender": gender,
         "age": age, # Storing age range string (e.g., "20-30")
@@ -601,7 +603,7 @@ def save_demographics():
     }
 
     try:
-        demographic_collection.insert_one(demographic_data)
+        demographic_collection.insert_one(demographics)
         return jsonify({"status": "success"}), 200
     except Exception as e:
         logging.error(f"Error saving demographic data: {e}")
@@ -928,19 +930,27 @@ def handle_conversation_review_completed(data):
     correct_guesses = data.get('correct_guesses', 0)
     remaining_time_when_completed = data.get('remaining_time_when_completed', 0)
     
+    # New tracking fields
+    retry_attempts = data.get('retry_attempts', 0)
+    quiz_time_seconds = data.get('quiz_time_seconds', 0)
+    quiz_waiting_time_seconds = data.get('quiz_waiting_time_seconds', 0)
+    conversation_review_waiting_time_seconds = data.get('conversation_review_waiting_time_seconds', 0)
+    
     logging.info(f"User {username} ({role}) completed conversation review for pair {pair_id}")
     logging.info(f"Review stats - Time: {review_time_seconds}s, Total: {total_conversations}, Correct: {correct_guesses}, Remaining: {remaining_time_when_completed}s")
-    
-    # Initialize pair review status if not exists
+    logging.info(f"New tracking - Retry attempts: {retry_attempts}, Quiz time: {quiz_time_seconds}s, Quiz waiting: {quiz_waiting_time_seconds}s, Review waiting: {conversation_review_waiting_time_seconds}s")
+      # Initialize pair review status if not exists
     if pair_id not in pair_review_status:
         pair_review_status[pair_id] = {
             'tester_completed': False,
             'experimenter_completed': False,
             'tester_data': None,
-            'experimenter_data': None
-        }
+            'experimenter_data': None,
+            'first_completion_time': None,
+            'second_completion_time': None
+        }      # Mark this participant as completed and store their data
+    current_completion_time = time.time()
     
-    # Mark this participant as completed and store their data
     if role == 'tester':
         pair_review_status[pair_id]['tester_completed'] = True
         pair_review_status[pair_id]['tester_data'] = {
@@ -948,7 +958,12 @@ def handle_conversation_review_completed(data):
             'review_time_seconds': review_time_seconds,
             'total_conversations': total_conversations,
             'correct_guesses': correct_guesses,
-            'remaining_time_when_completed': remaining_time_when_completed
+            'remaining_time_when_completed': remaining_time_when_completed,
+            'retry_attempts': retry_attempts,
+            'quiz_time_seconds': quiz_time_seconds,
+            'quiz_waiting_time_seconds': quiz_waiting_time_seconds,
+            'conversation_review_waiting_time_seconds': conversation_review_waiting_time_seconds,
+            'completion_timestamp': current_completion_time
         }
     elif role == 'experimenter':
         pair_review_status[pair_id]['experimenter_completed'] = True
@@ -957,13 +972,97 @@ def handle_conversation_review_completed(data):
             'review_time_seconds': review_time_seconds,
             'total_conversations': total_conversations,
             'correct_guesses': correct_guesses,
-            'remaining_time_when_completed': remaining_time_when_completed
+            'remaining_time_when_completed': remaining_time_when_completed,
+            'retry_attempts': retry_attempts,
+            'quiz_time_seconds': quiz_time_seconds,
+            'quiz_waiting_time_seconds': quiz_waiting_time_seconds,
+            'conversation_review_waiting_time_seconds': conversation_review_waiting_time_seconds,
+            'completion_timestamp': current_completion_time
         }
     
-    # Check if both participants have completed their review
+    # Track completion order
+    if pair_review_status[pair_id]['first_completion_time'] is None:
+        pair_review_status[pair_id]['first_completion_time'] = current_completion_time
+        logging.info(f"First completion for pair {pair_id}: {role} at {current_completion_time}")
+    else:
+        pair_review_status[pair_id]['second_completion_time'] = current_completion_time
+        logging.info(f"Second completion for pair {pair_id}: {role} at {current_completion_time}")# Check if both participants have completed their review
     review_status = pair_review_status[pair_id]
     if review_status['tester_completed'] and review_status['experimenter_completed']:
         logging.info(f"Both participants completed conversation review for pair {pair_id}, starting test phase")
+          # Calculate conversation review waiting times properly
+        # The participant who finished first should have a waiting time, the second should have 0
+        first_completion_time = pair_review_status[pair_id]['first_completion_time']
+        second_completion_time = pair_review_status[pair_id]['second_completion_time']
+        
+        tester_completion_time = review_status['tester_data']['completion_timestamp']
+        experimenter_completion_time = review_status['experimenter_data']['completion_timestamp']
+          # Determine who finished first and calculate waiting times
+        if tester_completion_time == first_completion_time:
+            # Tester finished first, so they waited for experimenter
+            tester_conversation_waiting = second_completion_time - first_completion_time
+            experimenter_conversation_waiting = 0
+            logging.info(f"Tester finished first for pair {pair_id}, waited {tester_conversation_waiting:.2f} seconds")
+        else:
+            # Experimenter finished first, so they waited for tester
+            tester_conversation_waiting = 0
+            experimenter_conversation_waiting = second_completion_time - first_completion_time
+            logging.info(f"Experimenter finished first for pair {pair_id}, waited {experimenter_conversation_waiting:.2f} seconds")
+        
+        # Calculate quiz waiting times based on quiz completion times
+        tester_quiz_time = review_status['tester_data']['quiz_time_seconds']
+        experimenter_quiz_time = review_status['experimenter_data']['quiz_time_seconds']
+        
+        if tester_quiz_time < experimenter_quiz_time:
+            # Tester finished quiz first, so they waited for experimenter
+            tester_quiz_waiting = experimenter_quiz_time - tester_quiz_time
+            experimenter_quiz_waiting = 0
+            logging.info(f"Tester finished quiz first for pair {pair_id}, waited {tester_quiz_waiting} seconds")
+        elif experimenter_quiz_time < tester_quiz_time:
+            # Experimenter finished quiz first, so they waited for tester
+            tester_quiz_waiting = 0
+            experimenter_quiz_waiting = tester_quiz_time - experimenter_quiz_time
+            logging.info(f"Experimenter finished quiz first for pair {pair_id}, waited {experimenter_quiz_waiting} seconds")
+        else:
+            # Both finished at the same time (rare but possible)
+            tester_quiz_waiting = 0
+            experimenter_quiz_waiting = 0
+            logging.info(f"Both participants finished quiz at the same time for pair {pair_id}")
+        
+        # Save tracking data to MongoDB
+        try:
+            tracking_data = {
+                'pair_id': pair_id,
+                'timestamp': datetime.now(),
+                'tester': {
+                    'username': review_status['tester_data']['username'],
+                    'retry_attempts': review_status['tester_data']['retry_attempts'],
+                    'quiz_time_seconds': review_status['tester_data']['quiz_time_seconds'],
+                    'conversation_review_phase_time_seconds': review_status['tester_data']['review_time_seconds'],
+                    'quiz_waiting_time_for_partner_seconds': tester_quiz_waiting,
+                    'conversation_waiting_time_for_partner_seconds': tester_conversation_waiting,
+                    'total_conversations': review_status['tester_data']['total_conversations'],
+                    'correct_guesses': review_status['tester_data']['correct_guesses'],
+                    'remaining_time_when_completed': review_status['tester_data']['remaining_time_when_completed']
+                },
+                'experimenter': {
+                    'username': review_status['experimenter_data']['username'],
+                    'retry_attempts': review_status['experimenter_data']['retry_attempts'],
+                    'quiz_time_seconds': review_status['experimenter_data']['quiz_time_seconds'],
+                    'conversation_review_phase_time_seconds': review_status['experimenter_data']['review_time_seconds'],
+                    'quiz_waiting_time_for_partner_seconds': experimenter_quiz_waiting,
+                    'conversation_waiting_time_for_partner_seconds': experimenter_conversation_waiting,
+                    'total_conversations': review_status['experimenter_data']['total_conversations'],
+                    'correct_guesses': review_status['experimenter_data']['correct_guesses'],
+                    'remaining_time_when_completed': review_status['experimenter_data']['remaining_time_when_completed']
+                }
+            }
+            
+            tracking_collection.insert_one(tracking_data)
+            logging.info(f"Successfully saved tracking data for pair {pair_id}")
+            
+        except Exception as e:
+            logging.error(f"Error saving tracking data for pair {pair_id}: {e}")
         
         # Emit synchronization event to start the anonymous test phase
         socketio.emit('conversation_review_sync', {
@@ -972,7 +1071,7 @@ def handle_conversation_review_completed(data):
             'tester_data': review_status['tester_data'],
             'experimenter_data': review_status['experimenter_data']
         }, to=pair_id)
-        
+
         # Start the backend timer after 10 seconds to sync with frontend notification
         def delayed_timer_start():
             socketio.sleep(10)  # Wait 10 seconds to match frontend notification timing
@@ -981,19 +1080,17 @@ def handle_conversation_review_completed(data):
         
         # Start delayed timer as background task
         socketio.start_background_task(delayed_timer_start)
+
           # Clean up the review status for this pair
         del pair_review_status[pair_id]
         logging.info(f"Cleaned up conversation review status for pair {pair_id}")
     else:
         # Notify the other participant that this user has completed
         waiting_role = 'experimenter' if role == 'tester' else 'tester'
+
+        # Get the partner's remaining time to pass to the waiting participant
+        partner_remaining_time = remaining_time_when_completed
         
-        # Calculate the partner's actual remaining time based on elapsed time since review started
-        # The waiting partner still has the full 5 minutes (300 seconds) minus any time that has elapsed
-        # since both participants started their review at the same time
-        elapsed_time_for_completer = 300 - remaining_time_when_completed  # How long the completer took
-        partner_remaining_time = max(0, 300 - elapsed_time_for_completer)  # Partner has same elapsed time
-                
         socketio.emit('conversation_review_sync', {
             'action': 'partner_completed',
             'message': f'Your partner has completed their conversation review. Waiting for you to finish.',
@@ -1140,6 +1237,7 @@ def get_credits():
     print("------------------------------------------------")
     print(f"You have {data['data']['total_credits'] - data['data']['total_usage']} credits remaining.")
     print("------------------------------------------------")
+
 
 
 if __name__ == "__main__":

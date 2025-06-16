@@ -146,6 +146,11 @@ function ChatPage() {
     const [currentConversationGuess, setCurrentConversationGuess] = useState({ leftWindow: '', rightWindow: '' });    const [conversationReviewStartTime, setConversationReviewStartTime] = useState(null);
     const [conversationReviewElapsed, setConversationReviewElapsed] = useState(300); // Start at 5 minutes (300 seconds)
     const conversationReviewTimerRef = useRef(null);
+      // New tracking states for the required fields
+    const [retryAttemptsByConversation, setRetryAttemptsByConversation] = useState([]); // Track "tried again" attempts per conversation
+    const [quizStartTime, setQuizStartTime] = useState(null); // Track quiz start time
+    const [quizWaitingStartTime, setQuizWaitingStartTime] = useState(null); // Track when waiting for partner quiz starts
+    const [conversationReviewWaitingStartTime, setConversationReviewWaitingStartTime] = useState(null); // Track when waiting for partner review starts
 
     // Fetch Human Participant's Demographics
     useEffect(() => {
@@ -173,14 +178,14 @@ function ChatPage() {
             fetchHumanDems(username); // Experimenter sees their own demographics
         }    }, [role, username, partner_username]);    // Load conversations for the conversation review phase (data only, don't start review)
     useEffect(() => {
-        const loadConversations = async () => {
-            try {
+        const loadConversations = async () => {            try {
                 // console.log('Loading conversations for review...');
                 const csvData = await loadCSVData();
                 const conversations = getRandomConversations(csvData, 5);
                 // console.log('Loaded conversations:', conversations);
                 setPreShuffleConversations(conversations);
                 setConversationGuesses(new Array(conversations.length).fill(null));
+                setRetryAttemptsByConversation(new Array(conversations.length).fill(0)); // Initialize retry attempts for each conversation
                 // Don't start conversation review automatically - wait for quiz completion
                 // console.log('Conversations loaded, waiting for quiz completion to start review');
             } catch (error) {
@@ -189,15 +194,14 @@ function ChatPage() {
                 const mockConversations = getRandomConversations(null, 5);
                 setPreShuffleConversations(mockConversations);
                 setConversationGuesses(new Array(mockConversations.length).fill(null));
+                setRetryAttemptsByConversation(new Array(mockConversations.length).fill(0)); // Initialize retry attempts for fallback too
                 // Don't start conversation review automatically - wait for quiz completion
                 // console.log('Fallback conversations loaded, waiting for quiz completion to start review');
             }
         };
 
         loadConversations();
-    }, []);
-
-    // Initialize quiz immediately after pairing
+    }, []);    // Initialize quiz immediately after pairing
     useEffect(() => {
         if (pairId && role && username) {
             // console.log('🎯 Initializing quiz after pairing:', {pairId, role, username});
@@ -207,6 +211,9 @@ function ChatPage() {
             } else if (role === 'experimenter') {
                 setShowNotificationForExperimenter(true);
             }
+            
+            // Start quiz timing when quiz becomes available
+            setQuizStartTime(Date.now());
         }
     }, [pairId, role, username]);
 
@@ -1039,15 +1046,26 @@ function ChatPage() {
             socket.emit('notification_dismissed', {pair_id: pairId, role: 'experimenter'});
             setExperimenterDismissed(true);
         }
-    };
-
-    const handleDismissTestPhaseNotification = () => {
+    };    const handleDismissTestPhaseNotification = () => {
         setShowTestPhaseNotification(false);
+        
+        // Calculate final conversation review waiting time for logging purposes
+        let finalConversationReviewWaitingTime = 0;
+        if (conversationReviewWaitingStartTime) {
+            finalConversationReviewWaitingTime = Math.floor((Date.now() - conversationReviewWaitingStartTime) / 1000);
+            console.log(`🕐 Final conversation review waiting time: ${finalConversationReviewWaitingTime} seconds`);
+        }
+        
         // Clear waiting states
         setWaitingForPartnerReview(false);
         setPartnerReviewCompleted(false);
         setWaitingForReviewStartTime(null);
         setWaitingForReviewElapsed(0);
+        
+        // Stop conversation review waiting timer
+        if (conversationReviewWaitingStartTime) {
+            setConversationReviewWaitingStartTime(null);
+        }
         
         setConversationPhase('completed');
         setIsAnonymousMode(true);
@@ -1056,7 +1074,7 @@ function ChatPage() {
         setTimerPaused(false);
         setupAnonymousRooms();
         startTimer(config.REAL_TEST_TIMER, 'anonymous_phase');
-    };    useEffect(() => {
+    };useEffect(() => {
         if (quizStep === 'completed' && partnerQuizStatus === 'completed' &&
             testerDismissed && experimenterDismissed) {
             // console.log('[QUIZ_DISMISSAL] Both participants completed quiz and dismissed notifications, starting conversation review');
@@ -1562,13 +1580,18 @@ function ChatPage() {
         };
         setConversationGuesses(newGuesses);
         setShowConversationFeedback(true);
-    };
-
-    const tryAgain = () => {
+    };    const tryAgain = () => {
         // Reset activity timestamp when user tries again
         lastActivityTimestampRef.current = Date.now();
         setWarningShown(false);
         // console.log(`${role} - Activity timestamp reset - try again`);
+        
+        // Increment retry attempts counter for the current conversation
+        setRetryAttemptsByConversation(prev => {
+            const newRetryAttempts = [...prev];
+            newRetryAttempts[currentConversationIndex] = (newRetryAttempts[currentConversationIndex] || 0) + 1;
+            return newRetryAttempts;
+        });
         
         // Reset the current conversation state for retry
         setCurrentConversationGuess({ leftWindow: '', rightWindow: '' });
@@ -1578,7 +1601,7 @@ function ChatPage() {
         const newGuesses = [...conversationGuesses];
         newGuesses[currentConversationIndex] = null;
         setConversationGuesses(newGuesses);
-    };    const nextConversation = () => {
+    };const nextConversation = () => {
         // Reset activity timestamp when user progresses through conversations
         lastActivityTimestampRef.current = Date.now();
         setWarningShown(false);
@@ -1596,22 +1619,33 @@ function ChatPage() {
             // console.log(`🕐 Conversation review completed in ${totalReviewTime} seconds`);
             
             setConversationPhase('completed');
-            
-            // Set waiting states for partner synchronization
+              // Set waiting states for partner synchronization
             setWaitingForPartnerReview(true);
             setWaitingForReviewStartTime(Date.now());
             setWaitingForReviewElapsed(0);
             
-            // Don't set anonymous mode or start timers yet - wait for backend sync
+            // Start conversation review waiting timer
+            setConversationReviewWaitingStartTime(Date.now());
+              // Don't set anonymous mode or start timers yet - wait for backend sync
             // The backend will coordinate with the other participant via conversation_review_sync
-              // Emit synchronization event to backend with review completion data
+            
+            // Calculate waiting times properly
+            const quizWaitingTime = quizWaitingStartTime ? Math.floor((Date.now() - quizWaitingStartTime) / 1000) : 0;
+            const conversationReviewWaitingTime = 0; // We just started waiting for conversation review, so no waiting time yet
+            
+            // Emit synchronization event to backend with review completion data
             socket.emit('conversation_review_completed', {
                 pair_id: pairId,
                 role: role,
-                username: username,                review_time_seconds: totalReviewTime,
+                username: username,
+                review_time_seconds: totalReviewTime,
                 total_conversations: preShuffleConversations.length,
                 correct_guesses: conversationGuesses.filter(guess => guess?.isCorrect).length,
-                remaining_time_when_completed: conversationReviewElapsed // Add current remaining time
+                remaining_time_when_completed: conversationReviewElapsed, // Add current remaining time
+                retry_attempts: retryAttemptsByConversation, // Fix: use retryAttemptsByConversation instead of retryAttempts
+                quiz_time_seconds: quizStartTime ? Math.floor((Date.now() - quizStartTime) / 1000) : 0, // Add quiz time
+                quiz_waiting_time_seconds: quizWaitingTime, // Use calculated quiz waiting time
+                conversation_review_waiting_time_seconds: conversationReviewWaitingTime // No conversation review waiting time yet
             });
             
             // Show waiting message while backend coordinates with partner
@@ -1752,8 +1786,7 @@ function ChatPage() {
     };    useEffect(() => {
         // Log when socket events are registered
         // // console.log('🎯 [SOCKET] Registering quiz events for role:', role);
-        
-        socket.on('quiz_completed', (data) => {
+          socket.on('quiz_completed', (data) => {
             if (data.role !== role) {
                 // console.log('[QUIZ_COMPLETED] Partner completed quiz, updating partner status');
                 // console.log('[QUIZ_COMPLETED] Current state:', {
@@ -1762,7 +1795,14 @@ function ChatPage() {
                 //     conversationPhase,
                 //     conversationReviewStarted
                 // });
-                setPartnerQuizStatus('completed');                // If we've already completed our quiz, mark that we're ready but don't auto-start conversation review
+                setPartnerQuizStatus('completed');
+                
+                // Stop quiz waiting timer if we were waiting
+                if (quizWaitingStartTime) {
+                    setQuizWaitingStartTime(null);
+                }
+                
+                // If we've already completed our quiz, mark that we're ready but don't auto-start conversation review
                 if (quizStep === 'completed') {
                     // console.log('[QUIZ_COMPLETED] Both quizzes complete, but waiting for both to dismiss notifications');
                     // End waiting state
@@ -1829,12 +1869,14 @@ function ChatPage() {
                 // console.log('[QUIZ_SUBMISSION] Partner also completed, but waiting for both to dismiss notifications');
                 // Don't automatically start conversation review - wait for both users to dismiss their notifications
                 // The conversation review will start when both have dismissed via the existing useEffect logic
-            } else {
-                // console.log('[QUIZ_SUBMISSION] Waiting for partner to complete quiz');
+            } else {                // console.log('[QUIZ_SUBMISSION] Waiting for partner to complete quiz');
                 // Start waiting state
                 setWaitingForPartner(true);
                 setWaitingStartTime(Date.now());
                 setWaitingElapsedTime(0);
+                
+                // Start quiz waiting timer
+                setQuizWaitingStartTime(Date.now());
             }
             handleDismissNotification();
         } else {
