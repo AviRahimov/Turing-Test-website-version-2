@@ -5,9 +5,9 @@ export const loadCSVData = async () => {
   try {
     console.log('Loading CSV data...');
     
-    // Fetch CSV files from public folder
-    const botResponse = await fetch('/data/enhanced_gpt_4.5_bot_conversations_correct_filtered.csv');
-    const humanResponse = await fetch('/data/enhanced_gpt_4.5_human_conversations_correct_filtered.csv');
+    // Fetch CSV files from public folder 
+    const botResponse = await fetch('/data/llama_3.2_bot_guess_correct_conversations_with_self_PE_3plus.csv');
+    const humanResponse = await fetch('/data/llama_3.2_human_guess_correct_conversations_with_self_PE_3plus.csv');
 
     if (!botResponse.ok || !humanResponse.ok) {
       throw new Error(`Failed to fetch CSV files. Bot: ${botResponse.status}, Human: ${humanResponse.status}`);
@@ -85,8 +85,9 @@ const parseCSVLine = (line) => {
 };
 
 // Function to get 5 random conversations from the data
-export const getRandomConversations = (csvData, count = 5) => {
+export const getRandomConversations = (csvData, count = 5, useCommonPairIds = false) => {
   console.log('getRandomConversations called with:', csvData);
+  console.log('useCommonPairIds flag:', useCommonPairIds);
   
   if (!csvData.botData || !csvData.humanData) {
     console.warn('CSV data not properly loaded, using mock data');
@@ -105,28 +106,49 @@ export const getRandomConversations = (csvData, count = 5) => {
   console.log('Bot pair IDs:', botPairIds.slice(0, 5)); // Show first 5
   console.log('Human pair IDs:', humanPairIds.slice(0, 5)); // Show first 5
   
-  // Find common pair IDs
-  const commonPairIds = botPairIds.filter(id => humanPairIds.includes(id));
+  let selectedBotPairIds, selectedHumanPairIds;
   
-  console.log(`Found ${commonPairIds.length} common pair IDs:`, commonPairIds.slice(0, 5));
-  
-  if (commonPairIds.length < count) {
-    console.warn(`Only ${commonPairIds.length} common conversations found, requested ${count}`);
-    if (commonPairIds.length === 0) {
-      console.log('No common pair IDs found, falling back to mock data');
-      return getMockConversations(count);
-    }
-  }
-  
-  // Randomly select pair IDs
-  const selectedPairIds = shuffleArray([...commonPairIds]).slice(0, Math.min(count, commonPairIds.length));
-  
-  // Build conversation pairs
-  const conversations = selectedPairIds.map((pairId, index) => {
-    const botConversation = botData.filter(row => row.pairId === pairId);
-    const humanConversation = humanData.filter(row => row.pairId === pairId);
+  if (useCommonPairIds) {
+    // Find common pair IDs
+    const commonPairIds = botPairIds.filter(id => humanPairIds.includes(id));
     
-    console.log(`Conversation ${index + 1} (${pairId}):`, {
+    console.log(`Found ${commonPairIds.length} common pair IDs:`, commonPairIds.slice(0, 5));
+    
+    if (commonPairIds.length < count) {
+      console.warn(`Only ${commonPairIds.length} common conversations found, requested ${count}`);
+      if (commonPairIds.length === 0) {
+        console.log('No common pair IDs found, falling back to mock data');
+        return getMockConversations(count);
+      }
+    }
+    
+    // Use common pair IDs for both bot and human
+    const selectedCommonPairIds = shuffleArray([...commonPairIds]).slice(0, Math.min(count, commonPairIds.length));
+    selectedBotPairIds = selectedCommonPairIds;
+    selectedHumanPairIds = selectedCommonPairIds;
+  } else {
+    // Use separate pair IDs for bot and human conversations
+    console.log('Using separate pair IDs for bot and human conversations');
+    selectedBotPairIds = shuffleArray([...botPairIds]).slice(0, Math.min(count, botPairIds.length));
+    selectedHumanPairIds = shuffleArray([...humanPairIds]).slice(0, Math.min(count, humanPairIds.length));
+    
+    console.log('Selected bot pair IDs:', selectedBotPairIds);
+    console.log('Selected human pair IDs:', selectedHumanPairIds);
+  }  
+  // Build conversation pairs
+  const conversations = [];
+  const maxConversations = useCommonPairIds ? 
+    Math.min(count, selectedBotPairIds.length) : 
+    Math.min(count, Math.min(selectedBotPairIds.length, selectedHumanPairIds.length));
+  
+  for (let index = 0; index < maxConversations; index++) {
+    const botPairId = selectedBotPairIds[index];
+    const humanPairId = useCommonPairIds ? selectedHumanPairIds[index] : selectedHumanPairIds[index];
+    
+    const botConversation = botData.filter(row => row.pairId === botPairId);
+    const humanConversation = humanData.filter(row => row.pairId === humanPairId);
+    
+    console.log(`Conversation ${index + 1} - Bot: ${botPairId}, Human: ${humanPairId}:`, {
       botMessages: botConversation.length,
       humanMessages: humanConversation.length
     });
@@ -138,15 +160,15 @@ export const getRandomConversations = (csvData, count = 5) => {
     // Randomly assign which conversation goes to left/right window
     const randomAssignment = Math.random() < 0.5;
     
-    return {
+    conversations.push({
       id: `conv_${index}`,
-      pairId,
+      pairId: useCommonPairIds ? botPairId : `${botPairId}_${humanPairId}`,
       leftConversation: randomAssignment ? formattedBotConv : formattedHumanConv,
       rightConversation: randomAssignment ? formattedHumanConv : formattedBotConv,
       leftIsHuman: !randomAssignment,
       rightIsHuman: randomAssignment
-    };
-  });
+    });
+  }
   
   console.log('Generated conversations:', conversations.length);
   return conversations;

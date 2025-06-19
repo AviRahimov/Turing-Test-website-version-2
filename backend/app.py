@@ -28,7 +28,8 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 # OPENROUTER_MODEL = "meta-llama/llama-3.1-405b-instruct"
 # OPENROUTER_MODEL = "deepseek/deepseek-r1:free"
-OPENROUTER_MODEL = "openai/gpt-4.5-preview"
+# OPENROUTER_MODEL = "openai/gpt-4.5-preview"
+OPENROUTER_MODEL = "meta-llama/llama-3.2-1b-instruct"
 BOT_ENABLE_PROMPT = True
 SHUFFLE_ENABLED = False  # Should match frontend config - set to False to skip shuffle phase
 
@@ -182,7 +183,8 @@ def chat_with_bot():
                     bot_base_ai_experience=bot_base_persona_details.get('aiExperience', "Low"),
                     conversation_to_continue_history=conversation_to_continue,
                     bot_displayed_demographics=displayed_demographics,
-                    original_tester_bot_history=original_tester_bot_chat
+                    original_tester_bot_history=original_tester_bot_chat,
+                    is_self_prompt=True
                 )
 
         if system_prompt_object:
