@@ -4,10 +4,10 @@
 export const loadCSVData = async () => {
   try {
     console.log('Loading CSV data...');
-    
-    // Fetch CSV files from public folder 
-    const botResponse = await fetch('/data/llama_3.2_bot_guess_correct_conversations_with_self_PE_3plus.csv');
-    const humanResponse = await fetch('/data/llama_3.2_human_guess_correct_conversations_with_self_PE_3plus.csv');
+
+    // Fetch CSV files from public folder
+    const botResponse = await fetch('/data/llama_3.2_bot_guess_correct_conversations_without_PE_3plus.csv');
+    const humanResponse = await fetch('/data/llama_3.2_human_guess_correct_conversations_without_PE_3plus.csv');
 
     if (!botResponse.ok || !humanResponse.ok) {
       throw new Error(`Failed to fetch CSV files. Bot: ${botResponse.status}, Human: ${humanResponse.status}`);

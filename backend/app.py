@@ -30,7 +30,7 @@ OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 # OPENROUTER_MODEL = "deepseek/deepseek-r1:free"
 # OPENROUTER_MODEL = "openai/gpt-4.5-preview"
 OPENROUTER_MODEL = "meta-llama/llama-3.2-1b-instruct"
-BOT_ENABLE_PROMPT = True
+BOT_ENABLE_PROMPT = False
 SHUFFLE_ENABLED = False  # Should match frontend config - set to False to skip shuffle phase
 
 # MongoDB connection
@@ -765,7 +765,7 @@ def save_feedback():
         "realIdentityB": real_identity_b,
         "correctGuessA": (data.get("guessCandidateA") == real_identity_a) if data else False,
         "correctGuessB": (data.get("guessCandidateB") == real_identity_b) if data else False,
-        "chatBotModel": OPENROUTER_MODEL,
+        "chatBotModel": OPENROUTER_MODEL + "-no-PE",  # Using the no-Prompt Engineering model
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     }
 

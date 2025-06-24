@@ -6,7 +6,7 @@ const config = {
   POST_SHUFFLE_TIMER: 300,  // Duration of post-shuffle anonymous phase (seconds)
   CHECK_IP: true,         // Set to true to check IP address, false to skip
   ENABLE_BOT_WAKEUP: false,  // Enable/disable the bot wake-up message system
-  ENABLE_PROMPT: true,      // Enable/disable the prompt system
+  ENABLE_PROMPT: false,      // Enable/disable the prompt system
   ENABLE_MESSAGE_QUEUE: false,  // Enable/disable the message queue system for bot messages
   // SERVER_URL: 'http://localhost:5000',  // URL of the server for local testing
   SERVER_URL: 'http://54.89.200.237:5000',  // URL of the server
